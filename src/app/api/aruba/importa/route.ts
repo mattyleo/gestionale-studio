@@ -297,7 +297,6 @@ export async function POST(req: Request) {
               terminiPagamento: 30,
               note: noteDoc,
               companyId: company.id,
-              issuerId: emittenteDb.id,
               snapshotEmittente: emittenteDb as any,
               snapshotCliente: company as any,
             },
@@ -347,7 +346,8 @@ export async function POST(req: Request) {
               data: {
                 invoiceId: inv.id,
                 importo: new Decimal(totaleFinale),
-                dataPagamento: dataDoc,
+                dataValuta: dataDoc,
+                dataIncasso: dataDoc,
                 metodo: modalitaPagamento,
                 note: 'Incasso registrato da importazione storico Aruba',
               },
