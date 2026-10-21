@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatEuro, formatData } from '@/lib/utils'
+import { ImportaArubaModal } from '@/components/aruba/ImportaArubaModal'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 
@@ -100,9 +101,12 @@ export default function DaIncassarePage() {
             )}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={carica}>
-          <RefreshCw className="h-4 w-4 mr-1" /> Aggiorna
-        </Button>
+        <div className="flex items-center gap-2">
+          <ImportaArubaModal onSuccess={carica} />
+          <Button variant="outline" size="sm" onClick={carica}>
+            <RefreshCw className="h-4 w-4 mr-1" /> Aggiorna
+          </Button>
+        </div>
       </div>
 
       {loading ? (

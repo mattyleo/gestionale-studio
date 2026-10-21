@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { ImportaArubaModal } from '@/components/aruba/ImportaArubaModal'
 import {
   Table,
   TableBody,
@@ -516,12 +517,32 @@ export default function ImpostazioniPage() {
         </TabsContent>
 
         {/* TAB: Aruba */}
-        <TabsContent value="aruba">
+        <TabsContent value="aruba" className="space-y-6">
+          <Card className="border-orange-200">
+            <CardHeader className="bg-orange-50/50 border-b border-orange-100">
+              <CardTitle className="flex items-center gap-2 text-orange-950">
+                <Wifi className="h-5 w-5 text-orange-600" />
+                Importazione Massiva Storico da Aruba
+              </CardTitle>
+              <CardDescription>
+                Importa tutte le fatture pregresse e crea in automatico le anagrafiche dei tuoi clienti a partire dal file ZIP o XML scaricato da Aruba.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Puoi caricare l'archivio ZIP massivo esportato dal portale di Aruba Fatturazione Elettronica. Il programma estrarrà le anagrafiche complete (P.IVA, Codice Fiscale, Indirizzo, Codice SDI, PEC) e tutte le fatture con i relativi dettagli e pagamenti.
+              </p>
+              <div>
+                <ImportaArubaModal />
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Wifi className="h-5 w-5 text-orange-500" />
-                Integrazione Aruba Fatturazione Elettronica
+                <Wifi className="h-5 w-5 text-gray-500" />
+                Integrazione Aruba Fatturazione Elettronica SdI
               </CardTitle>
               <CardDescription>
                 Stato del collegamento per l'invio telematico delle fatture allo SdI tramite Aruba API

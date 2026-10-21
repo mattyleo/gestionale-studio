@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/table'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ImportaArubaModal } from '@/components/aruba/ImportaArubaModal'
 import { formatEuro, formatData } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
@@ -81,6 +82,7 @@ export default function IncassatePage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <ImportaArubaModal onSuccess={caricaDati} />
           <Badge variant="success" className="text-sm px-3 py-1">
             <CheckCircle className="h-4 w-4 mr-1.5 inline" /> Saldo completo
           </Badge>
