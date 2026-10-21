@@ -1,0 +1,607 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale beyond databases? Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// UTENTI E PROFILO EMITTENTE
+// ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  role          UserRole  @default(OPERATOR)
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts         Account[]
+  sessions         Session[]
+  workEntries      WorkEntry[]
+  auditEvents      AuditEvent[]
+  uploadedDocuments CompanyDocument[] @relation("DocumentUploader")
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  OPERATOR
+  READONLY
+}
+
+// NextAuth tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─────────────────────────────────────────────
+// PROFILO EMITTENTE (STUDIO)
+// ─────────────────────────────────────────────
+
+model IssuerProfile {
+  id                 String   @id @default(cuid())
+  denominazione      String
+  codiceFiscale      String
+  partitaIva         String?
+  indirizzo          String
+  cap                String
+  comune             String
+  provincia          String
+  paese              String   @default("IT")
+  telefono           String?
+  email              String?
+  pec                String?
+  iban               String?
+  regimeFiscale      String   @default("RF19")
+  cassaPrevidenziale String?  @default("TC02")
+  aliquotaCassa      Decimal  @default(4) @db.Decimal(5, 2)
+  rivalsa            Boolean  @default(true)
+  bolloVirtuale      Boolean  @default(true)
+  importoBollo       Decimal  @default(2.00) @db.Decimal(10, 2)
+  sogliaBollo        Decimal  @default(77.47) @db.Decimal(10, 2)
+  aliquotaIva        String   @default("0")
+  naturaIva          String   @default("N2.2")
+  logoUrl            String?
+  templatePdf        String   @default("default")
+  noteDefaultFattura String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  documentSequences DocumentSequence[]
+
+  @@map("issuer_profiles")
+}
+
+// ─────────────────────────────────────────────
+// NUMERAZIONE FATTURE
+// ─────────────────────────────────────────────
+
+model DocumentSequence {
+  id           String   @id @default(cuid())
+  issuerId     String
+  sezionale    String   @default("FT")
+  anno         Int
+  ultimoNumero Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  issuer   IssuerProfile @relation(fields: [issuerId], references: [id])
+  invoices Invoice[]
+
+  @@unique([issuerId, sezionale, anno])
+  @@map("document_sequences")
+}
+
+// ─────────────────────────────────────────────
+// AZIENDE / CLIENTI
+// ─────────────────────────────────────────────
+
+enum TipoSoggetto {
+  PERSONA_GIURIDICA
+  PERSONA_FISICA
+  DITTA_INDIVIDUALE
+  ASSOCIAZIONE
+  PA
+}
+
+enum FatturazFrequenza {
+  MENSILE
+  BIMESTRALE
+  TRIMESTRALE
+  SEMESTRALE
+  ANNUALE
+  MANUALE
+}
+
+model Company {
+  id                    String            @id @default(cuid())
+  ragioneSociale        String
+  tipoSoggetto          TipoSoggetto      @default(PERSONA_GIURIDICA)
+  codiceFiscale         String?
+  partitaIva            String?
+  indirizzo             String?
+  cap                   String?
+  comune                String?
+  provincia             String?
+  paese                 String            @default("IT")
+  codiceDestinatarioSdi String?
+  pec                   String?
+  emailAmministrativa   String?
+  referente             String?
+  telefono              String?
+  note                  String?
+  modalitaPagamento     String?           @default("MP05")
+  terminiPagamento      Int?              @default(30)
+  ibanRiferimento       String?
+  frequenzaFatturazione FatturazFrequenza @default(MENSILE)
+  attivo                Boolean           @default(true)
+  archiviata            Boolean           @default(false)
+  dataArchiviazione     DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  contacts         CompanyContact[]
+  priceRules       PriceRule[]
+  workEntries      WorkEntry[]
+  invoices         Invoice[]
+  historySnapshots CompanyHistorySnapshot[]
+  documents        CompanyDocument[]
+
+  @@index([ragioneSociale])
+  @@index([codiceFiscale])
+  @@index([partitaIva])
+  @@map("companies")
+}
+
+// ─────────────────────────────────────────────
+// DOCUMENTI AZIENDA (carte d'identità, PDF, ecc.)
+// ─────────────────────────────────────────────
+
+model CompanyDocument {
+  id          String   @id @default(cuid())
+  companyId   String
+  uploadedBy  String?
+  nomeFile    String                // nome originale del file
+  nomeStorage String                // nome con cui è salvato su disco
+  tipoDoc     String   @default("altro") // "carta_identita" | "passaporto" | "visura" | "contratto" | "altro"
+  mimeType    String
+  dimensione  Int                   // bytes
+  note        String?
+  scadenza    DateTime? @db.Date    // scadenza documento (es. CI)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company    Company @relation(fields: [companyId], references: [id])
+  uploadedByUser User? @relation("DocumentUploader", fields: [uploadedBy], references: [id])
+
+  @@index([companyId])
+  @@map("company_documents")
+}
+
+model CompanyContact {
+  id        String  @id @default(cuid())
+  companyId String
+  tipo      String
+  valore    String
+  note      String?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("company_contacts")
+}
+
+model CompanyHistorySnapshot {
+  id        String   @id @default(cuid())
+  companyId String
+  changedAt DateTime @default(now())
+  changedBy String?
+  motivo    String?
+  snapshot  Json
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId, changedAt])
+  @@map("company_history_snapshots")
+}
+
+// ─────────────────────────────────────────────
+// SERVIZI E TARIFFARIO
+// ─────────────────────────────────────────────
+
+enum UnitaServizio {
+  ORA
+  PRATICA
+  CEDOLINO
+  DICHIARAZIONE
+  MESE
+  QUANTITA
+  BUSTA_PAGA_FASCIA
+}
+
+enum ArrotondamentoOre {
+  COMMERCIALE
+  SEMPRE_SU
+  SEMPRE_GIU
+  QUARTO_ORA
+}
+
+model Service {
+  id             String            @id @default(cuid())
+  codice         String            @unique
+  descrizione    String
+  unita          UnitaServizio
+  prezzoBase     Decimal?          @db.Decimal(10, 2)
+  tariffaOraria  Decimal?          @db.Decimal(10, 2)
+  aliquotaIva    String            @default("0")
+  naturaIva      String            @default("N2.2")
+  arrotondamento ArrotondamentoOre @default(COMMERCIALE)
+  validoDal      DateTime?
+  validoAl       DateTime?
+  attivo         Boolean           @default(true)
+  note           String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  priceRules  PriceRule[]
+  workEntries WorkEntry[]
+
+  @@index([codice])
+  @@map("services")
+}
+
+model PriceRule {
+  id             String    @id @default(cuid())
+  serviceId      String
+  companyId      String?
+  dipendentiMin  Int?
+  dipendentiMax  Int?
+  tipoDitta      String?
+  prezzoUnitario Decimal   @db.Decimal(10, 2)
+  validaDal      DateTime
+  validaAl       DateTime?
+  attiva         Boolean   @default(true)
+  note           String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  service Service  @relation(fields: [serviceId], references: [id])
+  company Company? @relation(fields: [companyId], references: [id])
+
+  @@index([serviceId, companyId])
+  @@index([validaDal, validaAl])
+  @@map("price_rules")
+}
+
+// ─────────────────────────────────────────────
+// GOOGLE CALENDAR
+// ─────────────────────────────────────────────
+
+model CalendarConnection {
+  id            String    @id @default(cuid())
+  userId        String
+  provider      String    @default("google")
+  accountEmail  String
+  accessToken   String    @db.Text
+  refreshToken  String?   @db.Text
+  tokenExpiry   DateTime?
+  syncToken     String?
+  ultimaSync    DateTime?
+  ultimoErrore  String?
+  attiva        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  selectedCalendars SelectedCalendar[]
+
+  @@map("calendar_connections")
+}
+
+model SelectedCalendar {
+  id           String  @id @default(cuid())
+  connectionId String
+  calendarId   String
+  nome         String
+  colore       String?
+  sincronizza  Boolean @default(true)
+
+  connection CalendarConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, calendarId])
+  @@map("selected_calendars")
+}
+
+model CalendarEvent {
+  id               String    @id @default(cuid())
+  googleEventId    String
+  googleCalendarId String
+  ricorrenzaId     String?
+  titolo           String
+  descrizione      String?
+  dataInizio       DateTime
+  dataFine         DateTime
+  fusoOrario       String?
+  durataMinuti     Int?
+  statoGoogle      String?
+  rawData          Json?
+  importato        Boolean   @default(false)
+  importatoAl      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  workEntry WorkEntry?
+
+  @@unique([googleEventId, googleCalendarId])
+  @@index([dataInizio])
+  @@map("calendar_events")
+}
+
+// ─────────────────────────────────────────────
+// ATTIVITÀ / PRESTAZIONI
+// ─────────────────────────────────────────────
+
+enum WorkEntryStato {
+  DA_CLASSIFICARE
+  DA_VERIFICARE
+  APPROVATA
+  IN_BOZZA_FATTURA
+  FATTURATA
+  ESCLUSA
+}
+
+enum WorkEntryOrigine {
+  MANUALE
+  GOOGLE_CALENDAR
+  IMPORTAZIONE
+}
+
+model WorkEntry {
+  id                      String           @id @default(cuid())
+  companyId               String?
+  serviceId               String?
+  operatoreId             String?
+  calendarEventId         String?          @unique
+  data                    DateTime         @db.Date
+  descrizione             String?
+  note                    String?
+  durataMinutiLavorati    Int?
+  durataMinutiFatturabili Int?
+  quantita                Decimal?         @db.Decimal(10, 4)
+  prezzoUnitario          Decimal?         @db.Decimal(10, 2)
+  priceRuleId             String?
+  prezzoManuale           Boolean          @default(false)
+  motivazionePrezzoManuale String?
+  importo                 Decimal?         @db.Decimal(10, 2)
+  numeroDipendenti        Int?
+  tipoDitta               String?
+  stato                   WorkEntryStato   @default(DA_CLASSIFICARE)
+  motivazioneEsclusa      String?
+  origine                 WorkEntryOrigine @default(MANUALE)
+  invoiceLineId           String?          @unique
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  company       Company?       @relation(fields: [companyId], references: [id])
+  service       Service?       @relation(fields: [serviceId], references: [id])
+  operatore     User?          @relation(fields: [operatoreId], references: [id])
+  calendarEvent CalendarEvent? @relation(fields: [calendarEventId], references: [id])
+  invoiceLine   InvoiceLine?   @relation(fields: [invoiceLineId], references: [id])
+
+  @@index([data])
+  @@index([companyId, data])
+  @@index([stato])
+  @@map("work_entries")
+}
+
+// ─────────────────────────────────────────────
+// FATTURE
+// ─────────────────────────────────────────────
+
+enum InvoiceStato {
+  BOZZA
+  DA_APPROVARE
+  PRONTA_EMISSIONE
+  EMESSA
+  ANNULLATA
+}
+
+model Invoice {
+  id                String       @id @default(cuid())
+  sequenceId        String?
+  numero            Int?
+  sezionale         String?      @default("FT")
+  anno              Int?
+  numeroCompleto    String?
+  companyId         String
+  dataDocumento     DateTime?
+  dataScadenza      DateTime?
+  snapshotEmittente Json?
+  snapshotCliente   Json?
+  imponibile        Decimal      @default(0) @db.Decimal(10, 2)
+  totaleCassa       Decimal      @default(0) @db.Decimal(10, 2)
+  totaleIva         Decimal      @default(0) @db.Decimal(10, 2)
+  bollo             Decimal      @default(0) @db.Decimal(10, 2)
+  totaleDocumento   Decimal      @default(0) @db.Decimal(10, 2)
+  modalitaPagamento String?
+  terminiPagamento  Int?
+  ibanDestinatario  String?
+  stato             InvoiceStato @default(BOZZA)
+  pdfUrl            String?
+  xmlUrl            String?
+  xmlHash           String?
+  periodoDal        DateTime?    @db.Date
+  periodoAl         DateTime?    @db.Date
+  note              String?
+  noteInterne       String?
+  emessaAl          DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  company       Company              @relation(fields: [companyId], references: [id])
+  sequence      DocumentSequence?    @relation(fields: [sequenceId], references: [id])
+  lines         InvoiceLine[]
+  payments      Payment[]
+  transmissions InvoiceTransmission[]
+
+  @@unique([numeroCompleto])
+  @@index([companyId, stato])
+  @@index([dataDocumento])
+  @@index([stato])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id                 String  @id @default(cuid())
+  invoiceId          String
+  ordinamento        Int     @default(0)
+  descrizione        String
+  quantita           Decimal @db.Decimal(10, 4)
+  prezzoUnitario     Decimal @db.Decimal(10, 2)
+  importo            Decimal @db.Decimal(10, 2)
+  aliquotaIva        String  @default("0")
+  naturaIva          String  @default("N2.2")
+  serviceId          String?
+  serviceCodice      String?
+  serviceDescrizione String?
+
+  invoice     Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  workEntries WorkEntry[]
+
+  @@index([invoiceId])
+  @@map("invoice_lines")
+}
+
+// ─────────────────────────────────────────────
+// TRASMISSIONI SdI / ARUBA
+// ─────────────────────────────────────────────
+
+enum TransmissionTipo {
+  INVIO
+  REINVIO
+  NOTIFICA_ESITO
+}
+
+enum TransmissionStato {
+  DA_INVIARE
+  INVIATA
+  CONSEGNATA
+  MANCATA_CONSEGNA
+  SCARTATA
+  DA_CORREGGERE
+  ERRORE_TECNICO
+}
+
+model InvoiceTransmission {
+  id                String            @id @default(cuid())
+  invoiceId         String
+  tipo              TransmissionTipo  @default(INVIO)
+  stato             TransmissionStato @default(DA_INVIARE)
+  arubaProtocollo   String?
+  sdiFattura        String?
+  sdiNotifica       String?
+  tentativo         Int               @default(1)
+  ultimoTentativo   DateTime?
+  prossimoTentativo DateTime?
+  errore            String?           @db.Text
+  esitoRaw          Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@map("invoice_transmissions")
+}
+
+// ─────────────────────────────────────────────
+// PAGAMENTI
+// ─────────────────────────────────────────────
+
+model Payment {
+  id           String   @id @default(cuid())
+  invoiceId    String
+  importo      Decimal  @db.Decimal(10, 2)
+  dataValuta   DateTime @db.Date
+  dataIncasso  DateTime @db.Date
+  metodo       String?
+  riferimento  String?
+  note         String?
+  registratoDa String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@index([dataIncasso])
+  @@map("payments")
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOG
+// ─────────────────────────────────────────────
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  userId     String?
+  entityType String
+  entityId   String
+  azione     String
+  dettagli   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_events")
+}
