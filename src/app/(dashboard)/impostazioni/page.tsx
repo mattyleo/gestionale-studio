@@ -408,6 +408,19 @@ export default function ImpostazioniPage() {
                     </div>
                   </div>
 
+                  <div className="space-y-1.5">
+                    <Label htmlFor="noteDefaultFattura">Dicitura Legale / Causale Predefinita nelle Fatture</Label>
+                    <Input
+                      id="noteDefaultFattura"
+                      value={studio.noteDefaultFattura || ''}
+                      onChange={(e) => setStudio({ ...studio, noteDefaultFattura: e.target.value })}
+                      placeholder="es. Operazione non soggetta a ritenuta alla fonte a titolo di acconto ai sensi dell'articolo 1, comma 67, l. n. 190 del 2014 e successive modificazioni"
+                    />
+                    <span className="text-[11px] text-gray-500">
+                      Viene stampata in automatico nei PDF delle fatture, negli avvisi di parcella e inserita nella causale dell'XML per lo SdI.
+                    </span>
+                  </div>
+
                   <div className="flex justify-end pt-4">
                     <Button type="submit" disabled={salvandoStudio}>
                       {salvandoStudio ? (

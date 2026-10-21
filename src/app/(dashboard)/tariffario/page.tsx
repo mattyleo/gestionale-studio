@@ -46,6 +46,7 @@ import {
 } from '@/components/ui/select'
 import { formatEuro } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { CODICI_IVA } from '@/lib/codici-iva'
 
 interface ServizioItem {
   id: string
@@ -824,20 +825,27 @@ export default function TariffarioPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="mod-naturaIva">Natura IVA (FatturaPA)</Label>
+                <Label htmlFor="mod-naturaIva">Codice / Natura IVA</Label>
                 <Select
                   value={formModifica.naturaIva}
-                  onValueChange={(v) => setFormModifica({ ...formModifica, naturaIva: v })}
+                  onValueChange={(v) => {
+                    const found = CODICI_IVA.find((c) => (c.natura || 'ORDINARIA') === v || c.codice === v)
+                    setFormModifica({
+                      ...formModifica,
+                      naturaIva: v,
+                      aliquotaIva: found ? String(found.aliquota) : formModifica.aliquotaIva,
+                    })
+                  }}
                 >
                   <SelectTrigger id="mod-naturaIva">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="N2.2">N2.2 (Regime Forfetario)</SelectItem>
-                    <SelectItem value="N1">N1 (Escluse ex art. 15)</SelectItem>
-                    <SelectItem value="N4">N4 (Esenti art. 10)</SelectItem>
-                    <SelectItem value="N3.1">N3.1 (Non imponibili)</SelectItem>
-                    <SelectItem value="ORDINARIA">Nessuna natura (IVA ordinaria)</SelectItem>
+                  <SelectContent className="max-h-60">
+                    {CODICI_IVA.map((c) => (
+                      <SelectItem key={c.codice} value={c.natura || 'ORDINARIA'}>
+                        {c.titoloBreve} ({c.aliquota}%)
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -852,9 +860,10 @@ export default function TariffarioPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="0">0% (Forfetario / Esente)</SelectItem>
+                    <SelectItem value="0">0% (Forfetario / Esente / Non sogg.)</SelectItem>
                     <SelectItem value="22">22% (Ordinaria)</SelectItem>
                     <SelectItem value="10">10% (Ridotta)</SelectItem>
+                    <SelectItem value="5">5% (Ridotta)</SelectItem>
                     <SelectItem value="4">4% (Minima)</SelectItem>
                   </SelectContent>
                 </Select>

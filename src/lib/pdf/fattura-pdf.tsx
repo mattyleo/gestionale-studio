@@ -1,4 +1,7 @@
-import React from 'react';
+// src/lib/pdf/fattura-pdf.tsx
+// Generatore PDF fatture ed avvisi di parcella (bozze) conforme agli standard del Dott. Antonio Tuzio
+
+import React from 'react'
 import {
   Document,
   Page,
@@ -6,324 +9,532 @@ import {
   View,
   StyleSheet,
   renderToBuffer,
-} from '@react-pdf/renderer';
+} from '@react-pdf/renderer'
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
-    fontSize: 10,
+    paddingTop: 30,
+    paddingBottom: 40,
+    paddingHorizontal: 35,
+    fontSize: 8.5,
     fontFamily: 'Helvetica',
-    color: '#333',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 40,
-  },
-  headerLeft: {
-    width: '50%',
-  },
-  headerRight: {
-    width: '40%',
-    textAlign: 'right',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  bozzaTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'red',
-    marginBottom: 5,
-  },
-  infoTesto: {
-    marginBottom: 2,
+    color: '#222',
   },
   bold: {
     fontFamily: 'Helvetica-Bold',
   },
-  clientSection: {
-    marginBottom: 30,
-    paddingLeft: '50%',
+  // ── Sezione Header Superiore ──
+  topHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
   },
-  clientBox: {
-    border: '1pt solid #ccc',
-    padding: 10,
+  topHeaderLeft: {
+    width: '55%',
   },
-  clientName: {
-    fontSize: 12,
+  topHeaderRight: {
+    width: '42%',
+    textAlign: 'right',
+  },
+  docTitleMain: {
+    fontSize: 18,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 5,
+    color: '#1d4ed8', // blue-700
+    marginBottom: 3,
   },
+  docTitleInvoice: {
+    fontSize: 18,
+    fontFamily: 'Helvetica-Bold',
+    color: '#0f172a',
+    marginBottom: 3,
+  },
+  docSubProforma: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#b91c1c', // red-700
+    marginBottom: 6,
+  },
+  metaRow: {
+    fontSize: 8,
+    color: '#475569',
+    marginBottom: 2,
+  },
+  // ── Due Blocchi: Fornitore e Cliente ──
+  partiesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 12,
+  },
+  partyBox: {
+    width: '48.5%',
+    backgroundColor: '#f8fafc',
+    border: '1pt solid #cbd5e1',
+    borderRadius: 4,
+    padding: 8,
+  },
+  partyTitle: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: '#0f172a',
+    borderBottom: '1pt solid #e2e8f0',
+    paddingBottom: 4,
+    marginBottom: 5,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  partyName: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: '#0f172a',
+    marginBottom: 3,
+  },
+  partyText: {
+    fontSize: 8,
+    color: '#334155',
+    marginBottom: 1.5,
+  },
+  // ── Intestazioni Sezione ──
+  sectionHeading: {
+    fontSize: 9.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#0f172a',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginVertical: 8,
+  },
+  // ── Tabelle ──
   table: {
     width: '100%',
-    marginBottom: 20,
-    border: '1pt solid #ccc',
+    border: '1pt solid #cbd5e1',
+    borderRadius: 3,
+    marginBottom: 12,
+    overflow: 'hidden',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
-    borderBottom: '1pt solid #ccc',
-    padding: 5,
+    backgroundColor: '#e2e8f0',
+    borderBottom: '1pt solid #cbd5e1',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
     fontFamily: 'Helvetica-Bold',
+    fontSize: 7.5,
+    color: '#1e293b',
   },
   tableRow: {
     flexDirection: 'row',
-    borderBottom: '1pt solid #eee',
-    padding: 5,
+    borderBottom: '0.5pt solid #e2e8f0',
+    paddingVertical: 4.5,
+    paddingHorizontal: 4,
+    fontSize: 8,
+    alignItems: 'center',
   },
-  colN: { width: '5%' },
-  colDesc: { width: '50%' },
+  // Colonne Prodotti & Servizi
+  colNr: { width: '5%', textAlign: 'center' },
+  colDesc: { width: '45%' },
   colQty: { width: '10%', textAlign: 'right' },
   colPrice: { width: '15%', textAlign: 'right' },
-  colAmount: { width: '20%', textAlign: 'right' },
-  summarySection: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 20,
+  colAmount: { width: '15%', textAlign: 'right' },
+  colIva: { width: '5%', textAlign: 'center' },
+  colNatura: { width: '5%', textAlign: 'center' },
+  // Colonne Metodo Pagamento
+  colPayRata: { width: '8%', textAlign: 'center' },
+  colPayMod: { width: '14%' },
+  colPayTipo: { width: '22%' },
+  colPayBanca: { width: '16%' },
+  colPayIban: { width: '20%' },
+  colPayScad: { width: '10%', textAlign: 'center' },
+  colPayImp: { width: '10%', textAlign: 'right' },
+  // ── Riquadri Fiscali e Causali ──
+  fiscalBox: {
+    border: '1pt solid #e2e8f0',
+    borderRadius: 3,
+    backgroundColor: '#f8fafc',
+    padding: 7,
+    marginBottom: 8,
   },
-  summaryBox: {
-    width: '50%',
-    border: '1pt solid #ccc',
-    padding: 10,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 5,
-  },
-  summaryTotal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 5,
-    paddingTop: 5,
-    borderTop: '1pt solid #ccc',
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 12,
-  },
-  paymentSection: {
-    marginBottom: 20,
-    padding: 10,
-    border: '1pt solid #ccc',
-    backgroundColor: '#fafafa',
-  },
-  noteSmall: {
+  fiscalLabel: {
     fontSize: 8,
-    color: '#666',
-    marginBottom: 20,
-    textAlign: 'center',
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e293b',
+    marginBottom: 2,
+    textTransform: 'uppercase',
   },
+  fiscalDesc: {
+    fontSize: 7.5,
+    color: '#475569',
+    lineHeight: 1.3,
+  },
+  // ── Riepilogo e Calcolo Finale ──
+  totalsSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    marginBottom: 10,
+    gap: 12,
+  },
+  vatSummaryBox: {
+    width: '48.5%',
+    border: '1pt solid #cbd5e1',
+    borderRadius: 3,
+    padding: 7,
+    backgroundColor: '#f8fafc',
+  },
+  calcSummaryBox: {
+    width: '48.5%',
+    border: '1pt solid #cbd5e1',
+    borderRadius: 3,
+    padding: 7,
+    backgroundColor: '#ffffff',
+  },
+  calcRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+    fontSize: 8,
+    color: '#334155',
+  },
+  calcTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTop: '1.5pt solid #0f172a',
+    marginTop: 4,
+    paddingTop: 4,
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: '#0f172a',
+  },
+  // ── Footer ──
   footer: {
     position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
+    bottom: 18,
+    left: 35,
+    right: 35,
+    borderTop: '0.5pt solid #cbd5e1',
+    paddingTop: 5,
     textAlign: 'center',
-    fontSize: 8,
-    color: '#999',
-    borderTop: '1pt solid #eee',
-    paddingTop: 10,
+    fontSize: 7,
+    color: '#64748b',
   },
-});
+})
 
 function formatDate(dateStr: string | Date | null | undefined): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  return new Intl.DateTimeFormat('it-IT').format(d);
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return new Intl.DateTimeFormat('it-IT').format(d)
 }
 
-function formatCurrency(amount: number | string): string {
-  const num = Number(amount) || 0;
+function formatCurrency(amount: number | string | null | undefined): string {
+  const num = Number(amount) || 0
   return new Intl.NumberFormat('it-IT', {
     style: 'currency',
     currency: 'EUR',
-  }).format(num);
+  }).format(num)
 }
 
-function formatNumber(amount: number | string): string {
-  const num = Number(amount) || 0;
+function formatNumber(amount: number | string | null | undefined): string {
+  const num = Number(amount) || 0
   return new Intl.NumberFormat('it-IT', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(num);
+  }).format(num)
 }
 
 const FatturaDocument = ({ fattura }: { fattura: any }) => {
-  const isBozza = ['BOZZA', 'DA_APPROVARE', 'PRONTA_EMISSIONE'].includes(fattura.stato);
+  const isBozza = ['BOZZA', 'DA_APPROVARE', 'PRONTA_EMISSIONE'].includes(fattura.stato)
 
-  // Usa gli snapshot se presenti, altrimenti i dati live
+  // Emittente
   const emittente =
     typeof fattura.snapshotEmittente === 'string'
       ? JSON.parse(fattura.snapshotEmittente)
-      : fattura.snapshotEmittente || fattura.emittente || {};
+      : fattura.snapshotEmittente || fattura.emittente || {}
 
+  // Cliente
   const cliente =
     typeof fattura.snapshotCliente === 'string'
       ? JSON.parse(fattura.snapshotCliente)
-      : fattura.snapshotCliente || fattura.company || {};
+      : fattura.snapshotCliente || fattura.company || {}
 
-  const lines = fattura.lines || [];
+  const lines = fattura.lines || []
+
+  // Calcoli finanziari
+  const imponibile = Number(fattura.imponibile) || 0
+  const totaleCassa = Number(fattura.totaleCassa) || 0
+  const imponibilePlusCassa = imponibile + totaleCassa
+
+  // Regola bollo: se impostato esplicitamente > 0 o se imponibile + cassa > 77.47 e regime forfettario
+  let bollo = Number(fattura.bollo) || 0
+  if (bollo === 0 && imponibilePlusCassa > 77.47) {
+    bollo = 2.0
+  }
+
+  const totaleIva = Number(fattura.totaleIva) || 0
+  const totaleDocumento = Number(fattura.totaleDocumento) > 0 ? Number(fattura.totaleDocumento) : (imponibilePlusCassa + totaleIva + bollo)
+
+  const studioNome = emittente.denominazione || 'Dott. Antonio Tuzio'
+  const studioIndirizzo = emittente.indirizzo || 'Viale Risorgimento 70'
+  const studioCap = emittente.cap || '42123'
+  const studioComune = emittente.comune || "Reggio nell'Emilia"
+  const studioProv = emittente.provincia || 'RE'
+  const studioPaese = emittente.paese || 'IT'
+  const studioCF = emittente.codiceFiscale || 'TZUNTN69A16D612E'
+  const studioPIVA = emittente.partitaIva || '05389400481'
+  const studioTel = emittente.telefono || '0522331628'
+  const studioEmail = emittente.email || 'infooizut@gmail.com'
+  const studioIban = emittente.iban || 'IT89E0303212804010000063104'
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header Emittente / Dati Documento */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Text style={[styles.title, styles.bold]}>
-              {emittente.denominazione || 'Dott. Antonio Tuzio'}
+        {/* ── Intestazione Superiore / Tipo Documento ── */}
+        <View style={styles.topHeader}>
+          <View style={styles.topHeaderLeft}>
+            <Text style={[styles.bold, { fontSize: 13, color: '#0f172a', marginBottom: 2 }]}>
+              {studioNome}
             </Text>
-            <Text style={styles.infoTesto}>
-              {emittente.indirizzo} - {emittente.cap} {emittente.comune} ({emittente.provincia})
+            <Text style={styles.metaRow}>
+              {studioIndirizzo} · {studioCap} {studioComune} ({studioProv}) - {studioPaese}
             </Text>
-            {emittente.codiceFiscale && (
-              <Text style={styles.infoTesto}>C.F.: {emittente.codiceFiscale}</Text>
-            )}
-            {emittente.partitaIva && (
-              <Text style={styles.infoTesto}>P.IVA: {emittente.partitaIva}</Text>
-            )}
-            <Text style={styles.infoTesto}>Regime Fiscale: {emittente.regimeFiscale || 'RF19'} (Forfetario L. 190/2014)</Text>
-            <Text style={styles.infoTesto}>
-              Cassa Previdenziale: {emittente.cassaPrevidenziale || 'TC02'} (CNPADC 4%)
+            <Text style={styles.metaRow}>
+              C.F.: {studioCF} · P.IVA: {studioPIVA}
+            </Text>
+            <Text style={styles.metaRow}>
+              Tel: {studioTel} · Email: {studioEmail}
             </Text>
           </View>
-          <View style={styles.headerRight}>
+
+          <View style={styles.topHeaderRight}>
             {isBozza ? (
               <>
-                <Text style={[styles.title, { color: '#2563eb' }]}>AVVISO DI PARCELLA</Text>
-                <Text style={{ fontSize: 8, color: '#dc2626', marginBottom: 4 }}>
+                <Text style={styles.docTitleMain}>AVVISO DI PARCELLA</Text>
+                <Text style={styles.docSubProforma}>
                   (Nota Proforma — Non costituisce fattura fiscale ai sensi dell'art. 21 DPR 633/72)
                 </Text>
-                <Text style={styles.infoTesto}>Data emissione: {formatDate(fattura.createdAt || fattura.dataDocumento)}</Text>
+                <Text style={styles.metaRow}>
+                  Data emissione: <Text style={styles.bold}>{formatDate(fattura.createdAt || fattura.dataDocumento || new Date())}</Text>
+                </Text>
               </>
             ) : (
               <>
-                <Text style={styles.title}>FATTURA</Text>
-                <Text style={[styles.infoTesto, styles.bold, { fontSize: 12 }]}>
-                  {fattura.numeroCompleto || `FT ${fattura.numero}/${fattura.anno}`}
+                <Text style={styles.docTitleInvoice}>FATTURA ELETTRONICA</Text>
+                <Text style={[styles.bold, { fontSize: 11, color: '#0f172a', marginBottom: 2 }]}>
+                  N° {fattura.numeroCompleto || `FPR ${fattura.numero}/${fattura.anno}`}
                 </Text>
-                <Text style={styles.infoTesto}>Data emissione: {formatDate(fattura.dataDocumento)}</Text>
+                <Text style={styles.metaRow}>
+                  Data documento: <Text style={styles.bold}>{formatDate(fattura.dataDocumento)}</Text>
+                </Text>
               </>
             )}
+
             {fattura.periodoDal && fattura.periodoAl && (
-              <Text style={styles.infoTesto}>
+              <Text style={styles.metaRow}>
                 Periodo di riferimento: {formatDate(fattura.periodoDal)} - {formatDate(fattura.periodoAl)}
               </Text>
             )}
           </View>
         </View>
 
-        {/* Dati Cliente */}
-        <View style={styles.clientSection}>
-          <View style={styles.clientBox}>
-            <Text style={styles.clientName}>{cliente.ragioneSociale || 'Cliente'}</Text>
-            <Text style={styles.infoTesto}>
-              {cliente.indirizzo}
-            </Text>
-            <Text style={styles.infoTesto}>
-              {cliente.cap} {cliente.comune} {cliente.provincia ? `(${cliente.provincia})` : ''}
-            </Text>
-            <Text style={{ marginTop: 5 }} />
+        {/* ── Due Colonne: FORNITORE e CLIENTE ── */}
+        <View style={styles.partiesRow}>
+          {/* Box Fornitore */}
+          <View style={styles.partyBox}>
+            <Text style={styles.partyTitle}>Fornitore</Text>
+            <Text style={styles.partyName}>{studioNome}</Text>
+            <Text style={styles.partyText}>P.IVA: IT{studioPIVA}</Text>
+            <Text style={styles.partyText}>C.F.: {studioCF}</Text>
+            <Text style={styles.partyText}>{studioIndirizzo}</Text>
+            <Text style={styles.partyText}>{studioCap} - {studioComune} ({studioProv}) - {studioPaese}</Text>
+            <Text style={styles.partyText}>Telefono: {studioTel}</Text>
+            <Text style={styles.partyText}>Email: {studioEmail}</Text>
+          </View>
+
+          {/* Box Cliente */}
+          <View style={styles.partyBox}>
+            <Text style={styles.partyTitle}>Cliente</Text>
+            <Text style={styles.partyName}>{cliente.ragioneSociale || 'Cliente'}</Text>
             {cliente.codiceFiscale && (
-              <Text style={styles.infoTesto}>CF: {cliente.codiceFiscale}</Text>
+              <Text style={styles.partyText}>C.F.: {cliente.codiceFiscale}</Text>
             )}
             {cliente.partitaIva && (
-              <Text style={styles.infoTesto}>P.IVA: {cliente.partitaIva}</Text>
+              <Text style={styles.partyText}>P.IVA: {cliente.partitaIva}</Text>
             )}
+            {cliente.indirizzo && (
+              <Text style={styles.partyText}>{cliente.indirizzo}</Text>
+            )}
+            <Text style={styles.partyText}>
+              {cliente.cap || ''} {cliente.comune ? `${cliente.comune} (${cliente.provincia || ''})` : ''} - {cliente.paese || 'IT'}
+            </Text>
             {cliente.codiceDestinatarioSdi && (
-              <Text style={styles.infoTesto}>Codice SDI: {cliente.codiceDestinatarioSdi}</Text>
+              <Text style={styles.partyText}>Codice SDI: <Text style={styles.bold}>{cliente.codiceDestinatarioSdi}</Text></Text>
             )}
-            {!cliente.codiceDestinatarioSdi && cliente.pec && (
-              <Text style={styles.infoTesto}>PEC: {cliente.pec}</Text>
+            {cliente.pec && (
+              <Text style={styles.partyText}>PEC: {cliente.pec}</Text>
             )}
           </View>
         </View>
 
-        {/* Tabella Righe */}
+        {/* ── Sezione Prodotti e Servizi ── */}
+        <Text style={styles.sectionHeading}>Prodotti e Servizi</Text>
         <View style={styles.table}>
           <View style={styles.tableHeader}>
-            <Text style={styles.colN}>N°</Text>
-            <Text style={styles.colDesc}>Descrizione</Text>
-            <Text style={styles.colQty}>Q.tà</Text>
-            <Text style={styles.colPrice}>Prezzo unitario</Text>
-            <Text style={styles.colAmount}>Importo</Text>
+            <Text style={styles.colNr}>NR</Text>
+            <Text style={styles.colDesc}>DESCRIZIONE</Text>
+            <Text style={styles.colQty}>QUANTITÀ</Text>
+            <Text style={styles.colPrice}>PREZZO</Text>
+            <Text style={styles.colAmount}>IMPORTO</Text>
+            <Text style={styles.colIva}>IVA</Text>
+            <Text style={styles.colNatura}>NATURA</Text>
           </View>
-          {lines.map((line: any, index: number) => (
-            <View key={index} style={styles.tableRow}>
-              <Text style={styles.colN}>{index + 1}</Text>
-              <Text style={styles.colDesc}>{line.descrizione}</Text>
-              <Text style={styles.colQty}>{formatNumber(line.quantita)}</Text>
-              <Text style={styles.colPrice}>{formatCurrency(line.prezzoUnitario)}</Text>
-              <Text style={styles.colAmount}>{formatCurrency(line.importo)}</Text>
-            </View>
-          ))}
-        </View>
 
-        {/* Riepilogo */}
-        <View style={styles.summarySection}>
-          <View style={styles.summaryBox}>
-            <View style={styles.summaryRow}>
-              <Text>Imponibile:</Text>
-              <Text>{formatCurrency(fattura.imponibile)}</Text>
+          {lines.length > 0 ? (
+            lines.map((line: any, idx: number) => {
+              const aliq = line.aliquotaIva ?? '0'
+              const nat = line.naturaIva ?? 'N2.2'
+              return (
+                <View key={idx} style={styles.tableRow}>
+                  <Text style={styles.colNr}>{idx + 1}</Text>
+                  <Text style={styles.colDesc}>{line.descrizione}</Text>
+                  <Text style={styles.colQty}>{formatNumber(line.quantita)}</Text>
+                  <Text style={styles.colPrice}>{formatCurrency(line.prezzoUnitario)}</Text>
+                  <Text style={[styles.colAmount, styles.bold]}>{formatCurrency(line.importo)}</Text>
+                  <Text style={styles.colIva}>{aliq}%</Text>
+                  <Text style={styles.colNatura}>{nat}</Text>
+                </View>
+              )
+            })
+          ) : (
+            <View style={styles.tableRow}>
+              <Text style={styles.colNr}>1</Text>
+              <Text style={styles.colDesc}>Prestazioni professionali</Text>
+              <Text style={styles.colQty}>1</Text>
+              <Text style={styles.colPrice}>{formatCurrency(imponibile)}</Text>
+              <Text style={[styles.colAmount, styles.bold]}>{formatCurrency(imponibile)}</Text>
+              <Text style={styles.colIva}>0%</Text>
+              <Text style={styles.colNatura}>N2.2</Text>
             </View>
-            {Number(fattura.totaleCassa) > 0 && (
-              <View style={styles.summaryRow}>
-                <Text>Cassa CNPADC 4%:</Text>
-                <Text>{formatCurrency(fattura.totaleCassa)}</Text>
-              </View>
-            )}
-            {Number(fattura.totaleIva) > 0 ? (
-              <View style={styles.summaryRow}>
-                <Text>IVA:</Text>
-                <Text>{formatCurrency(fattura.totaleIva)}</Text>
-              </View>
-            ) : (
-              <View style={styles.summaryRow}>
-                <Text>IVA:</Text>
-                <Text>Esclusa art.1 c.58 L.190/2014</Text>
-              </View>
-            )}
-            {Number(fattura.bollo) > 0 && (
-              <View style={styles.summaryRow}>
-                <Text>Bollo virtuale ex art.15 DPR 642/72:</Text>
-                <Text>{formatCurrency(fattura.bollo)}</Text>
-              </View>
-            )}
-            <View style={styles.summaryTotal}>
-              <Text>TOTALE DOCUMENTO:</Text>
-              <Text>{formatCurrency(fattura.totaleDocumento)}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Dati Pagamento */}
-        <View style={styles.paymentSection}>
-          <Text style={[styles.bold, { marginBottom: 5 }]}>Dati di pagamento</Text>
-          {fattura.modalitaPagamento && (
-            <Text style={styles.infoTesto}>Modalità: {fattura.modalitaPagamento}</Text>
           )}
-          {fattura.ibanDestinatario && (
-            <Text style={styles.infoTesto}>IBAN: {fattura.ibanDestinatario}</Text>
+        </View>
+
+        {/* ── Metodo di Pagamento ── */}
+        <Text style={styles.sectionHeading}>Metodo di Pagamento</Text>
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <Text style={styles.colPayRata}>NR RATA</Text>
+            <Text style={styles.colPayMod}>MODALITÀ</Text>
+            <Text style={styles.colPayTipo}>TIPO PAGAMENTO</Text>
+            <Text style={styles.colPayBanca}>BANCA APPOGGIO</Text>
+            <Text style={styles.colPayIban}>IBAN</Text>
+            <Text style={styles.colPayScad}>SCADENZA</Text>
+            <Text style={styles.colPayImp}>IMPORTO</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.colPayRata}>1</Text>
+            <Text style={styles.colPayMod}>{fattura.modalitaPagamento === 'MP05' ? 'Bonifico (MP05)' : (fattura.modalitaPagamento || 'Bonifico')}</Text>
+            <Text style={styles.colPayTipo}>Pagamento in unica soluzione</Text>
+            <Text style={styles.colPayBanca}>CREDEM</Text>
+            <Text style={[styles.colPayIban, { fontSize: 7 }]}>{studioIban}</Text>
+            <Text style={styles.colPayScad}>{formatDate(fattura.dataScadenza || new Date(Date.now() + 30 * 86400000))}</Text>
+            <Text style={[styles.colPayImp, styles.bold]}>{formatCurrency(totaleDocumento)}</Text>
+          </View>
+        </View>
+
+        {/* ── Regime Fiscale & Cassa Previdenziale ── */}
+        <View style={styles.fiscalBox}>
+          <Text style={styles.fiscalLabel}>Regime Fiscale</Text>
+          <Text style={styles.fiscalDesc}>
+            RF19 - Operazione senza applicazione dell'Iva ai sensi dell' art.1 co. 54-89, della legge n. 190/2014 così come modificato dalla legge n. 208/2015 e dalla legge n. 145/2018
+          </Text>
+          <View style={{ marginTop: 4 }}>
+            <Text style={styles.fiscalLabel}>Cassa Previdenziale</Text>
+            <Text style={styles.fiscalDesc}>
+              TC02 - Cassa previdenza dottori commercialisti (CNPADC), Aliquota cassa 4% su 100% dell'imponibile, Codice IVA 0% - N2.2 - Non soggette - altri casi
+            </Text>
+          </View>
+        </View>
+
+        {/* ── Dati Aggiuntivi / Causale Documento ── */}
+        <View style={styles.fiscalBox}>
+          <Text style={styles.fiscalLabel}>Causale Documento &amp; Riferimenti Normativi</Text>
+          <Text style={[styles.fiscalDesc, styles.bold, { color: '#0f172a' }]}>
+            Operazione non soggetta a ritenuta alla fonte a titolo di acconto ai sensi dell'articolo 1, comma 67, l. n. 190 del 2014 e successive modificazioni.
+          </Text>
+          {bollo > 0 && (
+            <Text style={[styles.fiscalDesc, { marginTop: 2, color: '#1e293b' }]}>
+              Imposta di bollo da 2,00 € assolta in modo virtuale ai sensi del D.M. 17 giugno 2014 (art. 15 D.P.R. 642/1972).
+            </Text>
           )}
           {fattura.note && (
-            <Text style={{ marginTop: 10, fontStyle: 'italic' }}>{fattura.note}</Text>
+            <Text style={[styles.fiscalDesc, { marginTop: 3, fontStyle: 'italic' }]}>
+              Note: {fattura.note}
+            </Text>
           )}
         </View>
 
-        <Text style={styles.noteSmall}>
-          Operazione in regime forfetario L.190/2014 art.1 c.58, non soggetta ad IVA
-        </Text>
+        {/* ── Riepilogo IVA e Calcolo Fattura ── */}
+        <View style={styles.totalsSection}>
+          {/* Riquadro Riepilogo IVA */}
+          <View style={styles.vatSummaryBox}>
+            <Text style={[styles.bold, { fontSize: 8.5, marginBottom: 5, color: '#0f172a' }]}>
+              Riepilogo IVA
+            </Text>
+            <View style={styles.calcRow}>
+              <Text>Aliquota:</Text>
+              <Text>0% (Natura N2.2)</Text>
+            </View>
+            <View style={styles.calcRow}>
+              <Text>Imponibile complessivo:</Text>
+              <Text>{formatCurrency(imponibilePlusCassa)}</Text>
+            </View>
+            <View style={styles.calcRow}>
+              <Text>Imposta totale:</Text>
+              <Text>0,00 €</Text>
+            </View>
+            <View style={[styles.calcRow, { marginTop: 4, borderTop: '0.5pt solid #cbd5e1', paddingTop: 2 }]}>
+              <Text style={{ fontSize: 7, color: '#64748b' }}>Esente art.1 c.58 L.190/2014</Text>
+              <Text style={{ fontSize: 7, color: '#64748b' }}>Non soggetta</Text>
+            </View>
+          </View>
 
+          {/* Riquadro Calcolo Fattura */}
+          <View style={styles.calcSummaryBox}>
+            <Text style={[styles.bold, { fontSize: 8.5, marginBottom: 5, color: '#0f172a' }]}>
+              Calcolo Fattura
+            </Text>
+            <View style={styles.calcRow}>
+              <Text>Imponibile prestazioni:</Text>
+              <Text>{formatCurrency(imponibile)}</Text>
+            </View>
+            <View style={styles.calcRow}>
+              <Text>Cassa Previdenziale (CNPADC 4%):</Text>
+              <Text>{formatCurrency(totaleCassa)}</Text>
+            </View>
+            <View style={styles.calcRow}>
+              <Text>IVA (0% - N2.2):</Text>
+              <Text>0,00 €</Text>
+            </View>
+            {bollo > 0 && (
+              <View style={styles.calcRow}>
+                <Text>Bollo virtuale (D.M. 17/06/2014):</Text>
+                <Text>{formatCurrency(bollo)}</Text>
+              </View>
+            )}
+            <View style={styles.calcTotalRow}>
+              <Text>TOTALE DOCUMENTO:</Text>
+              <Text>{formatCurrency(totaleDocumento)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Footer ── */}
         <Text style={styles.footer}>
-          Documento generato il {formatDate(new Date())}
+          Documento emesso dallo studio {studioNome} · Partita IVA IT{studioPIVA} · Generato il {formatDate(new Date())}
         </Text>
       </Page>
     </Document>
-  );
-};
+  )
+}
 
 export async function generaFatturaPDF(fattura: any): Promise<Buffer> {
-  return await renderToBuffer(<FatturaDocument fattura={fattura} />);
+  return await renderToBuffer(<FatturaDocument fattura={fattura} />)
 }

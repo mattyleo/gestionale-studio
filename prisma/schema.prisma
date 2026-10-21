@@ -605,3 +605,36 @@ model AuditEvent {
   @@index([createdAt])
   @@map("audit_events")
 }
+
+// ─────────────────────────────────────────────
+// FORNITORI
+// ─────────────────────────────────────────────
+
+model Supplier {
+  id                   String       @id @default(cuid())
+  ragioneSociale       String
+  tipoSoggetto         TipoSoggetto @default(PERSONA_GIURIDICA)
+  partitaIva           String?
+  codiceFiscale        String?
+  indirizzo            String?
+  cap                  String?
+  comune               String?
+  provincia            String?
+  paese                String       @default("IT")
+  email                String?
+  pec                  String?
+  telefono             String?
+  referente            String?
+  codiceDestinatarioSdi String?     @default("0000000")
+  iban                 String?
+  categoria            String?      @default("Generale")
+  note                 String?
+  attivo               Boolean      @default(true)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@index([ragioneSociale])
+  @@index([partitaIva])
+  @@index([codiceFiscale])
+  @@map("suppliers")
+}

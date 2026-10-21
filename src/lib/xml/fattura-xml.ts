@@ -216,15 +216,21 @@ export function generaFatturaXML(dati: DatiFattura): string {
   datiGenDoc.ele('Numero').txt(String(dati.numero))
   datiGenDoc.ele('ImportoTotaleDocumento').txt(formatImporto(dati.totaleDocumento))
 
-  if (dati.note) {
+  // Causale obbligatoria regime forfettario da normativa
+  const causaleForfettario =
+    "Operazione non soggetta a ritenuta alla fonte a titolo di acconto ai sensi dell'articolo 1, comma 67, l. n. 190 del 2014 e successive modificazioni"
+  datiGenDoc.ele('Causale').txt(causaleForfettario.substring(0, 200))
+
+  if (dati.note && dati.note.trim() !== causaleForfettario) {
     datiGenDoc.ele('Causale').txt(dati.note.substring(0, 200))
   }
 
-  // Bollo virtuale
-  if (dati.bollo > 0) {
+  // Bollo virtuale (2,00 € se totale > 77,47 € o impostato)
+  const bolloVal = dati.bollo > 0 ? dati.bollo : (dati.imponibile + dati.totaleCassa > 77.47 ? 2.0 : 0)
+  if (bolloVal > 0) {
     const bolloEle = datiGenDoc.ele('DatiBollo')
     bolloEle.ele('BolloVirtuale').txt('SI')
-    bolloEle.ele('ImportoBollo').txt(formatImporto(dati.bollo))
+    bolloEle.ele('ImportoBollo').txt(formatImporto(bolloVal))
   }
 
   // Cassa previdenziale (CNPADC TC02 4%)

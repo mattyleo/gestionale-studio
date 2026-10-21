@@ -33,13 +33,16 @@ async function main() {
   // ─────────────────────────────────────────────
   const issuer = await prisma.issuerProfile.upsert({
     where: { id: 'issuer-tuzio' },
-    update: {},
+    update: {
+      indirizzo: 'Viale Risorgimento 70',
+      noteDefaultFattura: 'Operazione non soggetta a ritenuta alla fonte a titolo di acconto ai sensi dell\'articolo 1, comma 67, l. n. 190 del 2014 e successive modificazioni',
+    },
     create: {
       id: 'issuer-tuzio',
       denominazione: 'Dott. Antonio Tuzio',
       codiceFiscale: 'TZUNTN69A16D612E',
       partitaIva: '05389400481',
-      indirizzo: 'Via Umberto Poli 9/A',
+      indirizzo: 'Viale Risorgimento 70',
       cap: '42123',
       comune: 'Reggio nell\'Emilia',
       provincia: 'RE',
@@ -57,7 +60,7 @@ async function main() {
       aliquotaIva: '0',
       naturaIva: 'N2.2',
       templatePdf: 'default',
-      noteDefaultFattura: 'Imposta di bollo assolta in modo virtuale ai sensi dell\'art. 15 del D.P.R. 642/1972 e del DM 17/06/2014 e ss.mm.',
+      noteDefaultFattura: 'Operazione non soggetta a ritenuta alla fonte a titolo di acconto ai sensi dell\'articolo 1, comma 67, l. n. 190 del 2014 e successive modificazioni',
     },
   })
   console.log('✅ Profilo emittente creato:', issuer.denominazione)

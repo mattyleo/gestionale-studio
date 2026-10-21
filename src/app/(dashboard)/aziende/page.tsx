@@ -11,6 +11,8 @@ import {
   Eye,
   Archive,
   RefreshCw,
+  FileText,
+  Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -178,7 +180,25 @@ export default function AziendePage() {
             {totaleAziende} aziende registrate nel gestionale
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open('/api/aziende/export/pdf', '_blank')}
+            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+            title="Scarica il documento PDF dell'elenco anagrafico clienti per lo studio"
+          >
+            <FileText className="h-4 w-4 mr-1 text-indigo-600" /> Elenco Clienti (PDF)
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open('/api/aziende/export/csv', '_blank')}
+            className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+            title="Esporta anagrafica clienti in formato Excel / CSV"
+          >
+            <Download className="h-4 w-4 mr-1 text-emerald-600" /> Esporta CSV
+          </Button>
           <Button variant="outline" size="sm" onClick={caricaAziende}>
             <RefreshCw className="h-4 w-4 mr-1" /> Aggiorna
           </Button>
