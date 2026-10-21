@@ -6,6 +6,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { addDays } from 'date-fns'
+import { generaFatturaPDF } from '@/lib/pdf/fattura-pdf'
+import { inviaDocumentoEmail } from '@/lib/email'
 
 export async function POST(request: Request, { params: _params }: { params: Promise<{ id: string }> }) {
   const params = await _params
@@ -41,6 +43,7 @@ export async function POST(request: Request, { params: _params }: { params: Prom
     let numeroPersonalizzato: number | undefined
     let dataDocumentoCustom: Date | undefined
     let incassataContestualmente = false
+    let inviaEmail = false
     let metodoPagamento = 'bonifico'
     let riferimentoPagamento = ''
     try {
@@ -53,6 +56,9 @@ export async function POST(request: Request, { params: _params }: { params: Prom
       }
       if (body?.incassataContestualmente) {
         incassataContestualmente = true
+      }
+      if (body?.inviaEmail) {
+        inviaEmail = true
       }
       if (body?.metodoPagamento) {
         metodoPagamento = body.metodoPagamento
@@ -196,7 +202,7 @@ export async function POST(request: Request, { params: _params }: { params: Prom
           emessaAl: oggi,
         },
         include: {
-          company: { select: { ragioneSociale: true } },
+          company: true,
           lines: true,
         },
       })
@@ -243,9 +249,46 @@ export async function POST(request: Request, { params: _params }: { params: Prom
       },
     })
 
+    // Invio automatico copia via email al cliente se richiesto
+    let esitoEmail: any = null
+    if (inviaEmail) {
+      const emailDest = fatturaEmessa.company?.emailAmministrativa || fatturaEmessa.company?.pec
+      if (emailDest) {
+        try {
+          const datiPDF = {
+            ...fatturaEmessa,
+            imponibile: Number(fatturaEmessa.imponibile),
+            totaleCassa: Number(fatturaEmessa.totaleCassa),
+            totaleIva: Number(fatturaEmessa.totaleIva),
+            bollo: Number(fatturaEmessa.bollo),
+            totaleDocumento: Number(fatturaEmessa.totaleDocumento),
+            emittente,
+            lines: fatturaEmessa.lines.map((l: any) => ({
+              ...l,
+              quantita: Number(l.quantita),
+              prezzoUnitario: Number(l.prezzoUnitario),
+              importo: Number(l.importo),
+            })),
+          }
+          const pdfBuffer = await generaFatturaPDF(datiPDF)
+          const filename = `Fattura_${(fatturaEmessa.numeroCompleto || `FT_${fatturaEmessa.numero}`).replace(/\//g, '-')}.pdf`
+          esitoEmail = await inviaDocumentoEmail({
+            to: emailDest,
+            subject: `Fattura Elettronica N° ${fatturaEmessa.numeroCompleto} — Studio Dott. Antonio Tuzio`,
+            text: `Gentile ${fatturaEmessa.company?.ragioneSociale || 'Cliente'},\n\nin allegato trasmettiamo la copia di cortesia della Fattura Elettronica N° ${fatturaEmessa.numeroCompleto}.\n\nImporto totale: € ${Number(fatturaEmessa.totaleDocumento).toFixed(2)}\n\nCordiali saluti,\nDott. Antonio Tuzio\nCommercialista e Tributarista\nViale Risorgimento 70 - Reggio nell'Emilia (RE)`,
+            pdfBuffer,
+            filename,
+          })
+        } catch (emailErr) {
+          console.error('Errore invio email contestuale:', emailErr)
+        }
+      }
+    }
+
     return NextResponse.json({
       fattura: fatturaEmessa,
-      messaggio: `Fattura ${fatturaEmessa.numeroCompleto} emessa con successo. Genera ora il PDF e l\'XML per l\'invio allo SdI.`,
+      messaggio: `Fattura ${fatturaEmessa.numeroCompleto} emessa con successo.${esitoEmail?.inviataSmtp ? ' Copia inviata via email al cliente.' : ''}`,
+      esitoEmail,
     })
   } catch (error: any) {
     if (error?.message && !error?.code) {

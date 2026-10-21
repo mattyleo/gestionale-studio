@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatEuro, formatData, statoInvoiceLabel, statoInvoiceBadgeColor } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { InviaEmailModal } from '@/components/fatture/InviaEmailModal'
 
 export default function FatturaDettaglioPage() {
   const router = useRouter()
@@ -44,6 +45,7 @@ export default function FatturaDettaglioPage() {
   const [dataEmissione, setDataEmissione] = React.useState(new Date().toISOString().split('T')[0])
   const [prossimoNumeroInfo, setProssimoNumeroInfo] = React.useState('')
   const [incassataAllEmissione, setIncassataAllEmissione] = React.useState(true)
+  const [inviaEmailAllEmissione, setInviaEmailAllEmissione] = React.useState(true)
   const [metodoEmissione, setMetodoEmissione] = React.useState('bonifico')
   const [riferimentoEmissione, setRiferimentoEmissione] = React.useState('')
 
@@ -93,6 +95,7 @@ export default function FatturaDettaglioPage() {
           numeroPersonalizzato: numeroPersonalizzato ? parseInt(numeroPersonalizzato) : undefined,
           dataDocumento: dataEmissione,
           incassataContestualmente: incassataAllEmissione,
+          inviaEmail: inviaEmailAllEmissione,
           metodoPagamento: metodoEmissione,
           riferimentoPagamento: riferimentoEmissione,
         }),
@@ -266,6 +269,7 @@ export default function FatturaDettaglioPage() {
         <div className="flex gap-2 flex-wrap justify-end">
           {isBozza && (
             <>
+              <InviaEmailModal fatturaId={fatturaId} />
               <Button variant="outline" onClick={scaricaPDF} title="Scarica o stampa l'avviso di parcella da inviare al cliente per il pagamento">
                 <Printer className="h-4 w-4 mr-2 text-blue-600" /> Stampa Avviso di Parcella
               </Button>
@@ -279,6 +283,7 @@ export default function FatturaDettaglioPage() {
           )}
           {isEmessa && (
             <>
+              <InviaEmailModal fatturaId={fatturaId} />
               <Button variant="outline" onClick={scaricaPDF}>
                 <Printer className="h-4 w-4 mr-2" /> PDF
               </Button>
@@ -564,6 +569,28 @@ export default function FatturaDettaglioPage() {
                 </div>
               )}
             </div>
+
+            {/* Opzione Invio Email Immediato al Cliente */}
+            {(fattura.company?.emailAmministrativa || fattura.company?.pec) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={inviaEmailAllEmissione}
+                    onChange={(e) => setInviaEmailAllEmissione(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-blue-950 block">
+                      Invia subito copia fattura via email a: {fattura.company?.emailAmministrativa || fattura.company?.pec}
+                    </span>
+                    <span className="text-[11px] text-blue-800">
+                      Invia automaticamente la copia di cortesia in PDF con riepilogo importi al cliente all'emissione.
+                    </span>
+                  </div>
+                </label>
+              </div>
+            )}
           </div>
           <div className="rounded-md bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800">
             ⚠️ Assegna il numero ufficiale e genera l&apos;XML per lo SdI. Dopo l&apos;emissione il documento è definitivo.
