@@ -108,7 +108,7 @@ export async function POST() {
 
     // 1. Git pull
     logFasi.push('1. Scaricamento codice aggiornato da GitHub...')
-    const pullOut = execSync('git pull', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 }).trim()
+    const pullOut = execSync('git pull origin main || git pull', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 }).trim()
     logFasi.push(`   ${pullOut}`)
 
     // 2. Allineamento dipendenze se necessario
