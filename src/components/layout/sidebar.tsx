@@ -21,6 +21,7 @@ import {
   Menu,
   FileText,
   Truck,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +48,7 @@ export function Sidebar({ bozzeBadge = 0, daIncassareBadge = 0 }: SidebarProps) 
   const navItems: NavItem[] = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/aziende', label: 'Aziende (Clienti)', icon: Building2 },
+    { href: '/antiriciclaggio', label: 'Antiriciclaggio & Privacy', icon: ShieldCheck },
     { href: '/fornitori', label: 'Fornitori', icon: Truck },
     { href: '/attivita', label: 'Attività', icon: ClipboardList },
     { href: '/calendar', label: 'Calendar', icon: Calendar },

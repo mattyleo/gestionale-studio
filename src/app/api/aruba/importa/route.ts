@@ -195,6 +195,8 @@ export async function POST(req: Request) {
               codiceDestinatarioSdi: codDest,
               pec,
               frequenzaFatturazione: 'MENSILE',
+              antiriciclaggioObbligo: Boolean(pIva),
+              settoreAttivita: pIva ? 'CONTABILITA' : 'CAF',
             },
           })
           clientiCreati++
@@ -210,6 +212,7 @@ export async function POST(req: Request) {
               provincia: company.provincia || prov,
               codiceDestinatarioSdi: company.codiceDestinatarioSdi === '0000000' && codDest !== '0000000' ? codDest : company.codiceDestinatarioSdi,
               pec: company.pec || pec,
+              antiriciclaggioObbligo: Boolean(company.partitaIva || pIva),
             },
           })
           clientiAggiornati++

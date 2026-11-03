@@ -29,6 +29,13 @@ const nuovaAziendaSchema = z.object({
   terminiPagamento: z.number().int().min(0).default(30),
   ibanRiferimento: z.string().optional(),
   frequenzaFatturazione: z.enum(['MENSILE', 'BIMESTRALE', 'TRIMESTRALE', 'SEMESTRALE', 'ANNUALE', 'MANUALE']).default('MENSILE'),
+  settoreAttivita: z.string().default('CONTABILITA'),
+  antiriciclaggioObbligo: z.boolean().optional(),
+  legaleRappresentante: z.string().optional(),
+  cfRappresentante: z.string().optional(),
+  documentoTipo: z.string().optional(),
+  documentoNumero: z.string().optional(),
+  documentoScadenza: z.string().or(z.date()).optional().nullable().transform(v => v ? new Date(v) : null),
 })
 
 export async function GET(request: Request) {
@@ -111,13 +118,20 @@ export async function POST(request: Request) {
       }
     }
 
+    const pIvaVal = dati.partitaIva?.trim() || null
+    const obbligoAntiriciclaggio = dati.antiriciclaggioObbligo !== undefined
+      ? dati.antiriciclaggioObbligo
+      : Boolean(pIvaVal)
+
     const azienda = await prisma.company.create({
       data: {
         ...dati,
         pec: dati.pec || null,
         emailAmministrativa: dati.emailAmministrativa || null,
-        codiceFiscale: dati.codiceFiscale || null,
-        partitaIva: dati.partitaIva || null,
+        codiceFiscale: dati.codiceFiscale?.trim().toUpperCase() || null,
+        partitaIva: pIvaVal,
+        antiriciclaggioObbligo: obbligoAntiriciclaggio,
+        settoreAttivita: dati.settoreAttivita || (pIvaVal ? 'CONTABILITA' : 'CAF'),
       },
     })
 

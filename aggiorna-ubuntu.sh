@@ -15,19 +15,16 @@ echo ""
 # 1. Verifica presenza repository Git o aggiornamento da pacchetto ZIP
 if [ -d ".git" ]; then
     echo "[1/4] Download delle ultime modifiche da GitHub..."
-    git fetch origin main || git fetch origin master || true
-    LOCAL=$(git rev-parse HEAD 2>/dev/null || echo "")
-    REMOTE=$(git rev-parse @{u} 2>/dev/null || echo "")
-
-    if [ "$LOCAL" = "$REMOTE" ] && [ -n "$LOCAL" ]; then
-        echo "[OK] Il gestionale è già allineato con GitHub."
-    else
-        echo "Trovata nuova versione su Git! Applicazione delle modifiche..."
-        git pull || true
-    fi
+    git fetch origin main 2>/dev/null || git fetch origin master 2>/dev/null || true
+    # Se il branch locale era master o non tracciato, agganciamoci al branch main ufficiale
+    git checkout -B main origin/main 2>/dev/null || git pull origin main || git pull || true
+    echo "[OK] Codice sorgente aggiornato all'ultima versione di GitHub."
 else
     echo "[1/4] Modalità aggiornamento da file (ZIP). Nessun repository Git locale, proseguo con i file presenti."
 fi
+
+# Assegna permessi di esecuzione a tutti gli script
+chmod +x *.sh 2>/dev/null || true
 
 echo ""
 echo "[2/4] Verifica e allineamento dipendenze..."

@@ -62,20 +62,28 @@ export async function GET() {
       })
     }
 
-    // Identifica branch corrente
-    const branchCorrente = execSync('git rev-parse --abbrev-ref HEAD', { cwd: PROJECT_DIR, encoding: 'utf8' }).trim() || 'main'
+    // Identifica branch remoto target (preferibilmente main)
+    let branchTarget = 'main'
+    try {
+      execSync('git rev-parse --verify origin/main', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 3000 })
+      branchTarget = 'main'
+    } catch {
+      branchTarget = execSync('git rev-parse --abbrev-ref HEAD', { cwd: PROJECT_DIR, encoding: 'utf8' }).trim() || 'main'
+    }
 
     // Verifica se l'upstream è più recente
     let commitDifferenza = 0
     let messaggioRemoto = ''
     try {
-      const diffCount = execSync(`git rev-list HEAD..origin/${branchCorrente} --count`, { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 5000 }).trim()
+      const diffCount = execSync(`git rev-list HEAD..origin/${branchTarget} --count`, { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 5000 }).trim()
       commitDifferenza = parseInt(diffCount, 10) || 0
 
       if (commitDifferenza > 0) {
-        messaggioRemoto = execSync(`git log -1 origin/${branchCorrente} --format=%s`, { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 5000 }).trim()
+        messaggioRemoto = execSync(`git log -1 origin/${branchTarget} --format=%s`, { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 5000 }).trim()
       }
     } catch {}
+
+    const branchCorrente = execSync('git rev-parse --abbrev-ref HEAD', { cwd: PROJECT_DIR, encoding: 'utf8' }).trim() || 'main'
 
     return NextResponse.json({
       configurato: true,
@@ -108,8 +116,13 @@ export async function POST() {
 
     // 1. Git pull
     logFasi.push('1. Scaricamento codice aggiornato da GitHub...')
-    const pullOut = execSync('git pull origin main || git pull', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 }).trim()
+    const pullOut = execSync('git checkout -B main origin/main 2>/dev/null || git pull origin main || git pull', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 }).trim()
     logFasi.push(`   ${pullOut}`)
+
+    // Se su Linux, assicurati che gli script .sh abbiano i permessi di esecuzione
+    try {
+      execSync('chmod +x *.sh 2>/dev/null || true', { cwd: PROJECT_DIR, encoding: 'utf8' })
+    } catch {}
 
     // 2. Allineamento dipendenze se necessario
     logFasi.push('2. Verifica dipendenze (npm install)...')

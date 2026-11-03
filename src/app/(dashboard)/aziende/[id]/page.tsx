@@ -4,7 +4,8 @@
 import * as React from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Loader2, RefreshCw, FileText, CheckCircle2, Clock, AlertCircle, Plus, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, RefreshCw, FileText, CheckCircle2, Clock, AlertCircle, Plus, Pencil, Trash2, ShieldCheck, FileDown, AlertTriangle } from 'lucide-react'
+import { AntiriciclaggioDettaglioModal } from '@/components/antiriciclaggio/AntiriciclaggioDettaglioModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -59,6 +60,7 @@ export default function AziendaDettaglioPage() {
   // Tariffe concordate per il cliente
   const [serviziDisponibili, setServiziDisponibili] = React.useState<any[]>([])
   const [openTariffaModal, setOpenTariffaModal] = React.useState(false)
+  const [openAntiriciclaggioModal, setOpenAntiriciclaggioModal] = React.useState(false)
   const [salvandoTariffa, setSalvandoTariffa] = React.useState(false)
   const [tariffaInModifica, setTariffaInModifica] = React.useState<any | null>(null)
   const [formTariffa, setFormTariffa] = React.useState({
@@ -90,6 +92,26 @@ export default function AziendaDettaglioPage() {
     terminiPagamento: 30,
     ibanRiferimento: '',
     frequenzaFatturazione: 'MENSILE',
+    // Antiriciclaggio & Privacy
+    settoreAttivita: 'CONTABILITA',
+    legaleRappresentante: '',
+    cfRappresentante: '',
+    dataNascitaRappr: '',
+    luogoNascitaRappr: '',
+    documentoTipo: 'CARTA_IDENTITA',
+    documentoNumero: '',
+    documentoRilasciatoDa: '',
+    documentoDataRilascio: '',
+    documentoScadenza: '',
+    antiriciclaggioObbligo: true,
+    antiriciclaggioRischio: 'BASSO',
+    antiriciclaggioPunteggio: 15,
+    antiriciclaggioTitolareEffettivo: '',
+    antiriciclaggioCfTitolareEffettivo: '',
+    antiriciclaggioPep: false,
+    antiriciclaggioPrestazione: 'Tenuta contabilità e adempimenti fiscali periodici',
+    privacyFirmata: false,
+    privacyData: '',
   })
 
   const caricaTutto = React.useCallback(async () => {
@@ -135,6 +157,26 @@ export default function AziendaDettaglioPage() {
         terminiPagamento: datiAz.terminiPagamento ?? 30,
         ibanRiferimento: datiAz.ibanRiferimento || '',
         frequenzaFatturazione: datiAz.frequenzaFatturazione || 'MENSILE',
+        // Antiriciclaggio & Privacy
+        settoreAttivita: datiAz.settoreAttivita || (datiAz.partitaIva ? 'CONTABILITA' : 'CAF'),
+        legaleRappresentante: datiAz.legaleRappresentante || '',
+        cfRappresentante: datiAz.cfRappresentante || '',
+        dataNascitaRappr: datiAz.dataNascitaRappr ? new Date(datiAz.dataNascitaRappr).toISOString().split('T')[0] : '',
+        luogoNascitaRappr: datiAz.luogoNascitaRappr || '',
+        documentoTipo: datiAz.documentoTipo || 'CARTA_IDENTITA',
+        documentoNumero: datiAz.documentoNumero || '',
+        documentoRilasciatoDa: datiAz.documentoRilasciatoDa || '',
+        documentoDataRilascio: datiAz.documentoDataRilascio ? new Date(datiAz.documentoDataRilascio).toISOString().split('T')[0] : '',
+        documentoScadenza: datiAz.documentoScadenza ? new Date(datiAz.documentoScadenza).toISOString().split('T')[0] : '',
+        antiriciclaggioObbligo: datiAz.antiriciclaggioObbligo ?? Boolean(datiAz.partitaIva),
+        antiriciclaggioRischio: datiAz.antiriciclaggioRischio || 'BASSO',
+        antiriciclaggioPunteggio: datiAz.antiriciclaggioPunteggio ?? 15,
+        antiriciclaggioTitolareEffettivo: datiAz.antiriciclaggioTitolareEffettivo || '',
+        antiriciclaggioCfTitolareEffettivo: datiAz.antiriciclaggioCfTitolareEffettivo || '',
+        antiriciclaggioPep: datiAz.antiriciclaggioPep ?? false,
+        antiriciclaggioPrestazione: datiAz.antiriciclaggioPrestazione || 'Tenuta contabilità e adempimenti fiscali periodici',
+        privacyFirmata: datiAz.privacyFirmata ?? false,
+        privacyData: datiAz.privacyData ? new Date(datiAz.privacyData).toISOString().split('T')[0] : '',
       })
     } catch (e: any) {
       toast({ title: 'Errore caricamento azienda', description: e.message, variant: 'destructive' })
@@ -351,6 +393,9 @@ export default function AziendaDettaglioPage() {
             Tariffe personalizzate ({azienda.priceRules?.length ?? 0})
           </TabsTrigger>
           <TabsTrigger value="documenti">📎 Documenti & CI</TabsTrigger>
+          <TabsTrigger value="antiriciclaggio" className="gap-1.5">
+            <ShieldCheck className="h-4 w-4 text-emerald-600" /> Antiriciclaggio & Privacy
+          </TabsTrigger>
         </TabsList>
 
         {/* TAB: Anagrafica */}
@@ -759,6 +804,453 @@ export default function AziendaDettaglioPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* TAB: Antiriciclaggio & Privacy */}
+        <TabsContent value="antiriciclaggio">
+          <div className="space-y-6">
+            {/* Box Riepilogo e Azioni Rapide */}
+            <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-5 rounded-xl shadow-sm border border-slate-800">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <span className="font-semibold text-lg flex items-center gap-2 text-white">
+                      <ShieldCheck className="h-5 w-5 text-emerald-400" />
+                      Fascicolo Antiriciclaggio &amp; Privacy (D.Lgs. 231/2007 - GDPR)
+                    </span>
+                    <Badge variant="outline" className="border-indigo-400 text-indigo-200 text-xs">
+                      Settore: {form.settoreAttivita || 'CONTABILITA'}
+                    </Badge>
+                    <Badge
+                      className={`text-xs ${
+                        form.antiriciclaggioObbligo
+                          ? 'bg-emerald-600/90 text-white'
+                          : 'bg-slate-700 text-slate-300'
+                      }`}
+                    >
+                      {form.antiriciclaggioObbligo ? 'Soggetto Obbligato' : 'Escluso / CAF'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                    Conforme alle Regole Tecniche CNDCEC. Monitoraggio documento d'identità, titolare effettivo,
+                    profilo di rischio professionale e conformità all'informativa privacy GDPR per lo Studio.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setOpenAntiriciclaggioModal(true)}
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs"
+                  >
+                    <ShieldCheck className="h-4 w-4 mr-1.5 text-emerald-400" />
+                    Valutazione CNDCEC Guidata
+                  </Button>
+                </div>
+              </div>
+
+              {/* Badges Stato Normativo */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-800/80">
+                {/* Stato Documento Identità */}
+                <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/60">
+                  <span className="text-[11px] text-slate-400 uppercase tracking-wide block font-semibold mb-1">
+                    Documento d'Identità
+                  </span>
+                  {(() => {
+                    const dataScad = form.documentoScadenza ? new Date(form.documentoScadenza) : null
+                    const diffDays = dataScad ? Math.ceil((dataScad.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null
+                    if (!form.documentoNumero || !dataScad) {
+                      return <span className="text-xs font-semibold text-amber-300">⚪ Da caricare / registrare</span>
+                    }
+                    if (diffDays! < 0) {
+                      return <span className="text-xs font-semibold text-rose-400">🔴 Scaduto il {dataScad.toLocaleDateString('it-IT')}</span>
+                    }
+                    if (diffDays! <= 60) {
+                      return <span className="text-xs font-semibold text-amber-400">🟡 In scadenza ({diffDays} gg)</span>
+                    }
+                    return <span className="text-xs font-semibold text-emerald-400">🟢 Valido fino al {dataScad.toLocaleDateString('it-IT')}</span>
+                  })()}
+                  <span className="text-[11px] text-slate-300 block mt-1">
+                    {form.documentoTipo === 'PASSAPORTO' ? 'Passaporto' : form.documentoTipo === 'PATENTE' ? 'Patente' : "Carta d'Identità"}: {form.documentoNumero || 'Non impostato'}
+                  </span>
+                </div>
+
+                {/* Profilo Rischio CNDCEC */}
+                <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/60">
+                  <span className="text-[11px] text-slate-400 uppercase tracking-wide block font-semibold mb-1">
+                    Rischio CNDCEC Adeguata Verifica
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded ${
+                        form.antiriciclaggioRischio === 'ALTO'
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          : form.antiriciclaggioRischio === 'MEDIO'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      }`}
+                    >
+                      {form.antiriciclaggioRischio || 'BASSO'} (Punti: {form.antiriciclaggioPunteggio || 15})
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-300 block mt-1">
+                    PEP: {form.antiriciclaggioPep ? '⚠️ Persona Esposta Politicamente' : 'No'}
+                  </span>
+                </div>
+
+                {/* Privacy GDPR */}
+                <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/60">
+                  <span className="text-[11px] text-slate-400 uppercase tracking-wide block font-semibold mb-1">
+                    Privacy GDPR (Reg. UE 2016/679)
+                  </span>
+                  <span className={`text-xs font-semibold ${form.privacyFirmata ? 'text-emerald-400' : 'text-amber-300'}`}>
+                    {form.privacyFirmata ? '🟢 Informativa firmata e archiviata' : '🟡 Informativa da sottoscrivere'}
+                  </span>
+                  <span className="text-[11px] text-slate-300 block mt-1">
+                    {form.privacyData ? `Data firma: ${new Date(form.privacyData).toLocaleDateString('it-IT')}` : 'Nessuna data di firma registrata'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Bottoni Download PDF Ufficiali Studio Tuzio */}
+              <div className="mt-4 pt-3 border-t border-slate-800 flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-slate-400 font-semibold mr-1">Scarica Documenti Conformi:</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=dichiarazione`, '_blank')}
+                  className="bg-slate-800 hover:bg-slate-700 text-white border-slate-600 text-xs"
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1 text-blue-400" />
+                  Dichiarazione Cliente (Art. 22) PDF
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank')}
+                  className="bg-slate-800 hover:bg-slate-700 text-white border-slate-600 text-xs"
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1 text-emerald-400" />
+                  Informativa Privacy PDF
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=valutazione`, '_blank')}
+                  className="bg-slate-800 hover:bg-slate-700 text-white border-slate-600 text-xs"
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1 text-purple-400" />
+                  Valutazione Rischio CNDCEC PDF
+                </Button>
+              </div>
+            </div>
+
+            {/* Form Modifica Dati Antiriciclaggio & Privacy */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  Dati di Identificazione e Fascicolo Professionale
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* 1. Settore e Obbligo */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="settoreAttivita">Settore Attività per lo Studio *</Label>
+                    <Select
+                      value={form.settoreAttivita}
+                      onValueChange={(v) => setForm({ ...form, settoreAttivita: v })}
+                    >
+                      <SelectTrigger id="settoreAttivita">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CONTABILITA">📊 CONTABILITÀ (Ditte e Società)</SelectItem>
+                        <SelectItem value="PAGHE">💼 PAGHE (Consulenza del lavoro)</SelectItem>
+                        <SelectItem value="CAF">🧾 CAF (Dichiarazioni e Privati)</SelectItem>
+                        <SelectItem value="MISTO">🏢 MISTO (Contabilità + Paghe + Altro)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <Label htmlFor="antiriciclaggioPrestazione">Natura della Prestazione Professionale</Label>
+                    <Input
+                      id="antiriciclaggioPrestazione"
+                      value={form.antiriciclaggioPrestazione}
+                      onChange={(e) => setForm({ ...form, antiriciclaggioPrestazione: e.target.value })}
+                      placeholder="es. Tenuta contabilità ordinaria, bilancio e adempimenti fiscali"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={form.antiriciclaggioObbligo}
+                        onChange={(e) => setForm({ ...form, antiriciclaggioObbligo: e.target.checked })}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-gray-900 block">
+                          Soggetto sottoposto agli obblighi di Adeguata Verifica Antiriciclaggio (D.Lgs. 231/2007)
+                        </span>
+                        <span className="text-[11px] text-gray-600">
+                          Attivo di default per tutti i clienti con Partita IVA (società e ditte individuali). Deseleziona per escludere clienti privati CAF che non svolgono attività d&apos;impresa.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* 2. Legale Rappresentante */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-3">
+                    Legale Rappresentante / Soggetto Identificato
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <Label htmlFor="legaleRappresentante">Nome e Cognome Rappresentante</Label>
+                      <Input
+                        id="legaleRappresentante"
+                        value={form.legaleRappresentante}
+                        onChange={(e) => setForm({ ...form, legaleRappresentante: e.target.value })}
+                        placeholder="es. Mario Rossi"
+                      />
+                    </div>
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <Label htmlFor="cfRappresentante">Codice Fiscale Rappresentante</Label>
+                      <Input
+                        id="cfRappresentante"
+                        value={form.cfRappresentante}
+                        onChange={(e) => setForm({ ...form, cfRappresentante: e.target.value.toUpperCase() })}
+                        placeholder="es. RSSMRA80A01H501Z"
+                        maxLength={16}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="dataNascitaRappr">Data di Nascita</Label>
+                      <Input
+                        id="dataNascitaRappr"
+                        type="date"
+                        value={form.dataNascitaRappr}
+                        onChange={(e) => setForm({ ...form, dataNascitaRappr: e.target.value })}
+                      />
+                    </div>
+                    <div className="sm:col-span-3 space-y-1.5">
+                      <Label htmlFor="luogoNascitaRappr">Luogo di Nascita (Comune e Prov.)</Label>
+                      <Input
+                        id="luogoNascitaRappr"
+                        value={form.luogoNascitaRappr}
+                        onChange={(e) => setForm({ ...form, luogoNascitaRappr: e.target.value })}
+                        placeholder="es. Reggio nell'Emilia (RE)"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* 3. Documento d'Identità */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600">
+                      Documento di Riconoscimento (Monitoraggio Scadenze)
+                    </h4>
+                    {form.documentoScadenza && (
+                      <span className="text-xs text-gray-500">
+                        Scadenza inserita: <strong>{new Date(form.documentoScadenza).toLocaleDateString('it-IT')}</strong>
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="documentoTipo">Tipo Documento</Label>
+                      <Select
+                        value={form.documentoTipo}
+                        onValueChange={(v) => setForm({ ...form, documentoTipo: v })}
+                      >
+                        <SelectTrigger id="documentoTipo">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CARTA_IDENTITA">Carta d'Identità</SelectItem>
+                          <SelectItem value="PASSAPORTO">Passaporto</SelectItem>
+                          <SelectItem value="PATENTE">Patente di Guida</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="documentoNumero">Numero Documento *</Label>
+                      <Input
+                        id="documentoNumero"
+                        value={form.documentoNumero}
+                        onChange={(e) => setForm({ ...form, documentoNumero: e.target.value.toUpperCase() })}
+                        placeholder="es. CA12345AA"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="documentoRilasciatoDa">Rilasciato da</Label>
+                      <Input
+                        id="documentoRilasciatoDa"
+                        value={form.documentoRilasciatoDa}
+                        onChange={(e) => setForm({ ...form, documentoRilasciatoDa: e.target.value })}
+                        placeholder="es. Comune di Reggio Emilia"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="documentoDataRilascio">Data Rilascio</Label>
+                      <Input
+                        id="documentoDataRilascio"
+                        type="date"
+                        value={form.documentoDataRilascio}
+                        onChange={(e) => setForm({ ...form, documentoDataRilascio: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="documentoScadenza">Data di Scadenza *</Label>
+                      <Input
+                        id="documentoScadenza"
+                        type="date"
+                        value={form.documentoScadenza}
+                        onChange={(e) => setForm({ ...form, documentoScadenza: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* 4. Titolare Effettivo e Rischio CNDCEC */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-3">
+                    Titolare Effettivo e Valutazione del Rischio
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="antiriciclaggioTitolareEffettivo">Titolare Effettivo</Label>
+                      <Input
+                        id="antiriciclaggioTitolareEffettivo"
+                        value={form.antiriciclaggioTitolareEffettivo}
+                        onChange={(e) => setForm({ ...form, antiriciclaggioTitolareEffettivo: e.target.value })}
+                        placeholder="Se persona giuridica, indicare socio di controllo"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="antiriciclaggioCfTitolareEffettivo">Codice Fiscale Titolare Effettivo</Label>
+                      <Input
+                        id="antiriciclaggioCfTitolareEffettivo"
+                        value={form.antiriciclaggioCfTitolareEffettivo}
+                        onChange={(e) => setForm({ ...form, antiriciclaggioCfTitolareEffettivo: e.target.value.toUpperCase() })}
+                        placeholder="CF 16 caratteri"
+                        maxLength={16}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="antiriciclaggioRischio">Classe Rischio CNDCEC</Label>
+                      <Select
+                        value={form.antiriciclaggioRischio}
+                        onValueChange={(v) => {
+                          const punteggio = v === 'ALTO' ? 38 : v === 'MEDIO' ? 26 : 15
+                          setForm({ ...form, antiriciclaggioRischio: v, antiriciclaggioPunteggio: punteggio })
+                        }}
+                      >
+                        <SelectTrigger id="antiriciclaggioRischio">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="BASSO">🟢 BASSO (Revisione ogni 36 mesi)</SelectItem>
+                          <SelectItem value="MEDIO">🟡 MEDIO (Revisione ogni 24 mesi)</SelectItem>
+                          <SelectItem value="ALTO">🔴 ALTO (Revisione ogni 12 mesi)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="sm:col-span-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.antiriciclaggioPep}
+                          onChange={(e) => setForm({ ...form, antiriciclaggioPep: e.target.checked })}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-xs font-semibold text-gray-800">
+                          Il cliente o il titolare effettivo è una Persona Esposta Politicamente (PEP) ai sensi dell'art. 1 comma 2 lett. dd) D.Lgs. 231/2007
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* 5. Privacy GDPR */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600 mb-3">
+                    Privacy e Consenso al Trattamento Dati (GDPR Reg. UE 2016/679)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-2 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.privacyFirmata}
+                          onChange={(e) => {
+                            const firmata = e.target.checked
+                            setForm({
+                              ...form,
+                              privacyFirmata: firmata,
+                              privacyData: firmata && !form.privacyData ? new Date().toISOString().split('T')[0] : form.privacyData,
+                            })
+                          }}
+                          className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span className="text-xs font-semibold text-gray-800">
+                          Informativa e modulo di consenso al trattamento dati personali firmati dal cliente
+                        </span>
+                      </label>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="privacyData">Data Sottoscrizione Privacy</Label>
+                      <Input
+                        id="privacyData"
+                        type="date"
+                        value={form.privacyData}
+                        onChange={(e) => setForm({ ...form, privacyData: e.target.value })}
+                        disabled={!form.privacyFirmata}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                  <Button onClick={handleSalva} disabled={salvando} className="bg-emerald-600 hover:bg-emerald-700">
+                    {salvando ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvataggio...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" /> Salva Modifiche Antiriciclaggio &amp; Privacy
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* ─────────────────────────────────────────────────────────────
@@ -858,6 +1350,14 @@ export default function AziendaDettaglioPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Antiriciclaggio & Privacy CNDCEC Guidata */}
+      <AntiriciclaggioDettaglioModal
+        aziendaId={aziendaId}
+        open={openAntiriciclaggioModal}
+        onOpenChange={setOpenAntiriciclaggioModal}
+        onSuccess={caricaTutto}
+      />
     </div>
   )
 }

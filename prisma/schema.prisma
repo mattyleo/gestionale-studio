@@ -186,6 +186,43 @@ model Company {
   attivo                Boolean           @default(true)
   archiviata            Boolean           @default(false)
   dataArchiviazione     DateTime?
+
+  // ── Settore di attività per lo studio (CAF, Contabilità, Paghe) ──
+  settoreAttivita       String?           @default("CONTABILITA") // "CONTABILITA" | "PAGHE" | "CAF" | "MISTO"
+
+  // ── Dati Legale Rappresentante / Titolare ──
+  legaleRappresentante  String?
+  cfRappresentante      String?
+  dataNascitaRappr      DateTime?         @db.Date
+  luogoNascitaRappr     String?
+
+  // ── Documento d'Identità monitorabile ──
+  documentoTipo         String?           @default("carta_identita") // "carta_identita" | "passaporto" | "patente"
+  documentoNumero       String?
+  documentoRilasciatoDa String?
+  documentoDataRilascio DateTime?         @db.Date
+  documentoScadenza     DateTime?         @db.Date
+  documentoFileUrl      String?
+
+  // ── Antiriciclaggio D.Lgs. 231/2007 (Censimento & Adeguata Verifica CNDCEC) ──
+  antiriciclaggioObbligo Boolean          @default(true) // Solo aziende con P.IVA o soggetti obbligati
+  antiriciclaggioFascicolo String?        // Identificativo fascicolo es. "ARC-001/2026"
+  antiriciclaggioDataVerifica DateTime?   @db.Date
+  antiriciclaggioDataScadenza DateTime?   @db.Date
+  antiriciclaggioRischio String?          @default("BASSO") // "BASSO" | "MEDIO" | "ALTO"
+  antiriciclaggioPunteggio Int?           @default(1)
+  antiriciclaggioTitolareEffettivo String?
+  antiriciclaggioCfTitolareEffettivo String?
+  antiriciclaggioPep     Boolean          @default(false) // Persona Politicamente Esposta
+  antiriciclaggioPrestazione String?      // Tipologia prestazione professionale continuativa
+  antiriciclaggioStato   String           @default("DA_VERIFICARE") // "DA_VERIFICARE" | "REGOLARE" | "IN_SCADENZA" | "NON_CONFORME"
+  antiriciclaggioNote    String?
+
+  // ── Privacy GDPR (Reg. UE 2016/679) ──
+  privacyFirmata         Boolean          @default(false)
+  privacyData            DateTime?        @db.Date
+  privacyNote            String?
+
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
@@ -199,6 +236,8 @@ model Company {
   @@index([ragioneSociale])
   @@index([codiceFiscale])
   @@index([partitaIva])
+  @@index([settoreAttivita])
+  @@index([antiriciclaggioObbligo])
   @@map("companies")
 }
 

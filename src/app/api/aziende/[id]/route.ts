@@ -30,6 +30,42 @@ const aggiornaAziendaSchema = z.object({
   frequenzaFatturazione: z.enum(['MENSILE', 'BIMESTRALE', 'TRIMESTRALE', 'SEMESTRALE', 'ANNUALE', 'MANUALE']).optional(),
   attivo: z.boolean().optional(),
   motivo: z.string().optional(), // Motivo della modifica per storico
+
+  // Settore di attività studio
+  settoreAttivita: z.string().optional().nullable(),
+
+  // Legale Rappresentante
+  legaleRappresentante: z.string().optional().nullable(),
+  cfRappresentante: z.string().optional().nullable(),
+  dataNascitaRappr: z.string().or(z.date()).optional().nullable().transform(v => v ? new Date(v) : null),
+  luogoNascitaRappr: z.string().optional().nullable(),
+
+  // Documento d'Identità
+  documentoTipo: z.string().optional().nullable(),
+  documentoNumero: z.string().optional().nullable(),
+  documentoRilasciatoDa: z.string().optional().nullable(),
+  documentoDataRilascio: z.string().or(z.date()).optional().nullable().transform(v => v ? new Date(v) : null),
+  documentoScadenza: z.string().or(z.date()).optional().nullable().transform(v => v ? new Date(v) : null),
+  documentoFileUrl: z.string().optional().nullable(),
+
+  // Antiriciclaggio
+  antiriciclaggioObbligo: z.boolean().optional(),
+  antiriciclaggioFascicolo: z.string().optional().nullable(),
+  antiriciclaggioDataVerifica: z.string().or(z.date()).optional().nullable().transform(v => v ? new Date(v) : null),
+  antiriciclaggioDataScadenza: z.string().or(z.date()).optional().nullable().transform(v => v ? new Date(v) : null),
+  antiriciclaggioRischio: z.string().optional().nullable(),
+  antiriciclaggioPunteggio: z.number().int().optional().nullable(),
+  antiriciclaggioTitolareEffettivo: z.string().optional().nullable(),
+  antiriciclaggioCfTitolareEffettivo: z.string().optional().nullable(),
+  antiriciclaggioPep: z.boolean().optional(),
+  antiriciclaggioPrestazione: z.string().optional().nullable(),
+  antiriciclaggioStato: z.string().optional(),
+  antiriciclaggioNote: z.string().optional().nullable(),
+
+  // Privacy
+  privacyFirmata: z.boolean().optional(),
+  privacyData: z.string().or(z.date()).optional().nullable().transform(v => v ? new Date(v) : null),
+  privacyNote: z.string().optional().nullable(),
 })
 
 export async function GET(request: Request, { params: _params }: { params: Promise<{ id: string }> }) {
