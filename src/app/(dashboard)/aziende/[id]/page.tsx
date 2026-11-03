@@ -945,6 +945,20 @@ export default function AziendaDettaglioPage() {
                   <FileDown className="h-3.5 w-3.5 mr-1 text-purple-400" />
                   Valutazione Rischio CNDCEC PDF
                 </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=dichiarazione`, '_blank')
+                    setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank'), 300)
+                    setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=valutazione`, '_blank'), 600)
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                  title="Stampa istantaneamente tutti i 3 documenti da far firmare al nuovo cliente"
+                >
+                  <FileText className="h-3.5 w-3.5 mr-1" />
+                  Stampa Kit Completo (3 Documenti)
+                </Button>
               </div>
             </div>
 

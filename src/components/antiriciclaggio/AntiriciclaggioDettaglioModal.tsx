@@ -616,6 +616,21 @@ export function AntiriciclaggioDettaglioModal({
                   <ShieldCheck className="h-4 w-4 mr-1.5 text-indigo-600" />
                   Scheda Valutazione Rischio CNDCEC
                 </Button>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=dichiarazione`, '_blank')
+                    setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank'), 300)
+                    setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=valutazione`, '_blank'), 600)
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+                  title="Apre in 3 schede tutti i documenti necessari per l'acquisizione del nuovo cliente"
+                >
+                  <Printer className="h-4 w-4 mr-1.5" />
+                  Stampa Kit Completo (Tutti i 3 Documenti)
+                </Button>
               </div>
             </div>
           </div>
