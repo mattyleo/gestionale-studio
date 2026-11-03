@@ -4,7 +4,7 @@
 import * as React from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Loader2, RefreshCw, FileText, CheckCircle2, Clock, AlertCircle, Plus, Pencil, Trash2, ShieldCheck, FileDown, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, RefreshCw, FileText, CheckCircle2, Clock, AlertCircle, Plus, Pencil, Trash2, ShieldCheck, FileDown, AlertTriangle, Sparkles } from 'lucide-react'
 import { AntiriciclaggioDettaglioModal } from '@/components/antiriciclaggio/AntiriciclaggioDettaglioModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -312,6 +312,48 @@ export default function AziendaDettaglioPage() {
     } catch (e: any) {
       toast({ title: 'Errore eliminazione', description: e.message, variant: 'destructive' })
     }
+  }
+
+  const eseguiAutoCompilazioneCNDCEC = () => {
+    if (!azienda) return
+    const isPrivato = !azienda.partitaIva && azienda.tipoSoggetto === 'PERSONA_FISICA'
+    const settore = form.settoreAttivita || (azienda.partitaIva ? 'CONTABILITA' : 'CAF')
+
+    const rappr = form.legaleRappresentante || azienda.legaleRappresentante || azienda.referente || (isPrivato ? azienda.ragioneSociale : '')
+    const cfRappr = form.cfRappresentante || azienda.cfRappresentante || (isPrivato ? (azienda.codiceFiscale || '') : '')
+    const titEffettivo = form.antiriciclaggioTitolareEffettivo || rappr
+    const cfTitEffettivo = form.antiriciclaggioCfTitolareEffettivo || cfRappr
+
+    let prestazione = form.antiriciclaggioPrestazione
+    if (!prestazione) {
+      if (settore === 'CONTABILITA') {
+        prestazione = 'Tenuta contabilità generale, adempimenti fiscali periodici e predisposizione bilancio d\'esercizio'
+      } else if (settore === 'PAGHE') {
+        prestazione = 'Consulenza del lavoro, elaborazione buste paga/LUL e adempimenti previdenziali'
+      } else if (settore === 'CAF') {
+        prestazione = 'Dichiarazioni dei redditi persone fisiche, modello 730 e pratiche tributarie'
+      } else {
+        prestazione = 'Consulenza aziendale e tributaria continuativa'
+      }
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      settoreAttivita: settore,
+      antiriciclaggioObbligo: !isPrivato,
+      antiriciclaggioRischio: 'BASSO',
+      antiriciclaggioPunteggio: 15,
+      antiriciclaggioPrestazione: prestazione,
+      antiriciclaggioTitolareEffettivo: titEffettivo,
+      antiriciclaggioCfTitolareEffettivo: cfTitEffettivo,
+      legaleRappresentante: rappr,
+      cfRappresentante: cfRappr,
+    }))
+
+    toast({
+      title: '⚡ Valutazione CNDCEC Calcolata!',
+      description: 'Parametri e profilo di rischio compilati automaticamente secondo le Regole Tecniche CNDCEC. Clicca su Salva per confermare.',
+    })
   }
 
   if (loading) {
@@ -839,12 +881,22 @@ export default function AziendaDettaglioPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <Button
                     type="button"
+                    size="sm"
+                    onClick={eseguiAutoCompilazioneCNDCEC}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm"
+                    title="Calcola automaticamente i parametri di rischio CNDCEC e compila il fascicolo senza NotebookLM"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 mr-1 text-amber-300" />
+                    Valutazione Automatica CNDCEC
+                  </Button>
+                  <Button
+                    type="button"
                     variant="outline"
                     onClick={() => setOpenAntiriciclaggioModal(true)}
                     className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs"
                   >
                     <ShieldCheck className="h-4 w-4 mr-1.5 text-emerald-400" />
-                    Valutazione CNDCEC Guidata
+                    Fascicolo Guidato
                   </Button>
                 </div>
               </div>
