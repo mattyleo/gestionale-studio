@@ -39,3 +39,29 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ── SICUREZZA, PRIVACY & DATI CONTABILI / FATTURE REALI ──
+# Nessun file XML, P7M, PDF fattura, dump database o archivio deve mai finire su Git
+*.xml
+*.p7m
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.sql
+*.sql.gz
+*.bak
+*.csv
+*.xlsx
+*.xls
+/backups/
+/db_backups/
+/uploads/
+/exports/
+/temp/
+/tmp/
+*.sqlite
+*.sqlite3
+*.db
+
