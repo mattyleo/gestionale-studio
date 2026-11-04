@@ -20,12 +20,12 @@ import {
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 8.2,
+    fontSize: 7.8,
     color: '#1e293b',
-    paddingTop: 24,
-    paddingBottom: 38,
-    paddingHorizontal: 30,
-    lineHeight: 1.35,
+    paddingTop: 18,
+    paddingBottom: 28,
+    paddingHorizontal: 26,
+    lineHeight: 1.25,
     backgroundColor: '#ffffff',
   },
   bold: {
@@ -39,9 +39,9 @@ const styles = StyleSheet.create({
   headerBanner: {
     backgroundColor: '#1e3a8a',
     borderRadius: 5,
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 12,
-    marginBottom: 8,
+    marginBottom: 6,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -69,6 +69,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     alignItems: 'flex-end',
+    width: 170,
+    flexShrink: 0,
   },
   badgeTitle: {
     fontSize: 7.8,
@@ -89,7 +91,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     paddingVertical: 5,
     paddingHorizontal: 10,
-    marginBottom: 7,
+    marginBottom: 5,
     alignItems: 'center',
   },
   titleText: {
@@ -110,7 +112,7 @@ const styles = StyleSheet.create({
   partiesRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 7,
+    marginBottom: 5,
   },
   partyCard: {
     width: '49%',
@@ -132,21 +134,21 @@ const styles = StyleSheet.create({
     borderBottomColor: '#cbd5e1',
   },
   partyCardBody: {
-    paddingVertical: 5,
-    paddingHorizontal: 7,
+    paddingVertical: 3.5,
+    paddingHorizontal: 6,
   },
   dataRow: {
     flexDirection: 'row',
-    marginBottom: 2.2,
+    marginBottom: 1.5,
   },
   dataLabel: {
-    width: '36%',
+    width: '31%',
     fontSize: 7,
     color: '#64748b',
     fontFamily: 'Helvetica-Bold',
   },
   dataVal: {
-    width: '64%',
+    width: '69%',
     fontSize: 7.5,
     color: '#0f172a',
     fontFamily: 'Helvetica-Bold',
@@ -157,7 +159,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#cbd5e1',
     borderRadius: 4,
-    marginBottom: 6.5,
+    marginBottom: 5,
     overflow: 'hidden',
   },
   sectionHeader: {
@@ -172,8 +174,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   sectionBody: {
-    paddingVertical: 5.5,
-    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    paddingHorizontal: 7,
   },
 
   // BULLETS
@@ -203,10 +205,10 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#1e3a8a',
     borderRadius: 3,
-    paddingVertical: 4.5,
-    paddingHorizontal: 7,
-    marginTop: 3,
-    marginBottom: 3,
+    paddingVertical: 3.5,
+    paddingHorizontal: 6,
+    marginTop: 2,
+    marginBottom: 2,
   },
 
   // CHECKBOXES (SEMPRE VUOTE PER SPUNTA MANUALE DEL DOTTORE / CLIENTE)
@@ -237,8 +239,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#94a3b8',
     borderRadius: 4,
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    paddingHorizontal: 6,
     backgroundColor: '#f8fafc',
   },
   signatureLabelTop: {
@@ -256,8 +258,8 @@ const styles = StyleSheet.create({
   signatureLine: {
     borderBottomWidth: 1,
     borderBottomColor: '#334155',
-    marginTop: 15,
-    marginBottom: 2.5,
+    marginTop: 10,
+    marginBottom: 2,
   },
   signatureSub: {
     fontSize: 6.6,
@@ -280,6 +282,8 @@ const styles = StyleSheet.create({
     color: '#475569',
   },
 })
+
+type ModelloIncarico = 'PAGHE' | 'CONTABILITA' | 'SEMPLIFICATA' | 'FORFETTARI' | 'OCCASIONALI'
 
 interface StudioInfo {
   denominazione: string
@@ -305,10 +309,13 @@ function CorporateHeader({
 }) {
   return (
     <View style={styles.headerBanner} wrap={false}>
-      <View>
+      <View style={{ flex: 1, paddingRight: 10 }}>
         <Text style={styles.studioName}>{studio.denominazione.toUpperCase()}</Text>
         <Text style={styles.studioSub}>
-          Dottore Commercialista · Albo ODCEC di Reggio Emilia n. 742/A · C.F. {studio.cf} · P.IVA {studio.piva}
+          Dottore Commercialista · Albo ODCEC di Reggio Emilia n. 742/A
+        </Text>
+        <Text style={styles.studioSub}>
+          C.F. {studio.cf} · P.IVA {studio.piva}
         </Text>
         <Text style={styles.studioSub}>
           {studio.indirizzo} · Tel. {studio.telefono}
@@ -319,21 +326,25 @@ function CorporateHeader({
       </View>
       <View style={styles.badgeBox}>
         <Text style={styles.badgeTitle}>FASCICOLO: {fascicolo}</Text>
-        <Text style={styles.badgeSub}>{zonaLabel}</Text>
+        <Text style={[styles.badgeSub, { textAlign: 'right' }]}>{zonaLabel}</Text>
         <Text style={{ fontSize: 6.5, color: '#64748b', marginTop: 1 }}>Data: {dataOggi}</Text>
       </View>
     </View>
   )
 }
 
-function CorporateFooter({ pagina, studio }: { pagina: string; studio: StudioInfo }) {
+function CorporateFooter({ studio }: { studio: StudioInfo }) {
   return (
     <View style={styles.footer} fixed>
       <Text>
-        <Text style={styles.bold}>{studio.denominazione}</Text> · Dottore Commercialista · {studio.indirizzo} · PEC:{' '}
+        <Text style={styles.bold}>{studio.denominazione}</Text> · Dottore Commercialista · PEC:{' '}
         <Text style={styles.bold}>{studio.pec}</Text> · Email: {studio.email}
       </Text>
-      <Text style={styles.bold}>{pagina}</Text>
+      <Text
+        style={styles.bold}
+        render={({ pageNumber, totalPages }) => `Pagina ${pageNumber} di ${totalPages}`}
+        fixed
+      />
     </View>
   )
 }
@@ -390,7 +401,7 @@ function PartiesCards({
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>C.F. / Partita IVA:</Text>
             <Text style={styles.dataVal}>
-              C.F. {cfAzienda} · P.IVA {pivaAzienda}
+              {cfAzienda === pivaAzienda ? `C.F./P.IVA ${cfAzienda}` : `C.F. ${cfAzienda} · P.IVA ${pivaAzienda}`}
             </Text>
           </View>
           <View style={styles.dataRow}>
@@ -493,6 +504,7 @@ function SecondaPaginaPrivacyEF24({
   botMotivo,
   titolareEffettivo,
   studio,
+  modello,
 }: {
   fascicolo: string
   zonaLabel: string
@@ -512,45 +524,106 @@ function SecondaPaginaPrivacyEF24({
   botMotivo: string
   titolareEffettivo: string
   studio: StudioInfo
+  modello: ModelloIncarico
 }) {
+  const esenteAvcPaghe = modello === 'PAGHE' || modello === 'OCCASIONALI'
   return (
+    <>
     <Page size="A4" style={styles.page}>
       <CorporateHeader fascicolo={fascicolo} zonaLabel={zonaLabel} dataOggi={oggi} studio={studio} />
 
-      {/* SEZIONE PRIVACY GDPR */}
+      {/* ART. 8 — DISCIPLINA ANTIRICICLAGGIO (CLAUSOLARIO STUDIO TUZIO / CNDCEC-CNOCDL 16.01.2025) */}
       <View style={styles.sectionCard} wrap={false}>
         <Text style={styles.sectionHeader}>
-          Informativa sul Trattamento dei Dati Personali (Policy Privacy — Artt. 13-21 Reg. UE 2016/679 GDPR)
+          Art. 8 — Disciplina Antiriciclaggio, Titolare Effettivo e Obbligo di Astensione (D.Lgs. 231/2007)
         </Text>
         <View style={styles.sectionBody}>
-          <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 3 }}>
-            <Text style={styles.bold}>1. Principi generali e Titolare del Trattamento: </Text>
-            Tutti i dati personali sono trattati in modo lecito, corretto e trasparente nel rispetto dell&apos;Art. 5
-            del GDPR, con misure di sicurezza idonee a prevenire perdita, usi illeciti o accessi non autorizzati. Il
-            Titolare del Trattamento è <Text style={styles.bold}>{studio.denominazione}</Text> – {studio.indirizzo} –
-            Tel: {studio.telefono} – Email: <Text style={styles.bold}>{studio.email}</Text> – PEC:{' '}
-            <Text style={styles.bold}>{studio.pec}</Text>, presso il quale l&apos;interessato può esercitare i diritti
-            previsti dagli artt. 15-21 del GDPR (accesso, rettifica, cancellazione, limitazione, portabilità,
-            opposizione, reclamo al Garante).
+          {esenteAvcPaghe && (
+            <View style={[styles.calloutBox, { marginTop: 0, marginBottom: 4 }]}>
+              <Text style={{ fontSize: 7.3, textAlign: 'justify' }}>
+                <Text style={styles.bold}>8.0 Esenzione per le paghe e riserva di adeguata verifica: </Text>
+                ai sensi dell&apos;<Text style={styles.bold}>art. 17, comma 7, del D.Lgs. 231/2007</Text>, gli
+                adempimenti di mera amministrazione del personale ed elaborazione dei cedolini (L. 12/1979) sono esenti
+                dall&apos;obbligo di adeguata verifica ordinaria. Qualora l&apos;incarico comprenda consulenze
+                lavoristiche straordinarie o strategiche, la negoziazione di contratti aziendali straordinari, ovvero
+                emergano elementi di sospetto o dubbi sull&apos;identità, lo Studio procederà all&apos;adeguata verifica
+                della clientela, fermo restando l&apos;obbligo di Segnalazione di Operazioni Sospette (SOS).
+              </Text>
+            </View>
+          )}
+          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3 }}>
+            <Text style={styles.bold}>8.1 Obbligo di informazione del Cliente (Art. 22): </Text>
+            il Cliente si obbliga a fornire per iscritto e sotto la propria responsabilità tutte le informazioni
+            necessarie e aggiornate relative all&apos;identificazione del Cliente, dell&apos;Esecutore e del{' '}
+            <Text style={styles.bold}>Titolare Effettivo</Text> (criteri di individuazione ex art. 20: proprietà
+            {' '}&gt; 25%, controllo o rappresentanza legale), nonché sullo scopo e sulla natura della prestazione e
+            sulla provenienza dei fondi, sottoscrivendo contestualmente la{' '}
+            <Text style={styles.bold}>Dichiarazione ex art. 22 (Modello AV.4)</Text> e comunicando immediatamente ogni
+            successiva variazione. Il Cliente è consapevole delle sanzioni penali previste dall&apos;
+            <Text style={styles.bold}>art. 55, comma 3, del D.Lgs. 231/2007</Text> in caso di dichiarazioni mendaci o
+            omesse.
           </Text>
-          <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 3 }}>
-            <Text style={styles.bold}>2. Oggetto, Finalità e Base Giuridica (Art. 6, co. 1, lett. b, c, f GDPR): </Text>
-            Lo Studio tratta dati identificativi, anagrafici, fiscali, contabili, retributivi e bancari di clienti,
-            dipendenti e referenti operativi per: concludere ed eseguire rapporti contrattuali/professionali; adempiere
-            agli obblighi fiscali, previdenziali e <Text style={styles.bold}>Antiriciclaggio (D.Lgs. 231/2007)</Text>{' '}
-            derivanti dai rapporti in essere; tutelare le posizioni creditorie e le esigenze gestionali/contabili. Il
-            mancato conferimento dei dati rende impossibile l&apos;instaurazione del rapporto professionale.
+          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3 }}>
+            <Text style={styles.bold}>8.2 Clausola risolutiva espressa e obbligo di astensione (Art. 42): </Text>
+            l&apos;impossibilità di effettuare o completare l&apos;adeguata verifica per causa imputabile al Cliente,
+            inclusa la mancata sottoscrizione del Modello AV.4 o il mancato conferimento delle informazioni sul
+            Titolare Effettivo <Text style={styles.bold}>entro 30 giorni</Text>, costituisce causa di risoluzione di
+            diritto del presente mandato <Text style={styles.bold}>ex art. 1456 c.c.</Text> e comporta l&apos;obbligo
+            di astensione o interruzione immediata dell&apos;incarico (Modello AV.6), fermo restando il diritto del
+            Professionista al compenso per l&apos;attività svolta ed al risarcimento degli eventuali danni.
           </Text>
-          <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 4 }}>
-            <Text style={styles.bold}>3. Modalità, Ambito (Art. 29 GDPR) e Conservazione: </Text>
-            Il trattamento avviene con strumenti manuali, informatici e telematici da parte di soggetti interni
-            autorizzati ed istruiti per il tempo necessario ad adempiere alle finalità contrattuali e agli obblighi di
-            legge (10 anni ex art. 2220 c.c. e art. 31 D.Lgs. 231/2007).
+          <Text style={{ fontSize: 7.4, textAlign: 'justify' }}>
+            <Text style={styles.bold}>8.3 Conservazione e Fascicolo del Cliente (Art. 31): </Text>
+            i dati, i documenti identificativi e i modelli di valutazione del rischio (
+            <Text style={styles.bold}>AV.1, AV.4, AV.7</Text>) sono inseriti nel Fascicolo Specifico del Cliente e
+            conservati per <Text style={styles.bold}>10 anni</Text> dalla cessazione del rapporto professionale
+            (Regola Tecnica n. 3 CNDCEC), garantendone riservatezza e accessibilità alle Autorità di controllo (UIF,
+            Guardia di Finanza).
+            {modello === 'CONTABILITA' || modello === 'SEMPLIFICATA'
+              ? ' Prestazione soggetta ad adeguata verifica (Rischio Inerente Grado 3): il Cliente attesta che le scritture e i documenti trasmessi rispecchiano operazioni gestionali effettive; il controllo costante è effettuato con cadenza biennale o triennale.'
+              : modello === 'FORFETTARI'
+              ? ' Il Cliente si impegna al rispetto dei requisiti di accesso e permanenza nel regime forfetario; l\u2019adeguata verifica è effettuata in forma semplificata/ordinaria con aggiornamento triennale.'
+              : ''}
+          </Text>
+        </View>
+      </View>
+
+      {/* ART. 9 — PRIVACY GDPR */}
+      <View style={styles.sectionCard} wrap={false}>
+        <Text style={styles.sectionHeader}>
+          Art. 9 — Informativa sul Trattamento dei Dati Personali (Artt. 13-22 Reg. UE 2016/679 — GDPR)
+        </Text>
+        <View style={styles.sectionBody}>
+          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3 }}>
+            <Text style={styles.bold}>9.1 Titolare del trattamento e basi giuridiche: </Text>
+            Titolare del trattamento è <Text style={styles.bold}>{studio.denominazione}</Text> – {studio.indirizzo} –
+            PEC <Text style={styles.bold}>{studio.pec}</Text> – Email <Text style={styles.bold}>{studio.email}</Text>.
+            La base giuridica è costituita dall&apos;esecuzione del mandato professionale (
+            <Text style={styles.bold}>art. 6, par. 1, lett. b GDPR</Text>) e dall&apos;adempimento degli obblighi di
+            legge fiscali, contabili e antiriciclaggio (<Text style={styles.bold}>art. 6, par. 1, lett. c GDPR</Text>).
+            Per i dati particolari (es. dati sanitari/sindacali dei dipendenti nelle paghe) la base giuridica risiede
+            nell&apos;esercizio dei diritti in materia di diritto del lavoro e sicurezza sociale (
+            <Text style={styles.bold}>art. 9, par. 2, lett. b GDPR</Text>). Non è richiesto alcun consenso facoltativo
+            per il trattamento dei dati strettamente necessari all&apos;esecuzione del mandato.
+          </Text>
+          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3 }}>
+            <Text style={styles.bold}>9.2 Finalità e modalità: </Text>
+            i dati sono trattati con strumenti manuali e informatici idonei a garantirne sicurezza e riservatezza, per
+            finalità di gestione contabile, fiscale, giuslavoristica, trasmissione telematica ad Agenzia delle
+            Entrate/INPS/INAIL e adempimenti antiriciclaggio, e possono essere comunicati a soggetti esterni (banche,
+            PA, consulenti tecnici) operanti quali Responsabili o Titolari autonomi.
+          </Text>
+          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 4 }}>
+            <Text style={styles.bold}>9.3 Conservazione e diritti: </Text>
+            i dati sono conservati per la durata dell&apos;incarico e successivamente per 10 anni (art. 2220 c.c. e
+            art. 31 D.Lgs. 231/2007). L&apos;interessato può esercitare i diritti ex artt. 15-22 GDPR (accesso,
+            rettifica, cancellazione, limitazione, portabilità, opposizione) via PEC ({studio.pec}) e proporre reclamo
+            al Garante per la Protezione dei Dati Personali (art. 77 GDPR).
           </Text>
 
           <View style={[styles.calloutBox, { marginBottom: 3 }]}>
             <Text style={[styles.bold, { fontSize: 7.6, color: '#1e3a8a', marginBottom: 3 }]}>
-              ESPRESSIONE DI CONSENSO (Art. 23 D.Lgs. 196/2003 e Art. 7 Regolamento UE n. 679/2016) — Da barrare a cura del Cliente/Dottore
+              ESPRESSIONE DI CONSENSO PER LE FINALITÀ ULTERIORI — Da barrare a cura del Cliente
             </Text>
             <Text style={{ fontSize: 7.3, marginBottom: 4 }}>
               Preso atto dell&apos;informativa sopra riportata e dichiarando di averne ricevuto copia, il sottoscritto{' '}
@@ -562,7 +635,7 @@ function SecondaPaginaPrivacyEF24({
               <View style={styles.checkBoxEmpty} />
               <Text style={{ fontSize: 7.4, marginRight: 8, fontFamily: 'Helvetica-Bold' }}>NON AUTORIZZO</Text>
               <Text style={{ fontSize: 7.3, flex: 1 }}>
-                il trattamento dei dati personali, inclusi quelli particolari, per l&apos;esecuzione del mandato e l&apos;elaborazione di rapporti (&ldquo;reports&rdquo;) e processi di valutazione.
+                l&apos;elaborazione di rapporti (&ldquo;reports&rdquo;) e processi di valutazione non strettamente necessari all&apos;esecuzione del mandato.
               </Text>
             </View>
             <View style={styles.checkRow}>
@@ -571,17 +644,17 @@ function SecondaPaginaPrivacyEF24({
               <View style={styles.checkBoxEmpty} />
               <Text style={{ fontSize: 7.4, marginRight: 8, fontFamily: 'Helvetica-Bold' }}>NON AUTORIZZO</Text>
               <Text style={{ fontSize: 7.3, flex: 1 }}>
-                la comunicazione dei dati limitatamente agli ambiti ed organi (Agenzia Entrate, INPS, INAIL, CCIAA, Cassa Edile) specificati nell&apos;informativa.
+                la comunicazione dei dati a soggetti diversi da quelli obbligatori per legge (Agenzia Entrate, INPS, INAIL, CCIAA, Cassa Edile).
               </Text>
             </View>
           </View>
 
           <View style={styles.signatureRow}>
             <View style={styles.signatureCard}>
-              <Text style={styles.signatureLabelTop}>Consenso Privacy e Presa Visione — Il Cliente</Text>
+              <Text style={styles.signatureLabelTop}>Presa Visione Informativa — Il Cliente</Text>
               <Text style={styles.signaturePartyName}>{rapprNome}</Text>
               <View style={styles.signatureLine} />
-              <Text style={styles.signatureSub}>Luogo e Data: Reggio Emilia, {oggi} — Firma dell&apos;Interessato</Text>
+              <Text style={styles.signatureSub}>Reggio Emilia, lì ____/____/________ — Firma dell&apos;Interessato</Text>
             </View>
             <View style={styles.signatureCard}>
               <Text style={styles.signatureLabelTop}>Il Titolare del Trattamento — Il Professionista</Text>
@@ -592,6 +665,12 @@ function SecondaPaginaPrivacyEF24({
           </View>
         </View>
       </View>
+
+      <CorporateFooter studio={studio} />
+    </Page>
+
+    <Page size="A4" style={styles.page}>
+      <CorporateHeader fascicolo={fascicolo} zonaLabel={zonaLabel} dataOggi={oggi} studio={studio} />
 
       {/* SEZIONE DELEGA F24 TELEMATICO ENTRATEL (ALLEGATO A) */}
       <View style={styles.sectionCard} wrap={false}>
@@ -652,10 +731,37 @@ function SecondaPaginaPrivacyEF24({
         </View>
       </View>
 
+      {/* APPROVAZIONE SPECIFICA CLAUSOLE EX ARTT. 1341-1342 C.C. */}
+      <View style={styles.sectionCard} wrap={false}>
+        <Text style={styles.sectionHeader}>
+          Approvazione Specifica delle Clausole (Artt. 1341 e 1342 c.c.)
+        </Text>
+        <View style={styles.sectionBody}>
+          <Text style={{ fontSize: 7.4, textAlign: 'justify' }}>
+            Ai sensi e per gli effetti degli artt. 1341 e 1342 c.c., il Cliente dichiara di aver letto attentamente e di
+            approvare specificamente le seguenti clausole: <Text style={styles.bold}>Art. 3</Text> (durata, rinnovo
+            tacito, recesso{modello === 'OCCASIONALI' ? ' e penale ex art. 2237 c.c.' : ''});{' '}
+            <Text style={styles.bold}>Art. 5</Text> (obblighi e responsabilità del Cliente);{' '}
+            <Text style={styles.bold}>Art. 6</Text> (foro competente e mediazione);{' '}
+            <Text style={styles.bold}>Art. 8.2</Text> (clausola risolutiva espressa ex art. 1456 c.c. e obbligo di
+            astensione); <Text style={styles.bold}>Allegato A</Text> (esonero da responsabilità del Professionista in
+            caso di sospensione delle deleghe F24 richiesta dal Cliente).
+          </Text>
+          <View style={[styles.signatureRow, { justifyContent: 'flex-start' }]}>
+            <View style={styles.signatureCard}>
+              <Text style={styles.signatureLabelTop}>Per Approvazione Specifica — Il Cliente</Text>
+              <Text style={styles.signaturePartyName}>{rapprNome}</Text>
+              <View style={styles.signatureLine} />
+              <Text style={styles.signatureSub}>Reggio Emilia, lì ____/____/________ — Firma del Cliente</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
       {/* BOX ATTESTAZIONE INQUADRAMENTO ANTIRICICLAGGIO D.LGS. 231/2007 */}
       <View style={[styles.calloutBox, { backgroundColor: '#eff6ff', borderLeftColor: '#1d4ed8', marginBottom: 0 }]} wrap={false}>
         <Text style={[styles.bold, { fontSize: 7.6, color: '#1e3a8a' }]}>
-          ATTESTAZIONE DI INQUADRAMENTO ANTIRICICLAGGIO DEL MANDATO (D.Lgs. 231/2007 — Regole Tecniche CNDCEC/CNOCDL)
+          ATTESTAZIONE DI INQUADRAMENTO ANTIRICICLAGGIO DEL MANDATO (D.Lgs. 231/2007 — Regole Tecniche CNDCEC/CNOCDL 16.01.2025)
         </Text>
         <Text style={{ fontSize: 7.1, color: '#1e293b', marginTop: 1.5 }}>
           • <Text style={styles.bold}>Fascicolo:</Text> {fascicolo} · <Text style={styles.bold}>Qualificazione AML:</Text> {zonaLabel} · <Text style={styles.bold}>Titolare Effettivo (Art. 20):</Text> {titolareEffettivo}{'\n'}
@@ -663,8 +769,9 @@ function SecondaPaginaPrivacyEF24({
         </Text>
       </View>
 
-      <CorporateFooter pagina="Pagina 2 di 2" studio={studio} />
+      <CorporateFooter studio={studio} />
     </Page>
+    </>
   )
 }
 
@@ -722,12 +829,14 @@ export async function generaLetteraIncaricoMandatoPDF(
       }`
     : "Carta d'Identità in acquisizione nel fascicolo"
 
-  // Selezione automatica o esplicita del Modello (PAGHE, CONTABILITA, FORFETTARI, OCCASIONALI)
+  // Selezione automatica o esplicita del Modello (PAGHE, CONTABILITA, SEMPLIFICATA, FORFETTARI, OCCASIONALI)
   const vReq = (varianteRichiesta || '').toUpperCase()
-  let modello: 'PAGHE' | 'CONTABILITA' | 'FORFETTARI' | 'OCCASIONALI' = 'PAGHE'
+  let modello: ModelloIncarico = 'PAGHE'
 
-  if (vReq === 'CONTABILITA') {
+  if (vReq === 'CONTABILITA' || vReq === 'ORDINARIA') {
     modello = 'CONTABILITA'
+  } else if (vReq === 'SEMPLIFICATA') {
+    modello = 'SEMPLIFICATA'
   } else if (vReq === 'FORFETTARI' || vReq === 'FORFETTARIO' || vReq === 'CONSULENZA') {
     modello = 'FORFETTARI'
   } else if (vReq === 'OCCASIONALI' || vReq === 'OCCASIONALE') {
@@ -754,6 +863,8 @@ export async function generaLetteraIncaricoMandatoPDF(
   const titolo =
     modello === 'CONTABILITA'
       ? 'LETTERA DI INCARICO PROFESSIONALE PER TENUTA CONTABILITÀ ORDINARIA E BILANCIO'
+      : modello === 'SEMPLIFICATA'
+      ? 'LETTERA DI INCARICO PROFESSIONALE PER TENUTA CONTABILITÀ SEMPLIFICATA E CONSULENZA FISCALE'
       : modello === 'FORFETTARI'
       ? 'LETTERA DI INCARICO PROFESSIONALE PER DICHIARAZIONI E CONSULENZA IN REGIME FORFETARIO'
       : modello === 'OCCASIONALI'
@@ -763,6 +874,8 @@ export async function generaLetteraIncaricoMandatoPDF(
   const sottotitolo =
     modello === 'CONTABILITA'
       ? 'Mandato professionale continuativo comprensivo di Delega Cassetto Fiscale/LUL, Policy Privacy GDPR e Delega Telematica F24'
+      : modello === 'SEMPLIFICATA'
+      ? 'Registri in contabilità semplificata, Dichiarazioni Redditi/IVA/IRAP, Cassetto Fiscale, Antiriciclaggio, Privacy GDPR e Delega F24'
       : modello === 'FORFETTARI'
       ? 'Assistenza fiscale Regime Forfetario (Art. 1 co. 54-89 L. 190/2014), Delega Cassetto Fiscale, Policy Privacy GDPR e Delega F24'
       : modello === 'OCCASIONALI'
@@ -839,6 +952,30 @@ export async function generaLetteraIncaricoMandatoPDF(
                 </View>
                 <Text style={[styles.italic, { fontSize: 7.2, color: '#475569', marginTop: 2 }]}>
                   Nota sulla tenuta documentale: Lo Studio non opera servizio di domiciliazione né di custodia delle scritture contabili; il Professionista trasmetterà periodicamente gli elaborati via mail o cartella informatica e la documentazione sarà conservata dal Cliente presso la propria sede legale sotto la responsabilità diretta dell&apos;amministratore/legale rappresentante, esonerando lo Studio da responsabilità per smarrimento.
+                </Text>
+              </View>
+            ) : modello === 'SEMPLIFICATA' ? (
+              <View>
+                <View style={styles.bulletRow}>
+                  <Text style={styles.bulletDot}>•</Text>
+                  <Text style={styles.bulletText}>
+                    <Text style={styles.bold}>1.1 Contabilità semplificata:</Text> impianto e tenuta dei registri contabili in regime di contabilità semplificata (registri IVA acquisti/vendite/corrispettivi, registro beni ammortizzabili), liquidazioni IVA periodiche e comunicazioni LIPE.
+                  </Text>
+                </View>
+                <View style={styles.bulletRow}>
+                  <Text style={styles.bulletDot}>•</Text>
+                  <Text style={styles.bulletText}>
+                    <Text style={styles.bold}>1.2 Dichiarazioni fiscali:</Text> assistenza nella predisposizione e invio telematico della Dichiarazione dei Redditi, della Dichiarazione annuale IVA e IRAP, comunicazione ISA.
+                  </Text>
+                </View>
+                <View style={styles.bulletRow}>
+                  <Text style={styles.bulletDot}>•</Text>
+                  <Text style={styles.bulletText}>
+                    <Text style={styles.bold}>1.3 Adempimenti telematici:</Text> gestione del Cassetto Fiscale, calcolo delle imposte e predisposizione/trasmissione dei modelli F24.
+                  </Text>
+                </View>
+                <Text style={[styles.italic, { fontSize: 7.2, color: '#475569', marginTop: 2 }]}>
+                  1.4 Esclusione domiciliazione: le scritture e i documenti fiscali rimangono custoditi direttamente dal Cliente presso la propria sede, sotto la sua responsabilità.
                 </Text>
               </View>
             ) : modello === 'FORFETTARI' ? (
@@ -990,7 +1127,7 @@ export async function generaLetteraIncaricoMandatoPDF(
           </View>
         </View>
 
-        <CorporateFooter pagina="Pagina 1 di 2" studio={studio} />
+        <CorporateFooter studio={studio} />
       </Page>
 
       {/* ==================== PAGINA 2: POLICY PRIVACY GDPR + DELEGA F24 ENTRATEL + INQUADRAMENTO AML ==================== */}
@@ -1013,6 +1150,7 @@ export async function generaLetteraIncaricoMandatoPDF(
         botMotivo={bot.motivoBot}
         titolareEffettivo={auto.titolareEffettivo}
         studio={studio}
+        modello={modello}
       />
     </Document>
   )

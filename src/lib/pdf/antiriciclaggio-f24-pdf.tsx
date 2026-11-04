@@ -330,17 +330,20 @@ export async function generaAutorizzazioneF24PDF(
       <Page size="A4" style={styles.page}>
         {/* Banner Professionista */}
         <View style={styles.headerBanner} wrap={false}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 10 }}>
             <Text style={styles.studioTitle}>{studioDenominazione.toUpperCase()}</Text>
             <Text style={styles.studioSub}>
-              Dottore Commercialista · Albo ODCEC Reggio Emilia n. 742/A · C.F. {studioCf} · P.IVA {studioPiva}
+              Dottore Commercialista · Albo ODCEC Reggio Emilia n. 742/A
+            </Text>
+            <Text style={styles.studioSub}>
+              C.F. {studioCf} · P.IVA {studioPiva}
             </Text>
             <Text style={styles.studioSub}>{studioIndirizzo}</Text>
             <Text style={styles.studioPecHighlight}>
               PEC: {studioPec} · Email: {studioEmail}
             </Text>
           </View>
-          <View style={styles.badgeBox}>
+          <View style={[styles.badgeBox, { width: 150, flexShrink: 0 }]}>
             <Text style={styles.badgeTitle}>ALLEGATO A — DELEGA F24</Text>
             <Text style={styles.badgeSub}>Fascicolo: {fascicolo}</Text>
             <Text style={styles.badgeSub}>Servizio Telematico Entratel</Text>

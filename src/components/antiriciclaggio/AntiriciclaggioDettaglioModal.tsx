@@ -1212,7 +1212,7 @@ export function AntiriciclaggioDettaglioModal({
                             window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato&variante=PAGHE`, '_blank')
                           }
                           className="h-7 text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 font-bold"
-                          title="Stampa Lettera d'Incarico Amministrazione del Personale Dipendente (Paghe, Delega LUL, Privacy, Delega F24 e Tariffario Paghe)"
+                          title="Stampa Lettera d'Incarico Amministrazione del Personale Dipendente (Paghe, esenzione AVC art. 17 co. 7, Privacy art. 9 GDPR, Delega F24)"
                         >
                           <Printer className="h-3.5 w-3.5 mr-1 text-amber-700" />
                           Mandato Paghe
@@ -1228,10 +1228,26 @@ export function AntiriciclaggioDettaglioModal({
                             )
                           }
                           className="h-7 text-xs bg-blue-50 hover:bg-blue-100 text-blue-900 border-blue-300 font-bold"
-                          title="Stampa Lettera di Incarico Professionale per Tenuta Contabilità Ordinaria e Bilancio (€ 873,60 x 3 = € 2.620,80 + LLOYD'S + Privacy + Delega F24)"
+                          title="Stampa Lettera di Incarico Professionale per Tenuta Contabilità Ordinaria e Bilancio (compenso da compilare + Antiriciclaggio + Privacy + Delega F24)"
                         >
                           <Printer className="h-3.5 w-3.5 mr-1 text-blue-700" />
-                          Mandato Contabilità
+                          Mandato Contabilità Ord.
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            window.open(
+                              `/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato&variante=SEMPLIFICATA`,
+                              '_blank'
+                            )
+                          }
+                          className="h-7 text-xs bg-sky-50 hover:bg-sky-100 text-sky-900 border-sky-300 font-bold"
+                          title="Stampa Lettera di Incarico Professionale per Tenuta Contabilità Semplificata (compenso da compilare + Antiriciclaggio + Privacy + Delega F24)"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1 text-sky-700" />
+                          Mandato Contabilità Sempl.
                         </Button>
                         <Button
                           type="button"
@@ -1244,7 +1260,7 @@ export function AntiriciclaggioDettaglioModal({
                             )
                           }
                           className="h-7 text-xs bg-purple-50 hover:bg-purple-100 text-purple-900 border-purple-300 font-bold"
-                          title="Stampa Lettera di Incarico Professionale per Dichiarazioni e Consulenza in Regime Forfetario (€ 90 apertura P.IVA, € 420 annuale + Privacy + Delega F24 Entratel)"
+                          title="Stampa Lettera di Incarico Professionale per Dichiarazioni e Consulenza in Regime Forfetario (compenso da compilare + Antiriciclaggio + Privacy + Delega F24)"
                         >
                           <Printer className="h-3.5 w-3.5 mr-1 text-purple-700" />
                           Mandato Forfetario
