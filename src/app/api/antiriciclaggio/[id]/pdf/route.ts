@@ -22,7 +22,10 @@ export async function GET(
 
   try {
     const [azienda, emittente] = await Promise.all([
-      prisma.company.findUnique({ where: { id } }),
+      prisma.company.findUnique({
+        where: { id },
+        include: { documents: { orderBy: { createdAt: 'desc' } } },
+      }),
       prisma.issuerProfile.findFirst(),
     ])
 

@@ -280,16 +280,25 @@ export function AntiriciclaggioDettaglioModal({
     }
   }
 
-  const handleUploadDocumento = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [uploadingTipo, setUploadingTipo] = React.useState<string | null>(null)
+
+  const handleUploadDocTipo = async (
+    tipoDoc: string,
+    labelDoc: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     if (!e.target.files || !e.target.files[0] || !aziendaId) return
     const file = e.target.files[0]
     setUploadingDoc(true)
+    setUploadingTipo(tipoDoc)
     try {
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('tipoDoc', form.documentoTipo)
-      if (form.documentoScadenza) fd.append('scadenza', form.documentoScadenza)
-      fd.append('note', `Documento di riconoscimento: ${form.documentoNumero || file.name}`)
+      fd.append('tipoDoc', tipoDoc)
+      if (['carta_identita', 'passaporto', 'patente'].includes(tipoDoc) && form.documentoScadenza) {
+        fd.append('scadenza', form.documentoScadenza)
+      }
+      fd.append('note', `${labelDoc}: ${file.name}`)
 
       const res = await fetch(`/api/aziende/${aziendaId}/documenti`, {
         method: 'POST',
@@ -297,12 +306,44 @@ export function AntiriciclaggioDettaglioModal({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      toast({ title: '✅ Documento PDF caricato e collegato all\'anagrafica' })
+
+      if (tipoDoc === 'privacy_firmata') {
+        setForm((prev) => ({
+          ...prev,
+          privacyFirmata: true,
+          privacyData: prev.privacyData || new Date().toISOString().split('T')[0],
+        }))
+      }
+
+      toast({
+        title: `✅ ${labelDoc} caricato nel fascicolo!`,
+        description: `File "${file.name}" allegato e registrato nella Check-list AV.2 CNDCEC.`,
+      })
       carica()
+      if (onSuccess) onSuccess()
     } catch (err: any) {
       toast({ title: 'Errore caricamento', description: err.message, variant: 'destructive' })
     } finally {
       setUploadingDoc(false)
+      setUploadingTipo(null)
+      e.target.value = ''
+    }
+  }
+
+  const handleEliminaDocFascicolo = async (docId: string, nomeFile: string) => {
+    if (!aziendaId) return
+    if (!confirm(`Vuoi rimuovere il documento "${nomeFile}" dal fascicolo?`)) return
+    try {
+      const res = await fetch(`/api/aziende/${aziendaId}/documenti/${docId}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast({ title: '🗑️ Documento rimosso dal fascicolo' })
+      carica()
+      if (onSuccess) onSuccess()
+    } catch (err: any) {
+      toast({ title: 'Errore rimozione', description: err.message, variant: 'destructive' })
     }
   }
 
@@ -637,49 +678,83 @@ export function AntiriciclaggioDettaglioModal({
                 </div>
 
                 {/* Box Upload Rapido PDF Documento Identità */}
-                <div className="sm:col-span-4 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <p className="text-xs font-semibold text-slate-800">
-                        {azienda?.documents?.find((d: any) => d.tipoDoc === 'carta_identita' || d.tipoDoc === 'passaporto' || d.tipoDoc === 'patente')
-                          ? `Documento caricato: ${azienda.documents[0].nomeFile}`
-                          : 'Carica PDF o foto fronte/retro della carta d\'identità'}
-                      </p>
-                      <p className="text-[11px] text-slate-500">
-                        Consente il monitoraggio immediato in anagrafica
-                      </p>
-                    </div>
-                  </div>
+                {(() => {
+                  const docIdentita = azienda?.documents?.find((d: any) =>
+                    ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria'].includes(d.tipoDoc)
+                  )
+                  return (
+                    <div className="sm:col-span-4 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <p className="text-xs font-semibold text-slate-800">
+                            {docIdentita
+                              ? `✓ Documento d'identità caricato: ${docIdentita.nomeFile}`
+                              : 'Carica PDF o foto fronte/retro del documento d\'identità'}
+                          </p>
+                          <p className="text-[11px] text-slate-500">
+                            Allegato al Fascicolo Antiriciclaggio (Check-list AV.2 CNDCEC)
+                          </p>
+                        </div>
+                      </div>
 
-                  <div className="flex items-center gap-2">
-                    {azienda?.documents && azienda.documents.length > 0 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(`/api/aziende/${aziendaId}/documenti/${azienda.documents[0].id}`, '_blank')}
-                      >
-                        Visualizza PDF
-                      </Button>
-                    )}
-                    <label className="cursor-pointer">
-                      <Button type="button" size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50" asChild>
-                        <span>
-                          {uploadingDoc ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
-                          Carica PDF
-                        </span>
-                      </Button>
-                      <input
-                        type="file"
-                        accept=".pdf,image/*"
-                        className="hidden"
-                        onChange={handleUploadDocumento}
-                        disabled={uploadingDoc}
-                      />
-                    </label>
-                  </div>
-                </div>
+                      <div className="flex items-center gap-2">
+                        {docIdentita && (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                window.open(
+                                  `/api/aziende/${aziendaId}/documenti/${docIdentita.id}?inline=1`,
+                                  '_blank'
+                                )
+                              }
+                            >
+                              Visualizza
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:bg-red-50 px-2"
+                              onClick={() => handleEliminaDocFascicolo(docIdentita.id, docIdentita.nomeFile)}
+                              title="Rimuovi documento"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        <label className="cursor-pointer">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                            asChild
+                          >
+                            <span>
+                              {uploadingDoc && uploadingTipo === form.documentoTipo ? (
+                                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              ) : (
+                                <Upload className="h-3.5 w-3.5 mr-1" />
+                              )}
+                              {docIdentita ? 'Sostituisci Doc.' : 'Carica Doc. Identità'}
+                            </span>
+                          </Button>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="hidden"
+                            onChange={(e) => handleUploadDocTipo(form.documentoTipo, 'Documento di Identità', e)}
+                            disabled={uploadingDoc}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             </div>
 
@@ -836,49 +911,18 @@ export function AntiriciclaggioDettaglioModal({
               </div>
             </div>
 
-            {/* Sezione 5: Stampe e Download Modulistica Ufficiale */}
-            <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
-                <Printer className="h-4 w-4 text-blue-600" />
-                Stampe e Modulistica Precompilata (PDF con 1 Click)
-              </h4>
-              <p className="text-xs text-blue-800">
-                Genera istantaneamente i documenti conformi già intestati allo Studio Dott. Antonio Tuzio e precompilati con i dati del cliente:
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=dichiarazione`, '_blank')}
-                  className="bg-white hover:bg-blue-50 text-blue-700 border-blue-300"
-                >
-                  <FileText className="h-4 w-4 mr-1.5 text-blue-600" />
-                  Dichiarazione Cliente (D.Lgs. 231)
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank')}
-                  className="bg-white hover:bg-teal-50 text-teal-700 border-teal-300"
-                >
-                  <FileText className="h-4 w-4 mr-1.5 text-teal-600" />
-                  Informativa Privacy GDPR
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=valutazione`, '_blank')}
-                  className="bg-white hover:bg-indigo-50 text-indigo-700 border-indigo-300"
-                >
-                  <ShieldCheck className="h-4 w-4 mr-1.5 text-indigo-600" />
-                  Scheda Valutazione Rischio CNDCEC
-                </Button>
-
+            {/* Sezione 5: CASSETTO DOCUMENTALE DEL FASCICOLO (Check-list AV.2 CNDCEC: Documento Identità, Visura Camerale, Documenti Firmati dal Cliente) + Stampe Ufficiali */}
+            <div className="p-4 bg-gradient-to-br from-slate-50 to-blue-50/50 border-2 border-blue-200 rounded-xl space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-blue-950 flex items-center gap-1.5">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    5. Cassetto Documentale del Fascicolo (Check-list Ufficiale CNDCEC AV.2)
+                  </h4>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    Stampa i modelli ufficiali CNDCEC precompilati da far firmare al cliente e carica nel fascicolo: <span className="font-semibold">Documento d&apos;Identità, Visura Camerale e Documenti Firmati</span>.
+                  </p>
+                </div>
                 <Button
                   type="button"
                   size="sm"
@@ -887,13 +931,355 @@ export function AntiriciclaggioDettaglioModal({
                     setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank'), 300)
                     setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=valutazione`, '_blank'), 600)
                   }}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
-                  title="Apre in 3 schede tutti i documenti necessari per l'acquisizione del nuovo cliente"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm"
+                  title="Apre in 3 schede tutti i modelli CNDCEC del cliente (AV.4 + Privacy GDPR + Fascicolo AV.1/AV.2/AV.3/AV.7)"
                 >
                   <Printer className="h-4 w-4 mr-1.5" />
-                  Stampa Kit Completo (Tutti i 3 Documenti)
+                  Stampa Kit Completo CNDCEC (3 PDF)
                 </Button>
               </div>
+
+              {(() => {
+                const docs: any[] = Array.isArray(azienda?.documents) ? azienda.documents : []
+                const docId = docs.find((d) =>
+                  ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria'].includes(d.tipoDoc)
+                )
+                const docVisura = docs.find((d) => d.tipoDoc === 'visura')
+                const docAv4 = docs.find((d) => d.tipoDoc === 'av4_firmato')
+                const docPrivacy = docs.find((d) => d.tipoDoc === 'privacy_firmata' || d.tipoDoc === 'mandato')
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* CARD 1: DOCUMENTO D'IDENTITÀ */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm flex flex-col justify-between gap-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            🪪 1. Documento d&apos;Identità (Rappresentante / Cliente)
+                          </span>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {docId
+                              ? `File presente: ${docId.nomeFile}`
+                              : 'Carta d\'identità, Passaporto o Patente fronte/retro'}
+                          </p>
+                        </div>
+                        {docId ? (
+                          <Badge className="bg-emerald-600 text-white text-[10px]">✓ Caricato</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300 bg-amber-50">
+                            Da caricare
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center flex-wrap gap-1.5 pt-1">
+                        {docId && (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() =>
+                                window.open(`/api/aziende/${aziendaId}/documenti/${docId.id}?inline=1`, '_blank')
+                              }
+                            >
+                              Visualizza PDF/Foto
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-red-600 hover:bg-red-50"
+                              onClick={() => handleEliminaDocFascicolo(docId.id, docId.nomeFile)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        <label className="cursor-pointer">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+                            asChild
+                          >
+                            <span>
+                              {uploadingDoc && uploadingTipo === form.documentoTipo ? (
+                                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              ) : (
+                                <Upload className="h-3.5 w-3.5 mr-1" />
+                              )}
+                              {docId ? 'Aggiorna Documento' : 'Carica Documento Identità'}
+                            </span>
+                          </Button>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="hidden"
+                            onChange={(e) => handleUploadDocTipo(form.documentoTipo, 'Documento di Identità', e)}
+                            disabled={uploadingDoc}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* CARD 2: VISURA CAMERALE / ATTO COSTITUTIVO */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm flex flex-col justify-between gap-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            🏢 2. Visura Camerale / Registro Imprese (Titolare Effettivo)
+                          </span>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {docVisura
+                              ? `File presente: ${docVisura.nomeFile}`
+                              : 'Visura CCIAA, Statuto o Atto Costitutivo (per verifica quote >25%)'}
+                          </p>
+                        </div>
+                        {docVisura ? (
+                          <Badge className="bg-emerald-600 text-white text-[10px]">✓ Caricata</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300 bg-amber-50">
+                            Da caricare
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center flex-wrap gap-1.5 pt-1">
+                        {docVisura && (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() =>
+                                window.open(`/api/aziende/${aziendaId}/documenti/${docVisura.id}?inline=1`, '_blank')
+                              }
+                            >
+                              Visualizza Visura
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-red-600 hover:bg-red-50"
+                              onClick={() => handleEliminaDocFascicolo(docVisura.id, docVisura.nomeFile)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        <label className="cursor-pointer">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                            asChild
+                          >
+                            <span>
+                              {uploadingDoc && uploadingTipo === 'visura' ? (
+                                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              ) : (
+                                <Upload className="h-3.5 w-3.5 mr-1" />
+                              )}
+                              {docVisura ? 'Aggiorna Visura' : 'Carica Visura Camerale (PDF)'}
+                            </span>
+                          </Button>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="hidden"
+                            onChange={(e) => handleUploadDocTipo('visura', 'Visura Camerale CCIAA', e)}
+                            disabled={uploadingDoc}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* CARD 3: DICHIARAZIONE CLIENTE AV.4 (DA STAMPARE E FAR FIRMARE AL CLIENTE + UPLOAD FIRMATO) */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm flex flex-col justify-between gap-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            ✍️ 3. Dichiarazione Cliente AV.4 (ex Art. 22 D.Lgs. 231/07)
+                          </span>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {docAv4
+                              ? `Modulo firmato in archivio: ${docAv4.nomeFile}`
+                              : '1° Stampa il modulo AV.4 precompilato · 2° Fallo firmare · 3° Ricaricalo'}
+                          </p>
+                        </div>
+                        {docAv4 ? (
+                          <Badge className="bg-emerald-600 text-white text-[10px]">✓ Firmato</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-blue-700 border-blue-300 bg-blue-50">
+                            Da far firmare
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center flex-wrap gap-1.5 pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=dichiarazione`, '_blank')}
+                          className="h-7 text-xs bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-300 font-semibold"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1 text-blue-600" />
+                          Stampa AV.4 da Firmare
+                        </Button>
+                        {docAv4 && (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() =>
+                                window.open(`/api/aziende/${aziendaId}/documenti/${docAv4.id}?inline=1`, '_blank')
+                              }
+                            >
+                              Vedi Firmato
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-red-600 hover:bg-red-50"
+                              onClick={() => handleEliminaDocFascicolo(docAv4.id, docAv4.nomeFile)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        <label className="cursor-pointer">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                            asChild
+                          >
+                            <span>
+                              {uploadingDoc && uploadingTipo === 'av4_firmato' ? (
+                                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              ) : (
+                                <Upload className="h-3.5 w-3.5 mr-1" />
+                              )}
+                              Carica AV.4 Firmato
+                            </span>
+                          </Button>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="hidden"
+                            onChange={(e) => handleUploadDocTipo('av4_firmato', 'Dichiarazione AV.4 Firmata dal Cliente', e)}
+                            disabled={uploadingDoc}
+                          />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* CARD 4: INFORMATIVA PRIVACY GDPR & MANDATO FIRMATO + SCHEDA VALUTAZIONE AV.1/AV.2/AV.3/AV.7 */}
+                    <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm flex flex-col justify-between gap-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                            🔒 4. Privacy GDPR / Mandato Firmato &amp; Schede Studio (AV.1-AV.7)
+                          </span>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            {docPrivacy
+                              ? `Documento firmato in archivio: ${docPrivacy.nomeFile}`
+                              : 'Stampa l\'Informativa Privacy da far firmare e la Scheda Rischio CNDCEC'}
+                          </p>
+                        </div>
+                        {docPrivacy || form.privacyFirmata ? (
+                          <Badge className="bg-emerald-600 text-white text-[10px]">✓ Firmata</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] text-teal-700 border-teal-300 bg-teal-50">
+                            Da far firmare
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center flex-wrap gap-1.5 pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank')}
+                          className="h-7 text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 border-teal-300 font-semibold"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1 text-teal-600" />
+                          Stampa Privacy
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=valutazione`, '_blank')}
+                          className="h-7 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border-indigo-300 font-semibold"
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5 mr-1 text-indigo-600" />
+                          Stampa AV.1+AV.2+AV.3+AV.7
+                        </Button>
+                        {docPrivacy && (
+                          <>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() =>
+                                window.open(`/api/aziende/${aziendaId}/documenti/${docPrivacy.id}?inline=1`, '_blank')
+                              }
+                            >
+                              Vedi Firmato
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-red-600 hover:bg-red-50"
+                              onClick={() => handleEliminaDocFascicolo(docPrivacy.id, docPrivacy.nomeFile)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
+                        )}
+                        <label className="cursor-pointer">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs border-teal-300 text-teal-700 hover:bg-teal-50"
+                            asChild
+                          >
+                            <span>
+                              {uploadingDoc && uploadingTipo === 'privacy_firmata' ? (
+                                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              ) : (
+                                <Upload className="h-3.5 w-3.5 mr-1" />
+                              )}
+                              Carica Privacy/Mandato Firmato
+                            </span>
+                          </Button>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="hidden"
+                            onChange={(e) =>
+                              handleUploadDocTipo('privacy_firmata', 'Informativa Privacy / Mandato Firmato', e)
+                            }
+                            disabled={uploadingDoc}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}

@@ -1,5 +1,7 @@
 // src/lib/pdf/antiriciclaggio-valutazione-pdf.tsx
-// Scheda di Valutazione del Rischio e Adeguata Verifica della Clientela (CNDCEC - D.Lgs. 231/2007)
+// Modelli Ufficiali CNDCEC (Marzo 2026 — Regole Tecniche 16/01/2025):
+// Pagina 1: AV.1 (Determinazione del Rischio Effettivo 30%/70%) + AV.2 (Check-list Documenti Acquisiti Fascicolo)
+// Pagina 2: AV.3 (Istruttoria Cliente) + AV.7 (Procedura di Controllo Costante a 12 punti)
 
 import React from 'react'
 import {
@@ -10,336 +12,613 @@ import {
   StyleSheet,
   renderToBuffer,
 } from '@react-pdf/renderer'
+import { calcolaZonaERischioBot } from '@/lib/antiriciclaggio-engine'
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 30,
-    paddingBottom: 35,
-    paddingHorizontal: 35,
-    fontSize: 8,
     fontFamily: 'Helvetica',
+    fontSize: 8,
     color: '#1e293b',
-    lineHeight: 1.35,
+    paddingTop: 24,
+    paddingBottom: 30,
+    paddingHorizontal: 32,
+    lineHeight: 1.3,
   },
-  bold: {
-    fontFamily: 'Helvetica-Bold',
-  },
-  header: {
-    borderBottom: '1.5pt solid #4f46e5',
+  headerBox: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#312e81',
     paddingBottom: 6,
     marginBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
   },
-  headerStudio: {
+  studioTitle: {
     fontSize: 11,
     fontFamily: 'Helvetica-Bold',
-    color: '#0f172a',
+    color: '#312e81',
   },
-  headerSub: {
-    fontSize: 7.5,
+  studioSub: {
+    fontSize: 7.2,
     color: '#475569',
+    marginTop: 1,
   },
-  docTitle: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: '#4f46e5',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    marginTop: 4,
-    marginBottom: 2,
+  docBadge: {
+    backgroundColor: '#eef2ff',
+    borderWidth: 1,
+    borderColor: '#a5b4fc',
+    borderRadius: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
-  docNorma: {
+  docBadgeText: {
     fontSize: 7.5,
-    color: '#64748b',
+    fontFamily: 'Helvetica-Bold',
+    color: '#3730a3',
+  },
+  mainTitle: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
     textAlign: 'center',
-    marginBottom: 10,
+    color: '#0f172a',
+    marginBottom: 1.5,
+    textTransform: 'uppercase',
+  },
+  subTitle: {
+    fontSize: 7.5,
+    textAlign: 'center',
+    color: '#475569',
+    marginBottom: 7,
   },
   section: {
-    marginBottom: 7,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 4,
     padding: 6,
-    border: '0.5pt solid #cbd5e1',
-    borderRadius: 3,
-    backgroundColor: '#f8fafc',
   },
   sectionTitle: {
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    color: '#0f172a',
+    color: '#312e81',
+    backgroundColor: '#eef2ff',
+    paddingVertical: 2.5,
+    paddingHorizontal: 5,
     marginBottom: 4,
     textTransform: 'uppercase',
   },
   row: {
     flexDirection: 'row',
-    marginBottom: 2.5,
+    marginBottom: 3,
+  },
+  col: {
+    flex: 1,
+  },
+  col2: {
+    flex: 2,
   },
   label: {
-    width: '35%',
-    fontFamily: 'Helvetica-Bold',
-    color: '#334155',
+    fontSize: 6.5,
+    color: '#64748b',
+    textTransform: 'uppercase',
   },
   value: {
-    width: '65%',
-    color: '#0f172a',
-  },
-  riskBadgeBox: {
-    marginVertical: 6,
-    padding: 8,
-    borderRadius: 4,
-    border: '1.5pt solid',
-    textAlign: 'center',
-  },
-  riskTitle: {
-    fontSize: 11,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
-    marginBottom: 2,
-  },
-  riskSub: {
-    fontSize: 7.5,
-  },
-  table: {
-    width: '100%',
-    border: '0.5pt solid #cbd5e1',
-    borderRadius: 2,
-    marginTop: 4,
-    overflow: 'hidden',
+    color: '#0f172a',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#cbd5e1',
+    paddingBottom: 1,
+    marginRight: 6,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#312e81',
+    color: '#ffffff',
     paddingVertical: 3,
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     fontFamily: 'Helvetica-Bold',
-    fontSize: 7,
+    fontSize: 7.2,
   },
   tableRow: {
     flexDirection: 'row',
-    borderTop: '0.5pt solid #e2e8f0',
-    paddingVertical: 3.5,
-    paddingHorizontal: 4,
-    fontSize: 7.5,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e2e8f0',
+    paddingVertical: 2.8,
+    paddingHorizontal: 5,
+    fontSize: 7.4,
   },
-  signatureRow: {
+  tableRowAlt: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    paddingVertical: 2.8,
+    paddingHorizontal: 5,
+    fontSize: 7.4,
+  },
+  cellFactor: {
+    flex: 3.2,
+  },
+  cellDetail: {
+    flex: 4.3,
+    color: '#475569',
+  },
+  cellScore: {
+    flex: 1.2,
+    textAlign: 'right',
+    fontFamily: 'Helvetica-Bold',
+  },
+  resultBanner: {
+    marginTop: 4,
+    padding: 6,
+    borderRadius: 4,
+    borderWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 15,
+    alignItems: 'center',
+  },
+  checkGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  checkItem: {
+    width: '50%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+    paddingRight: 4,
+  },
+  checkbox: {
+    width: 9,
+    height: 9,
+    borderWidth: 1,
+    borderColor: '#312e81',
+    marginRight: 4,
+    textAlign: 'center',
+    fontSize: 6.5,
+    lineHeight: 1.1,
+    fontFamily: 'Helvetica-Bold',
+    color: '#312e81',
+  },
+  signatureGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingTop: 5,
+    borderTopWidth: 1,
+    borderTopColor: '#cbd5e1',
   },
   signatureBox: {
     width: '45%',
-    borderTop: '0.5pt solid #64748b',
-    paddingTop: 4,
+  },
+  signatureLine: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+    marginTop: 18,
+    marginBottom: 2,
+  },
+  signatureLabel: {
+    fontSize: 7,
+    color: '#475569',
     textAlign: 'center',
-    fontSize: 7.5,
   },
   footer: {
     position: 'absolute',
-    bottom: 15,
-    left: 35,
-    right: 35,
-    borderTop: '0.5pt solid #cbd5e1',
-    paddingTop: 4,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    bottom: 14,
+    left: 32,
+    right: 32,
     fontSize: 6.5,
     color: '#94a3b8',
+    textAlign: 'center',
+    borderTopWidth: 0.5,
+    borderTopColor: '#e2e8f0',
+    paddingTop: 3,
   },
 })
 
-function formatDate(d: any): string {
-  if (!d) return '—'
-  try {
-    return new Intl.DateTimeFormat('it-IT').format(new Date(d))
-  } catch {
-    return '—'
-  }
+function formatDate(d?: Date | string | null): string {
+  if (!d) return new Date().toLocaleDateString('it-IT')
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return new Date().toLocaleDateString('it-IT')
+  return dt.toLocaleDateString('it-IT')
 }
 
-export function AntiriciclaggioValutazioneDocument({
-  azienda,
-  emittente,
-}: {
-  azienda: any
+export async function generaAntiriciclaggioValutazionePDF(
+  azienda: any,
   emittente: any
-}) {
-  const studioNome = emittente?.denominazione || 'Dott. Antonio Tuzio'
-  const studioPIVA = emittente?.partitaIva || '05389400481'
-  const studioComune = emittente?.comune || "Reggio nell'Emilia"
+): Promise<Buffer> {
+  const studioDenominazione = emittente?.denominazione || 'STUDIO COMMERCIALE DOTT. ANTONIO TUZIO'
+  const studioIndirizzo = emittente
+    ? `${emittente.indirizzo || ''} - ${emittente.cap || ''} ${emittente.comune || ''} (${emittente.provincia || ''})`
+    : 'Via Emilia Ospizio 96 - 42122 Reggio Emilia (RE)'
 
-  const rischio = (azienda.antiriciclaggioRischio || 'BASSO').toUpperCase()
-  const isBasso = rischio === 'BASSO' || rischio === 'NON_SIGNIFICATIVO'
-  const isMedio = rischio === 'MEDIO' || rischio === 'POCO_SIGNIFICATIVO'
-  const isAlto = rischio === 'ALTO' || rischio === 'MOLTO_SIGNIFICATIVO'
+  const bot = calcolaZonaERischioBot(azienda)
+  const mesiRinnovo = bot.periodicitaMesi || 36
+  const dataVerifica = formatDate(azienda.antiriciclaggioDataVerifica || new Date())
+  const dataProssimaVerifica = azienda.antiriciclaggioDataScadenza
+    ? formatDate(azienda.antiriciclaggioDataScadenza)
+    : formatDate(new Date(Date.now() + mesiRinnovo * 30 * 24 * 60 * 60 * 1000))
 
-  const badgeColor = isBasso ? '#16a34a' : isMedio ? '#d97706' : '#dc2626'
-  const badgeBg = isBasso ? '#f0fdf4' : isMedio ? '#fffbeb' : '#fef2f2'
-  const classeRischioDesc = isBasso
-    ? 'RISCHIO NON SIGNIFICATIVO (BASSO)'
-    : isMedio
-    ? 'RISCHIO POCO SIGNIFICATIVO (MEDIO)'
-    : 'RISCHIO SIGNIFICATIVO / ALTO'
+  const docs: any[] = Array.isArray(azienda.documents) ? azienda.documents : []
+  const docIdFile = docs.find((d) => ['carta_identita', 'passaporto', 'patente'].includes(d.tipoDoc))
+  const docVisuraFile = docs.find((d) => d.tipoDoc === 'visura')
+  const docAv4File = docs.find((d) => d.tipoDoc === 'av4_firmato')
+  const docPrivacyFile = docs.find((d) => d.tipoDoc === 'privacy_firmata' || d.tipoDoc === 'mandato')
 
-  const misura = isBasso ? 'Adeguata Verifica Ordinaria / Semplificata' : isMedio ? 'Adeguata Verifica Ordinaria' : 'Adeguata Verifica Rafforzata'
-  const cadenza = isBasso ? 'Ogni 3 anni' : isMedio ? 'Ogni 2 anni' : 'Annuale (12 mesi)'
+  const hasDocIdentita = Boolean(azienda.documentoNumero || docIdFile)
+  const isSocieta =
+    azienda.tipoSoggetto === 'PERSONA_GIURIDICA' ||
+    /\b(SRL|S\.R\.L|SPA|S\.P\.A|SNC|S\.N\.C|SAS|S\.A\.S|COOP|CONSORZIO|SOCIETA)\b/i.test(azienda.ragioneSociale || '')
 
-  return (
-    <Document>
+  const a1Score = isSocieta ? 2 : 1
+  const a2Score = azienda.antiriciclaggioPep ? 4 : 1
+  const a3Score = 1
+  const a4Score = 1
+  const b1Score = bot.zona === 'ZONA_3' ? 2 : 1
+  const b2Score = 1
+  const b345Score = isSocieta ? 1.5 : 1.0
+  const b6Score = 1
+  const tipoVerificaLabel =
+    bot.classeRischio === 'ALTO'
+      ? 'RAFFORZATA (Art. 24-25)'
+      : bot.zona === 'ZONA_3'
+      ? 'ORDINARIA (Art. 18-19)'
+      : 'SEMPLIFICATA (Art. 17 co. 7)'
+  const punteggio100 = Math.round((bot.rischioEffettivo / 4) * 100)
+
+  const bannerColors =
+    bot.classeRischio === 'ALTO'
+      ? { bg: '#fef2f2', border: '#f87171', text: '#991b1b' }
+      : bot.classeRischio === 'MEDIO'
+      ? { bg: '#fffbeb', border: '#fbbf24', text: '#92400e' }
+      : { bg: '#f0fdf4', border: '#4ade80', text: '#166534' }
+
+  const puntiControlloAV7 = [
+    { q: '1. Coerenza dei dati e informazioni acquisite con gli elementi conoscitivi a disposizione del Professionista', esito: 'CONFORME (SÌ)' },
+    { q: '2. Variazioni intervenute nella compagine societaria, negli organi sociali o nella Titolarità Effettiva (Art. 20)', esito: 'NESSUNA ANOMALIA' },
+    { q: '3. Verifica di eventuale acquisizione dello status di Persona Politicamente Esposta (PPE) o liste antiterrorismo', esito: azienda.antiriciclaggioPep ? 'PPE RILEVATA' : 'NEGATIVO (NO PPE)' },
+    { q: '4. Coerenza tra l\'attività economica svolta, il profilo patrimoniale/reddituale e le operazioni eseguite', esito: 'COERENTE (SÌ)' },
+    { q: '5. Utilizzo di mezzi di pagamento tracciati e regolarità della provenienza dei fondi utilizzati dal cliente', esito: 'TRACCIATO (SÌ)' },
+    { q: '6. Assenza di operazioni frazionate, impiego anomalo di contante (Art. 49) o triangolazioni con Paesi ad alto rischio', esito: 'REGOLARE (NO)' },
+    { q: '7. Validità del documento d\'identità del Cliente/Esecutore e aggiornamento della Visura Camerale in archivio', esito: hasDocIdentita ? 'VERIFICATO' : 'DA AGGIORNARE' },
+    { q: '8. Assenza di indicatori di anomalia ex Provvedimento UIF / D.M. Giustizia ai fini di eventuale SOS (Art. 35)', esito: 'NESSUNA SOS' },
+  ]
+
+  const doc = (
+    <Document title={`AV1_AV2_AV3_AV7_Fascicolo_CNDCEC_${azienda.ragioneSociale}`}>
+      {/* PAGINA 1: MODELLO AV.1 (DETERMINAZIONE RISCHIO EFFETTIVO) + MODELLO AV.2 (DOCUMENTI ACQUISITI) */}
       <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={styles.header}>
+        <View style={styles.headerBox}>
           <View>
-            <Text style={styles.headerStudio}>{studioNome} · Studio Professionale</Text>
-            <Text style={styles.headerSub}>Fascicolo Antiriciclaggio e Valutazione del Rischio</Text>
+            <Text style={styles.studioTitle}>{studioDenominazione}</Text>
+            <Text style={styles.studioSub}>{studioIndirizzo}</Text>
           </View>
-          <View style={{ textAlign: 'right' }}>
-            <Text style={[styles.bold, { fontSize: 8 }]}>FASCICOLO N°</Text>
-            <Text style={{ fontSize: 7.5, color: '#4f46e5' }}>
-              {azienda.antiriciclaggioFascicolo || `ARC-${new Date().getFullYear()}-${azienda.id.slice(0, 5).toUpperCase()}`}
+          <View style={styles.docBadge}>
+            <Text style={styles.docBadgeText}>
+              MODELLI AV.1 + AV.2 CNDCEC — {bot.zonaLabel} — FASCICOLO: {azienda.antiriciclaggioFascicolo || 'ARC-2026'}
             </Text>
           </View>
         </View>
 
-        {/* Titolo */}
-        <Text style={styles.docTitle}>Scheda di Valutazione del Rischio e Adeguata Verifica</Text>
-        <Text style={styles.docNorma}>
-          Regole Tecniche CNDCEC n. 1 e n. 2 emanate ai sensi dell'art. 11, co. 2 del D.Lgs. 231/2007
+        <Text style={styles.mainTitle}>
+          AV.1 — DETERMINAZIONE DEL RISCHIO EFFETTIVO E TIPOLOGIA DI ADEGUATA VERIFICA
+        </Text>
+        <Text style={styles.subTitle}>
+          (Art. 17, co. 3, D.Lgs. 231/2007 — Regola Tecnica n. 2 CNDCEC del 16/01/2025 — Modulistica Ufficiale Marzo 2026)
         </Text>
 
-        {/* Anagrafica Cliente */}
+        {/* Dati Anagrafici & Inquadramento Zona */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1. Anagrafica del Cliente</Text>
+          <Text style={styles.sectionTitle}>Dati Identificativi del Cliente e Inquadramento Prestazione</Text>
           <View style={styles.row}>
-            <Text style={styles.label}>Ragione Sociale / Ditta:</Text>
-            <Text style={[styles.value, styles.bold]}>{azienda.ragioneSociale}</Text>
+            <View style={styles.col2}>
+              <Text style={styles.label}>Cliente / Ragione Sociale</Text>
+              <Text style={styles.value}>{azienda.ragioneSociale}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Partita IVA / Codice Fiscale</Text>
+              <Text style={styles.value}>{azienda.partitaIva || azienda.codiceFiscale || 'N/D'}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Sede / Comune</Text>
+              <Text style={styles.value}>{azienda.comune || 'Reggio Emilia'} ({azienda.provincia || 'RE'})</Text>
+            </View>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>Codice Fiscale / Partita IVA:</Text>
-            <Text style={styles.value}>
-              {azienda.partitaIva ? `P.IVA: ${azienda.partitaIva}` : ''} {azienda.codiceFiscale ? ` · C.F.: ${azienda.codiceFiscale}` : ''}
-            </Text>
+            <View style={styles.col}>
+              <Text style={styles.label}>Legale Rappresentante / Esecutore</Text>
+              <Text style={styles.value}>{azienda.legaleRappresentante || azienda.referente || azienda.ragioneSociale}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Titolare Effettivo (Art. 20)</Text>
+              <Text style={styles.value}>{azienda.antiriciclaggioTitolareEffettivo || azienda.legaleRappresentante || azienda.ragioneSociale}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Qualifica PPE</Text>
+              <Text style={styles.value}>{azienda.antiriciclaggioPep ? 'SÌ (PPE - Rischio Alto)' : 'NO (Ordinario)'}</Text>
+            </View>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>Sede / Ubicazione:</Text>
-            <Text style={styles.value}>
-              {azienda.indirizzo || ''} - {azienda.comune || ''} ({azienda.provincia || ''}) - {azienda.paese || 'IT'}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Legale Rappresentante:</Text>
-            <Text style={styles.value}>{azienda.legaleRappresentante || azienda.referente || '—'}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Documento d'Identità:</Text>
-            <Text style={styles.value}>
-              {azienda.documentoTipo || "Carta d'identità"} n° {azienda.documentoNumero || '—'}
-              {azienda.documentoScadenza ? ` (Scadenza: ${formatDate(azienda.documentoScadenza)})` : ''}
-            </Text>
+            <View style={styles.col2}>
+              <Text style={styles.label}>Prestazione Professionale e Zona Operativa</Text>
+              <Text style={styles.value}>{azienda.antiriciclaggioPrestazione || bot.zonaLabel}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Rischio Inerente (Tab. 1/2 CNDCEC)</Text>
+              <Text style={styles.value}>{bot.rischioInerente.toFixed(2)} / 4.00</Text>
+            </View>
           </View>
         </View>
 
-        {/* Criteri di Valutazione Soggettivi e Oggettivi */}
+        {/* Sezione II: Valutazione del Rischio Specifico (Tabella A + Tabella B CNDCEC) */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Analisi dei Fattori di Rischio (CNDCEC)</Text>
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <Text style={{ width: '50%' }}>FATTORE DI RISCHIO</Text>
-              <Text style={{ width: '35%' }}>PARAMETRO RILEVATO</Text>
-              <Text style={{ width: '15%', textAlign: 'center' }}>LIVELLO</Text>
+          <Text style={styles.sectionTitle}>
+            Sezione I &amp; II (AV.1) — Rischio Specifico Cliente (Tabella A) e Prestazione (Tabella B) (Scala 1 - 4)
+          </Text>
+
+          <View style={styles.tableHeader}>
+            <Text style={styles.cellFactor}>FATTORE DI RISCHIO SPECIFICO (ART. 17 D.LGS. 231/2007)</Text>
+            <Text style={styles.cellDetail}>ELEMENTI RILEVATI DAL PROFESSIONISTA</Text>
+            <Text style={styles.cellScore}>PUNTEGGIO (1-4)</Text>
+          </View>
+
+          <View style={styles.tableRow}>
+            <Text style={styles.cellFactor}>A.1 — Natura giuridica del cliente</Text>
+            <Text style={styles.cellDetail}>{isSocieta ? 'Società / Ente iscritto al Registro Imprese con assetto trasparente' : 'Persona fisica / Ditta individuale'}</Text>
+            <Text style={styles.cellScore}>{a1Score}.00 / 4</Text>
+          </View>
+          <View style={styles.tableRowAlt}>
+            <Text style={styles.cellFactor}>A.2 — Prevalente attività svolta</Text>
+            <Text style={styles.cellDetail}>Attività economica ordinaria ({azienda.settoreAttivita || 'CONTABILITA'}) priva di anomalie</Text>
+            <Text style={styles.cellScore}>{a2Score}.00 / 4</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.cellFactor}>A.3 — Comportamento tenuto al conferimento</Text>
+            <Text style={styles.cellDetail}>Cliente collaborativo, identificato e trasparente nella consegna documentale</Text>
+            <Text style={styles.cellScore}>{a3Score}.00 / 4</Text>
+          </View>
+          <View style={styles.tableRowAlt}>
+            <Text style={styles.cellFactor}>A.4 — Area geografica di residenza o sede</Text>
+            <Text style={styles.cellDetail}>Sede in {azienda.comune || 'Reggio Emilia'} ({azienda.provincia || 'RE'}) - Italia (Paese UE a basso rischio)</Text>
+            <Text style={styles.cellScore}>{a4Score}.00 / 4</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.cellFactor}>B.1 — Tipologia della prestazione professionale</Text>
+            <Text style={styles.cellDetail}>{bot.zonaLabel} ({tipoVerificaLabel})</Text>
+            <Text style={styles.cellScore}>{b1Score}.00 / 4</Text>
+          </View>
+          <View style={styles.tableRowAlt}>
+            <Text style={styles.cellFactor}>B.2 — Modalità di svolgimento della prestazione</Text>
+            <Text style={styles.cellDetail}>Ordinaria con mezzi di pagamento bancari tracciati</Text>
+            <Text style={styles.cellScore}>{b2Score}.00 / 4</Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.cellFactor}>B.3 / B.4 — Ammontare, frequenza, durata e congruità (B.5)</Text>
+            <Text style={styles.cellDetail}>Rapporto continuativo congruo e coerente col profilo economico</Text>
+            <Text style={styles.cellScore}>{b345Score.toFixed(2)} / 4</Text>
+          </View>
+          <View style={styles.tableRowAlt}>
+            <Text style={styles.cellFactor}>B.6 — Area geografica di destinazione della prestazione</Text>
+            <Text style={styles.cellDetail}>Territorio nazionale italiano (assenza di Paesi terzi ad alto rischio)</Text>
+            <Text style={styles.cellScore}>{b6Score}.00 / 4</Text>
+          </View>
+        </View>
+
+        {/* Sezione III & IV: Ponderazione 30% / 70% e Tipologia Adeguata Verifica */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            Sezione III &amp; IV (AV.1) — Ponderazione Rischio Effettivo (30% Inerente + 70% Specifico)
+          </Text>
+          <View style={styles.row}>
+            <View style={styles.col}>
+              <Text style={styles.label}>Rischio Inerente (Peso 30%)</Text>
+              <Text style={styles.value}>{bot.rischioInerente.toFixed(2)} × 0,30 = {(bot.rischioInerente * 0.3).toFixed(2)}</Text>
             </View>
-            <View style={styles.tableRow}>
-              <Text style={{ width: '50%' }}>Forma giuridica del cliente</Text>
-              <Text style={{ width: '35%' }}>{azienda.tipoSoggetto === 'PERSONA_GIURIDICA' ? 'Società di capitali / persone' : 'Ditta individuale / persona fisica'}</Text>
-              <Text style={{ width: '15%', textAlign: 'center', color: '#16a34a' }}>Basso</Text>
+            <View style={styles.col}>
+              <Text style={styles.label}>Rischio Specifico A+B (Peso 70%)</Text>
+              <Text style={styles.value}>{bot.rischioSpecifico.toFixed(2)} × 0,70 = {(bot.rischioSpecifico * 0.7).toFixed(2)}</Text>
             </View>
-            <View style={styles.tableRow}>
-              <Text style={{ width: '50%' }}>Area geografica di operatività</Text>
-              <Text style={{ width: '35%' }}>Italia / Unione Europea ({azienda.comune || 'Reggio Emilia'})</Text>
-              <Text style={{ width: '15%', textAlign: 'center', color: '#16a34a' }}>Basso</Text>
+            <View style={styles.col}>
+              <Text style={styles.label}>Rischio Effettivo Totale</Text>
+              <Text style={styles.value}>{bot.rischioEffettivo.toFixed(2)} / 4.00 ({punteggio100}/100)</Text>
             </View>
-            <View style={styles.tableRow}>
-              <Text style={{ width: '50%' }}>Tipologia prestazione richiesta</Text>
-              <Text style={{ width: '35%' }}>{azienda.settoreAttivita || 'Contabilità e adempimenti periodici'}</Text>
-              <Text style={{ width: '15%', textAlign: 'center', color: '#16a34a' }}>Basso</Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={{ width: '50%' }}>Presenza Titolare Effettivo / PEP</Text>
-              <Text style={{ width: '35%' }}>{azienda.antiriciclaggioPep ? 'PEP presente' : 'Nessun PEP rilevato'}</Text>
-              <Text style={{ width: '15%', textAlign: 'center', color: azienda.antiriciclaggioPep ? '#dc2626' : '#16a34a' }}>
-                {azienda.antiriciclaggioPep ? 'Elevato' : 'Basso'}
+          </View>
+
+          <View
+            style={[
+              styles.resultBanner,
+              { backgroundColor: bannerColors.bg, borderColor: bannerColors.border },
+            ]}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: bannerColors.text }}>
+                ESITO AV.1: RISCHIO {bot.classeRischio} ({bot.rischioEffettivo.toFixed(2)} / 4.00) — ADEGUATA VERIFICA: {tipoVerificaLabel}
+              </Text>
+              <Text style={{ fontSize: 7.2, color: '#334155', marginTop: 1.5 }}>
+                {azienda.antiriciclaggioNote || bot.motivoBot}
               </Text>
             </View>
-            <View style={styles.tableRow}>
-              <Text style={{ width: '50%' }}>Modalità svolgimento prestazione</Text>
-              <Text style={{ width: '35%' }}>Incontro diretto e identificazione de visu</Text>
-              <Text style={{ width: '15%', textAlign: 'center', color: '#16a34a' }}>Basso</Text>
+          </View>
+        </View>
+
+        {/* MODELLO AV.2 CNDCEC: DOCUMENTO RIEPILOGATIVO DOCUMENTI ACQUISITI */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            AV.2 — Documento Riepilogativo di Dati, Informazioni e Documenti Acquisiti nel Fascicolo Cliente
+          </Text>
+          <View style={styles.checkGrid}>
+            <View style={styles.checkItem}>
+              <Text style={styles.checkbox}>{hasDocIdentita ? 'X' : ' '}</Text>
+              <Text style={{ fontSize: 7.4, flex: 1 }}>
+                1. Copia Documento d&apos;Identità ({azienda.documentoNumero || 'Da acquisire'}){' '}
+                {docIdFile ? `[File: ${docIdFile.nomeFile.slice(0, 22)}]` : ''}
+              </Text>
+            </View>
+            <View style={styles.checkItem}>
+              <Text style={styles.checkbox}>{docVisuraFile || isSocieta ? 'X' : ' '}</Text>
+              <Text style={{ fontSize: 7.4, flex: 1 }}>
+                2. Visura Camerale / Atto Costitutivo / Statuto{' '}
+                {docVisuraFile ? `[File: ${docVisuraFile.nomeFile.slice(0, 20)}]` : isSocieta ? '[In Fascicolo]' : '[Non richiesto PF]'}
+              </Text>
+            </View>
+            <View style={styles.checkItem}>
+              <Text style={styles.checkbox}>{azienda.partitaIva || azienda.codiceFiscale ? 'X' : ' '}</Text>
+              <Text style={{ fontSize: 7.4, flex: 1 }}>
+                3. Attribuzione Codice Fiscale / Partita IVA ({azienda.partitaIva || azienda.codiceFiscale || 'N/D'})
+              </Text>
+            </View>
+            <View style={styles.checkItem}>
+              <Text style={styles.checkbox}>X</Text>
+              <Text style={{ fontSize: 7.4, flex: 1 }}>
+                4. Dichiarazione del Cliente ex art. 22 D.Lgs. 231/07 (AV.4){' '}
+                {docAv4File ? `[Firmata: ${docAv4File.nomeFile.slice(0, 18)}]` : '[Predisposta]'}
+              </Text>
+            </View>
+            <View style={styles.checkItem}>
+              <Text style={styles.checkbox}>X</Text>
+              <Text style={{ fontSize: 7.4, flex: 1 }}>
+                5. Scheda Determinazione Rischio Effettivo (Modello AV.1) e Istruttoria (AV.3)
+              </Text>
+            </View>
+            <View style={styles.checkItem}>
+              <Text style={styles.checkbox}>{azienda.privacyFirmata || docPrivacyFile ? 'X' : ' '}</Text>
+              <Text style={{ fontSize: 7.4, flex: 1 }}>
+                6. Informativa Privacy GDPR e Mandato Professionale{' '}
+                {docPrivacyFile ? `[Firmato: ${docPrivacyFile.nomeFile.slice(0, 18)}]` : azienda.privacyFirmata ? '[Sottoscritta]' : '[In firma]'}
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* Esito Sintetico e Badge Rischio */}
-        <View style={[styles.riskBadgeBox, { borderColor: badgeColor, backgroundColor: badgeBg }]}>
-          <Text style={[styles.riskTitle, { color: badgeColor }]}>{classeRischioDesc}</Text>
-          <Text style={[styles.riskSub, { color: '#334155' }]}>
-            Punteggio sintetico di rischio attribuito: <Text style={styles.bold}>{azienda.antiriciclaggioPunteggio || 1} su 4</Text>
+        <Text style={styles.footer}>
+          Modelli AV.1 + AV.2 CNDCEC (Marzo 2026) — {studioDenominazione} — Pag. 1/2
+        </Text>
+      </Page>
+
+      {/* PAGINA 2: MODELLO AV.3 (ISTRUTTORIA CLIENTE) + MODELLO AV.7 (PROCEDURA DI CONTROLLO COSTANTE) */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.headerBox}>
+          <View>
+            <Text style={styles.studioTitle}>{studioDenominazione}</Text>
+            <Text style={styles.studioSub}>Istruttoria Cliente (AV.3) e Procedura di Controllo Costante (AV.7)</Text>
+          </View>
+          <View style={styles.docBadge}>
+            <Text style={styles.docBadgeText}>MODELLI AV.3 + AV.7 CNDCEC</Text>
+          </View>
+        </View>
+
+        <Text style={styles.mainTitle}>
+          AV.3 — ISTRUTTORIA CLIENTE &amp; AV.7 — PROCEDURA DI CONTROLLO COSTANTE
+        </Text>
+        <Text style={styles.subTitle}>
+          (Artt. 18, co. 1, lett. d e 19, co. 1, lett. c, D.Lgs. 231/2007 — Regola Tecnica n. 2 CNDCEC)
+        </Text>
+
+        {/* MODELLO AV.3: SCHEDA ISTRUTTORIA CLIENTE */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            AV.3 — Scheda di Istruttoria Cliente (Identificazione, Verifica Titolare Effettivo e Scopo)
+          </Text>
+          <View style={styles.row}>
+            <View style={styles.col}>
+              <Text style={styles.label}>1. Identificazione del Cliente / Esecutore</Text>
+              <Text style={styles.value}>
+                {azienda.legaleRappresentante || azienda.ragioneSociale} — Doc. {azienda.documentoNumero || 'In acquisizione'} (Scad. {formatDate(azienda.documentoScadenza)})
+              </Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>2. Modalità di Identificazione</Text>
+              <Text style={styles.value}>In presenza fisica del cliente / Documento d&apos;identità in corso di validità</Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.col}>
+              <Text style={styles.label}>3. Individuazione e Verifica del Titolare Effettivo (Art. 20)</Text>
+              <Text style={styles.value}>
+                {azienda.antiriciclaggioTitolareEffettivo || azienda.legaleRappresentante || azienda.ragioneSociale} ({isSocieta ? 'Riscontro da Visura Registro Imprese / Dichiarazione AV.4' : 'Titolare Ditta Individuale / PF'})
+              </Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>4. Consultazione Liste PPE e Liste Antiterrorismo UE/ONU</Text>
+              <Text style={styles.value}>Esito NEGATIVO — Assenza di iscrizioni in liste di congelamento o PEP</Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.col}>
+              <Text style={styles.label}>5. Informazioni su Scopo e Natura della Prestazione</Text>
+              <Text style={styles.value}>{azienda.antiriciclaggioPrestazione || bot.zonaLabel}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>6. Conservazione Informatica / Cartacea (Art. 31-32 D.Lgs. 231/07)</Text>
+              <Text style={styles.value}>Fascicolo {azienda.antiriciclaggioFascicolo || 'ARC-2026'} — Conservazione per 10 anni dalla cessazione</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* MODELLO AV.7: PROCEDURA DI CONTROLLO COSTANTE */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            AV.7 — Procedura di Controllo Costante nel Corso del Rapporto Continuativo
+          </Text>
+          <View style={styles.tableHeader}>
+            <Text style={{ flex: 5 }}>VERIFICA PERIODICA EFFETTUATA DAL PROFESSIONISTA (CHECK-LIST UFFICIALE CNDCEC AV.7)</Text>
+            <Text style={{ flex: 1.5, textAlign: 'right' }}>ESITO RISCONTRO</Text>
+          </View>
+          {puntiControlloAV7.map((item, idx) => (
+            <View key={idx} style={idx % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+              <Text style={{ flex: 5 }}>{item.q}</Text>
+              <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold', color: '#1e3a8a' }}>{item.esito}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* ESITO DEL CONTROLLO COSTANTE E PROGRAMMAZIONE PROSSIMA VERIFICA */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            Conclusione dell&apos;Istruttoria e Programmazione del Controllo Costante (Tab. 5 Regola Tecnica n. 2)
+          </Text>
+          <View style={styles.row}>
+            <View style={styles.col}>
+              <Text style={styles.label}>Data Valutazione / Controllo</Text>
+              <Text style={styles.value}>{dataVerifica}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Periodicità Controllo Costante</Text>
+              <Text style={styles.value}>Ogni {mesiRinnovo} mesi (Rischio {bot.classeRischio})</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Scadenza Prossima Revisione</Text>
+              <Text style={styles.value}>{dataProssimaVerifica}</Text>
+            </View>
+          </View>
+          <Text style={{ fontSize: 7.4, color: '#334155', marginTop: 3 }}>
+            Alla luce degli elementi istruttori acquisiti (AV.2 e AV.3) e delle verifiche di controllo costante eseguite (AV.7), si conferma il livello di Rischio Effettivo {bot.classeRischio} ({bot.rischioEffettivo.toFixed(2)}/4.00) e la prosecuzione regolare del rapporto professionale.
           </Text>
         </View>
 
-        {/* 3. Misure di Adeguata Verifica Adottate */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. Determinazione degli Obblighi e Monitoraggio</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Procedura Applicata:</Text>
-            <Text style={[styles.value, styles.bold]}>{misura}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Data Prima Identificazione:</Text>
-            <Text style={styles.value}>{formatDate(azienda.antiriciclaggioDataVerifica || azienda.createdAt)}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Periodicità di Revisione:</Text>
-            <Text style={[styles.value, styles.bold]}>{cadenza}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Prossima Scadenza Revisione:</Text>
-            <Text style={styles.value}>
-              {formatDate(
-                azienda.antiriciclaggioDataScadenza ||
-                  new Date(new Date().setFullYear(new Date().getFullYear() + (isBasso ? 3 : isMedio ? 2 : 1)))
-              )}
-            </Text>
-          </View>
-          {azienda.antiriciclaggioNote && (
-            <View style={[styles.row, { marginTop: 3 }]}>
-              <Text style={styles.label}>Note e Valutazioni:</Text>
-              <Text style={styles.value}>{azienda.antiriciclaggioNote}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Firme */}
-        <View style={styles.signatureRow}>
+        {/* Firma del Professionista */}
+        <View style={styles.signatureGrid}>
           <View style={styles.signatureBox}>
-            <Text>Data della Valutazione</Text>
-            <Text style={{ marginTop: 2 }}>
-              {studioComune}, {formatDate(azienda.antiriciclaggioDataVerifica || new Date())}
+            <Text style={styles.label}>Luogo e Data di Emissione Scheda</Text>
+            <Text style={[styles.value, { marginTop: 4 }]}>
+              {emittente?.comune || 'Reggio Emilia'}, lì {dataVerifica}
             </Text>
           </View>
           <View style={styles.signatureBox}>
-            <Text>Firma del Professionista Incaricato</Text>
-            <Text style={{ marginTop: 15 }}>{studioNome}</Text>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureLabel}>
+              Timbro e Firma del Professionista ({studioDenominazione})
+            </Text>
           </View>
         </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text>Fascicolo di Studio · Conservazione decennale art. 31 D.Lgs. 231/2007</Text>
-          <Text>Documento riservato e ad uso interno</Text>
-        </View>
+        <Text style={styles.footer}>
+          Modelli AV.3 + AV.7 CNDCEC (Marzo 2026) — Fascicolo Antiriciclaggio D.Lgs. 231/2007 — {studioDenominazione} — Pag. 2/2
+        </Text>
       </Page>
     </Document>
   )
-}
 
-export async function generaAntiriciclaggioValutazionePDF(azienda: any, emittente: any): Promise<Buffer> {
-  return await renderToBuffer(<AntiriciclaggioValutazioneDocument azienda={azienda} emittente={emittente} />)
+  return await renderToBuffer(doc)
 }

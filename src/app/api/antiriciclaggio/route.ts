@@ -92,11 +92,7 @@ export async function GET(request: Request) {
         ],
         include: {
           documents: {
-            where: {
-              tipoDoc: { in: ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria'] },
-            },
             orderBy: { createdAt: 'desc' },
-            take: 3,
           },
         },
       }),

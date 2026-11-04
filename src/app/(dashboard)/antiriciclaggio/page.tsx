@@ -677,11 +677,11 @@ export default function AntiriciclaggioPage() {
                   <TableHead>Cliente / Ragione Sociale</TableHead>
                   <TableHead>Zona Bot &amp; Settore</TableHead>
                   <TableHead>Legale Rappresentante</TableHead>
-                  <TableHead>Documento d&apos;Identità</TableHead>
+                  <TableHead>Documenti, Visura &amp; Firme (AV.2)</TableHead>
                   <TableHead>Rischio CNDCEC</TableHead>
                   <TableHead>Privacy</TableHead>
                   <TableHead>Stato</TableHead>
-                  <TableHead className="text-right">Azioni</TableHead>
+                  <TableHead className="text-right">Azioni &amp; Stampe</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -740,7 +740,7 @@ export default function AntiriciclaggioPage() {
                           </div>
                           {az.botValutazione?.zona === 'ZONA_3' ? (
                             <span className="block text-[10px] font-semibold text-indigo-700" title={az.botValutazione?.motivoBot}>
-                              ● Obbligo Scheda AV2 + AV4
+                              ● Obbligo AV.1+AV.2+AV.3+AV.4+AV.7
                             </span>
                           ) : az.botValutazione?.zona === 'ZONA_2' ? (
                             <span className="block text-[10px] font-medium text-amber-800" title={az.botValutazione?.motivoBot}>
@@ -757,28 +757,76 @@ export default function AntiriciclaggioPage() {
                         {az.legaleRappresentante || az.referente || '—'}
                       </TableCell>
                       <TableCell>
-                        {az.documentoNumero ? (
-                          <div className="space-y-0.5">
-                            <div className="text-xs font-medium text-slate-900">
-                              {az.documentoTipo === 'passaporto' ? 'Pass.' : az.documentoTipo === 'patente' ? 'Pat.' : 'C.I.'} {az.documentoNumero}
+                        {(() => {
+                          const docs: any[] = Array.isArray(az.documents) ? az.documents : []
+                          const hasDocIdPdf = docs.some((d) =>
+                            ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria'].includes(d.tipoDoc)
+                          )
+                          const hasVisuraPdf = docs.some((d) => d.tipoDoc === 'visura')
+                          const hasAv4Pdf = docs.some((d) => d.tipoDoc === 'av4_firmato')
+
+                          return (
+                            <div className="space-y-1">
+                              {az.documentoNumero ? (
+                                <div className="space-y-0.5">
+                                  <div className="text-xs font-medium text-slate-900">
+                                    🪪 {az.documentoTipo === 'passaporto' ? 'Pass.' : az.documentoTipo === 'patente' ? 'Pat.' : 'C.I.'} {az.documentoNumero}
+                                  </div>
+                                  {isScaduto ? (
+                                    <Badge variant="destructive" className="text-[10px] py-0 px-1.5 h-4">
+                                      Scaduto il {formatData(az.documentoScadenza)}
+                                    </Badge>
+                                  ) : isInScadenza ? (
+                                    <Badge className="bg-amber-500 text-white text-[10px] py-0 px-1.5 h-4 hover:bg-amber-600">
+                                      Scade il {formatData(az.documentoScadenza)}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-[10px] text-green-700 block">
+                                      ✓ Scad. {formatData(az.documentoScadenza)}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-slate-400 italic block">🪪 ID non inserito</span>
+                              )}
+                              <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                                <span
+                                  onClick={() => apriFascicolo(az.id)}
+                                  className={`cursor-pointer text-[10px] px-1.5 py-0.2 rounded border font-medium ${
+                                    hasDocIdPdf
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-blue-300'
+                                  }`}
+                                  title="Clicca per caricare o visualizzare il PDF/Foto del Documento d'Identità"
+                                >
+                                  {hasDocIdPdf ? '✓ PDF ID' : '+ PDF ID'}
+                                </span>
+                                <span
+                                  onClick={() => apriFascicolo(az.id)}
+                                  className={`cursor-pointer text-[10px] px-1.5 py-0.2 rounded border font-medium ${
+                                    hasVisuraPdf
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-indigo-300'
+                                  }`}
+                                  title="Clicca per caricare o visualizzare la Visura Camerale CCIAA"
+                                >
+                                  {hasVisuraPdf ? '✓ Visura' : '+ Visura'}
+                                </span>
+                                <span
+                                  onClick={() => apriFascicolo(az.id)}
+                                  className={`cursor-pointer text-[10px] px-1.5 py-0.2 rounded border font-medium ${
+                                    hasAv4Pdf
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-blue-300'
+                                  }`}
+                                  title="Clicca per stampare il modulo AV.4 da far firmare o caricare il PDF firmato dal cliente"
+                                >
+                                  {hasAv4Pdf ? '✓ AV.4 Firmato' : '+ AV.4'}
+                                </span>
+                              </div>
                             </div>
-                            {isScaduto ? (
-                              <Badge variant="destructive" className="text-[10px] py-0 px-1.5 h-4">
-                                Scaduto il {formatData(az.documentoScadenza)}
-                              </Badge>
-                            ) : isInScadenza ? (
-                              <Badge className="bg-amber-500 text-white text-[10px] py-0 px-1.5 h-4 hover:bg-amber-600">
-                                Scade il {formatData(az.documentoScadenza)}
-                              </Badge>
-                            ) : (
-                              <span className="text-[11px] text-green-700 block">
-                                ✓ Scad. {formatData(az.documentoScadenza)}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-400 italic">Non caricato</span>
-                        )}
+                          )
+                        })()}
                       </TableCell>
                       <TableCell>
                         <div className="space-y-0.5">
@@ -817,10 +865,10 @@ export default function AntiriciclaggioPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => apriFascicolo(az.id)}
-                            className="h-8 px-2.5 text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
-                            title="Modifica anagrafica e fascicolo antiriciclaggio"
+                            className="h-8 px-2.5 text-xs text-blue-700 border-blue-200 hover:bg-blue-50 font-medium"
+                            title="Apri Cassetto Documentale (Documento d'Identità, Visura Camerale, AV.4 Firmato) e modifica fascicolo"
                           >
-                            <Pencil className="h-3.5 w-3.5 mr-1" /> Modifica
+                            <Pencil className="h-3.5 w-3.5 mr-1" /> Fascicolo &amp; Doc.
                           </Button>
 
                           <Link href={`/aziende/${az.id}`} title="Scheda anagrafica completa cliente">
@@ -838,7 +886,7 @@ export default function AntiriciclaggioPage() {
                             size="icon"
                             className="h-8 w-8 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
                             onClick={() => window.open(`/api/antiriciclaggio/${az.id}/pdf?tipo=valutazione`, '_blank')}
-                            title="Scarica Modello AV2 — Scheda Valutazione Rischio CNDCEC (PDF)"
+                            title="Scarica Modelli Ufficiali CNDCEC AV.1 + AV.2 + AV.3 + AV.7 — Fascicolo Professionista (PDF)"
                           >
                             <ShieldCheck className="h-4 w-4" />
                           </Button>
@@ -848,7 +896,7 @@ export default function AntiriciclaggioPage() {
                             size="icon"
                             className="h-8 w-8 text-slate-600 hover:text-blue-600 hover:bg-slate-100"
                             onClick={() => window.open(`/api/antiriciclaggio/${az.id}/pdf?tipo=dichiarazione`, '_blank')}
-                            title="Scarica Modello AV4 — Dichiarazione Cliente e Titolare Effettivo (PDF)"
+                            title="Scarica Modello Ufficiale CNDCEC AV.4 — Dichiarazione Cliente da far firmare con Allegato Note 1-4 (PDF)"
                           >
                             <FileText className="h-4 w-4" />
                           </Button>

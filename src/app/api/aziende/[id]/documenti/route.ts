@@ -105,6 +105,23 @@ export async function POST(
       include: { uploadedByUser: { select: { name: true } } },
     })
 
+    // Se viene caricata la Privacy firmata o la Dichiarazione AV.4 firmata o un Documento d'Identità, aggiorna automaticamente il fascicolo
+    const updateCompanyData: Record<string, any> = {}
+    if (tipoDoc === 'privacy_firmata') {
+      updateCompanyData.privacyFirmata = true
+      if (!azienda.privacyData) updateCompanyData.privacyData = new Date()
+    }
+    if (['carta_identita', 'passaporto', 'patente'].includes(tipoDoc)) {
+      if (!azienda.documentoTipo) updateCompanyData.documentoTipo = tipoDoc
+      if (scadenza) updateCompanyData.documentoScadenza = new Date(scadenza)
+    }
+    if (Object.keys(updateCompanyData).length > 0) {
+      await prisma.company.update({
+        where: { id: params.id },
+        data: updateCompanyData,
+      })
+    }
+
     // Audit log
     await prisma.auditEvent.create({
       data: {

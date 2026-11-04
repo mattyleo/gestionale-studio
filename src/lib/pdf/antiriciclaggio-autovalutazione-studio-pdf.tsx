@@ -171,16 +171,16 @@ export function AutovalutazioneStudioDocument({
             <Text style={styles.headerSub}>P.IVA {studioPIVA} · C.F. {studioCF} · {studioSede}</Text>
           </View>
           <View style={{ textAlign: 'right' }}>
-            <Text style={[styles.bold, { fontSize: 8, color: '#1d4ed8' }]}>MODELLO AV1 - CNDCEC</Text>
+            <Text style={[styles.bold, { fontSize: 8, color: '#1d4ed8' }]}>MODELLO AV.0 - CNDCEC (MARZO 2026)</Text>
             <Text style={{ fontSize: 7, color: '#475569' }}>Data redazione: {dataOggi}</Text>
           </View>
         </View>
 
         <Text style={styles.docTitle}>
-          Scheda di Autovalutazione del Rischio dello Studio Professionale
+          AV.0 — Scheda di Autovalutazione del Rischio dello Studio Professionale
         </Text>
         <Text style={styles.docNorma}>
-          Ai sensi degli artt. 15 e 16 D.Lgs. 231/2007 (mod. D.Lgs. 90/2017 e D.Lgs. 125/2019) e Regola Tecnica n. 1 CNDCEC / CdL (Agg. 2025)
+          Ai sensi degli artt. 15, 16 e 16-ter D.Lgs. 231/2007 e Regola Tecnica n. 1 CNDCEC del 16/01/2025 (Modulistica Ufficiale Marzo 2026)
         </Text>
 
         {/* 1. Dati Identificativi del Soggetto Obbligato */}
@@ -247,29 +247,29 @@ export function AutovalutazioneStudioDocument({
           </View>
         </View>
 
-        {/* 3. Calcolo Matrice CNDCEC Rischio Residuo dello Studio */}
+        {/* 3. Calcolo Matrice CNDCEC Rischio Residuo dello Studio (Modello AV.0 Sezioni I, II, III) */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. Determinazione del Rischio Inerente, Vulnerabilità e Rischio Residuo (Regola Tecnica n. 1)</Text>
+          <Text style={styles.sectionTitle}>3. Determinazione del Rischio Inerente (Sez. I), Vulnerabilità (Sez. II) e Rischio Residuo (Sez. III - AV.0)</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
-              <Text style={{ width: '55%' }}>COMPONENTE DI VALUTAZIONE (SCALA 1 - 4 CNDCEC)</Text>
-              <Text style={{ width: '25%' }}>CRITERIO RILEVATO</Text>
-              <Text style={{ width: '20%', textAlign: 'center' }}>PUNTEGGIO</Text>
+              <Text style={{ width: '58%' }}>FATTORI UFFICIALI MODELLO AV.0 CNDCEC (SCALA D&apos;INTENSITÀ 1 - 4)</Text>
+              <Text style={{ width: '24%' }}>VALUTAZIONE RILEVATA</Text>
+              <Text style={{ width: '18%', textAlign: 'center' }}>INDICE (1-4)</Text>
             </View>
             <View style={styles.tableRow}>
-              <Text style={{ width: '55%' }}>A. Rischio Inerente (Tipologia clientela locale, operatività ordinaria, assenza PEP/Paesi terzi ad alto rischio)</Text>
-              <Text style={{ width: '25%' }}>Non Significativo / Poco Significativo</Text>
-              <Text style={{ width: '20%', textAlign: 'center', fontFamily: 'Helvetica-Bold' }}>1,35 / 4,00</Text>
+              <Text style={{ width: '58%' }}>Sez. I — Rischio Inerente (1. Tipologia clientela: 1,50 · 2. Area geografica RE: 1,00 · 3. Canali distributivi de visu: 1,00 · 4. Servizi offerti: 1,90)</Text>
+              <Text style={{ width: '24%' }}>Media A (Peso 40%)</Text>
+              <Text style={{ width: '18%', textAlign: 'center', fontFamily: 'Helvetica-Bold' }}>1,35 / 4,00</Text>
             </View>
             <View style={styles.tableRow}>
-              <Text style={{ width: '55%' }}>B. Livello di Vulnerabilità Organizzativa (Presenza gestionale dedicato, fascicolo informatico, alert scadenze CI)</Text>
-              <Text style={{ width: '25%' }}>Presidi Adeguati (Vulnerabilità Bassa)</Text>
-              <Text style={{ width: '20%', textAlign: 'center', fontFamily: 'Helvetica-Bold' }}>1,20 / 4,00</Text>
+              <Text style={{ width: '58%' }}>Sez. II — Vulnerabilità Studio (1. Formazione: 1,00 · 2. Org. Adeguata Verifica AV.1-AV.7: 1,40 · 3. Conservazione fascicolo: 1,20 · 4. Presidio SOS/Contante: 1,20)</Text>
+              <Text style={{ width: '24%' }}>Media B (Peso 60%)</Text>
+              <Text style={{ width: '18%', textAlign: 'center', fontFamily: 'Helvetica-Bold' }}>1,20 / 4,00</Text>
             </View>
             <View style={styles.tableRow}>
-              <Text style={{ width: '55%', fontFamily: 'Helvetica-Bold' }}>C. RISCHIO RESIDUO COMPLESSIVO DELLO STUDIO (40% Rischio Inerente + 60% Vulnerabilità)</Text>
-              <Text style={{ width: '25%', fontFamily: 'Helvetica-Bold', color: '#16a34a' }}>RISCHIO BASSO (NON SIGNIFICATIVO)</Text>
-              <Text style={{ width: '20%', textAlign: 'center', fontFamily: 'Helvetica-Bold', color: '#16a34a' }}>1,26 / 4,00</Text>
+              <Text style={{ width: '58%', fontFamily: 'Helvetica-Bold' }}>Sez. III — RISCHIO RESIDUO DELLO STUDIO (A × 0,40 + B × 0,60 = 0,54 + 0,72)</Text>
+              <Text style={{ width: '24%', fontFamily: 'Helvetica-Bold', color: '#16a34a' }}>RISCHIO MINIMO / BASSO</Text>
+              <Text style={{ width: '18%', textAlign: 'center', fontFamily: 'Helvetica-Bold', color: '#16a34a' }}>1,26 / 4,00</Text>
             </View>
           </View>
         </View>

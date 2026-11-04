@@ -1,5 +1,6 @@
 // src/lib/pdf/antiriciclaggio-dichiarazione-pdf.tsx
-// Modulo Dichiarazione del Cliente ai fini dell'Adeguata Verifica Antiriciclaggio (D.Lgs. 231/2007, art. 22)
+// Modello AV.4 CNDCEC (Marzo 2026) — Dichiarazione del Cliente ex art. 22, co. 1, D.Lgs. 231/2007 (Regola Tecnica n. 2)
+// Conforme a CNDCEC_modulistica-AML-def.docx e Regole Tecniche 16 Gennaio 2025 — Con Allegato Note 1-4 e Doppia Firma Cliente
 
 import React from 'react'
 import {
@@ -13,318 +14,546 @@ import {
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 30,
-    paddingBottom: 35,
-    paddingHorizontal: 35,
-    fontSize: 8,
     fontFamily: 'Helvetica',
+    fontSize: 8.5,
     color: '#1e293b',
+    paddingTop: 26,
+    paddingBottom: 34,
+    paddingHorizontal: 34,
     lineHeight: 1.35,
   },
-  bold: {
-    fontFamily: 'Helvetica-Bold',
-  },
-  header: {
-    borderBottom: '1.5pt solid #1e40af',
-    paddingBottom: 6,
+  headerBox: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#1e3a8a',
+    paddingBottom: 7,
     marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
   },
-  headerStudio: {
-    fontSize: 11,
+  studioTitle: {
+    fontSize: 11.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#0f172a',
+    color: '#1e3a8a',
   },
-  headerSub: {
+  studioSub: {
     fontSize: 7.5,
     color: '#475569',
+    marginTop: 1.5,
   },
-  docTitle: {
-    fontSize: 12,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1e40af',
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    marginTop: 4,
-    marginBottom: 2,
+  docBadge: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#93c5fd',
+    borderRadius: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
-  docNorma: {
+  docBadgeText: {
     fontSize: 7.5,
-    color: '#64748b',
+    fontFamily: 'Helvetica-Bold',
+    color: '#1d4ed8',
+  },
+  mainTitle: {
+    fontSize: 10.5,
+    fontFamily: 'Helvetica-Bold',
     textAlign: 'center',
-    marginBottom: 12,
+    color: '#0f172a',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
+  subTitle: {
+    fontSize: 8,
+    textAlign: 'center',
+    color: '#475569',
+    marginBottom: 9,
   },
   section: {
-    marginBottom: 9,
+    marginBottom: 7,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 4,
     padding: 7,
-    border: '1pt solid #cbd5e1',
-    borderRadius: 3,
-    backgroundColor: '#f8fafc',
   },
   sectionTitle: {
     fontSize: 8.5,
     fontFamily: 'Helvetica-Bold',
-    color: '#0f172a',
-    borderBottom: '0.5pt solid #cbd5e1',
-    paddingBottom: 3,
+    color: '#1e3a8a',
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 2.5,
+    paddingHorizontal: 5,
     marginBottom: 5,
     textTransform: 'uppercase',
   },
   row: {
     flexDirection: 'row',
-    marginBottom: 2.5,
+    marginBottom: 3.5,
+  },
+  col: {
+    flex: 1,
+  },
+  col2: {
+    flex: 2,
   },
   label: {
-    width: '32%',
-    fontFamily: 'Helvetica-Bold',
-    color: '#334155',
+    fontSize: 7,
+    color: '#64748b',
+    textTransform: 'uppercase',
   },
   value: {
-    width: '68%',
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
     color: '#0f172a',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#cbd5e1',
+    paddingBottom: 1.5,
+    marginRight: 6,
+    minHeight: 11,
   },
-  boxCheck: {
-    border: '1pt solid #94a3b8',
+  paragraph: {
+    fontSize: 8,
+    textAlign: 'justify',
+    marginBottom: 4,
+    color: '#334155',
+  },
+  bold: {
+    fontFamily: 'Helvetica-Bold',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 3.5,
+  },
+  checkbox: {
     width: 10,
     height: 10,
+    borderWidth: 1,
+    borderColor: '#1e3a8a',
     marginRight: 5,
     marginTop: 1,
+    textAlign: 'center',
+    fontSize: 7,
+    lineHeight: 1.1,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e3a8a',
   },
-  textParagraph: {
-    fontSize: 7.5,
-    color: '#334155',
-    marginBottom: 4,
-    textAlign: 'justify',
-  },
-  signatureRow: {
+  signatureGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 15,
-    paddingTop: 10,
+    marginTop: 10,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#cbd5e1',
   },
   signatureBox: {
-    width: '45%',
-    borderTop: '0.5pt solid #64748b',
-    paddingTop: 4,
-    textAlign: 'center',
+    width: '46%',
+  },
+  signatureLine: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+    marginTop: 22,
+    marginBottom: 3,
+  },
+  signatureLabel: {
     fontSize: 7.5,
+    color: '#475569',
+    textAlign: 'center',
+  },
+  noteBox: {
+    marginBottom: 7,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 4,
+    padding: 7,
+    backgroundColor: '#f8fafc',
+  },
+  noteHeading: {
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
+    color: '#1e3a8a',
+    marginBottom: 3,
+  },
+  noteText: {
+    fontSize: 7.5,
+    color: '#334155',
+    textAlign: 'justify',
+    marginBottom: 3,
+    lineHeight: 1.32,
   },
   footer: {
     position: 'absolute',
-    bottom: 15,
-    left: 35,
-    right: 35,
-    borderTop: '0.5pt solid #cbd5e1',
-    paddingTop: 4,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    fontSize: 6.5,
+    bottom: 16,
+    left: 34,
+    right: 34,
+    fontSize: 6.8,
     color: '#94a3b8',
+    textAlign: 'center',
+    borderTopWidth: 0.5,
+    borderTopColor: '#e2e8f0',
+    paddingTop: 3,
   },
 })
 
-function formatDate(d: any): string {
-  if (!d) return '—'
-  try {
-    return new Intl.DateTimeFormat('it-IT').format(new Date(d))
-  } catch {
-    return '—'
-  }
+function formatDate(d?: Date | string | null): string {
+  if (!d) return '____/____/________'
+  const dt = new Date(d)
+  if (isNaN(dt.getTime())) return '____/____/________'
+  return dt.toLocaleDateString('it-IT')
 }
 
-export function AntiriciclaggioDichiarazioneDocument({
-  azienda,
-  emittente,
-}: {
-  azienda: any
+function getTipoDocLabel(t?: string | null): string {
+  if (t === 'carta_identita') return 'Carta d\'Identità'
+  if (t === 'passaporto') return 'Passaporto'
+  if (t === 'patente') return 'Patente di Guida'
+  return t || 'Carta d\'Identità'
+}
+
+export async function generaAntiriciclaggioDichiarazionePDF(
+  azienda: any,
   emittente: any
-}) {
-  const studioNome = emittente?.denominazione || 'Dott. Antonio Tuzio'
-  const studioPIVA = emittente?.partitaIva || '05389400481'
-  const studioIndirizzo = emittente?.indirizzo || 'Viale Risorgimento 70'
-  const studioComune = emittente?.comune || "Reggio nell'Emilia"
+): Promise<Buffer> {
+  const studioDenominazione = emittente?.denominazione || 'STUDIO COMMERCIALE DOTT. ANTONIO TUZIO'
+  const studioIndirizzo = emittente
+    ? `${emittente.indirizzo || ''} - ${emittente.cap || ''} ${emittente.comune || ''} (${emittente.provincia || ''})`
+    : 'Via Emilia Ospizio 96 - 42122 Reggio Emilia (RE)'
+  const studioPiva = emittente?.partitaIva ? `P.IVA ${emittente.partitaIva} - C.F. ${emittente.codiceFiscale || ''}` : ''
 
-  const docTipoStr =
-    azienda.documentoTipo === 'passaporto'
-      ? 'Passaporto'
-      : azienda.documentoTipo === 'patente'
-      ? 'Patente di guida'
-      : "Carta d'Identità"
+  const oggi = formatDate(azienda.antiriciclaggioDataVerifica || new Date())
+  const rapprNome = azienda.legaleRappresentante || azienda.referente || (azienda.tipoSoggetto !== 'PERSONA_GIURIDICA' ? azienda.ragioneSociale : '____________________________________')
+  const rapprCf = azienda.cfRappresentante || (azienda.tipoSoggetto !== 'PERSONA_GIURIDICA' ? azienda.codiceFiscale : '________________________')
+  const titolareEff = azienda.antiriciclaggioTitolareEffettivo || rapprNome
+  const cfTitolareEff = azienda.antiriciclaggioCfTitolareEffettivo || rapprCf
+  const luogoNascita = azienda.luogoNascitaRappr || azienda.comune || '________________________'
+  const dataNascita = formatDate(azienda.dataNascitaRappr)
 
-  return (
-    <Document>
+  const ragSocUp = (azienda.ragioneSociale || '').toUpperCase()
+  const isSocieta =
+    azienda.tipoSoggetto === 'PERSONA_GIURIDICA' ||
+    /\b(SRL|S\.R\.L|SPA|S\.P\.A|SNC|S\.N\.C|SAS|S\.A\.S|COOP|CONSORZIO|SOCIETA)\b/.test(ragSocUp)
+
+  const prestazioneTesto =
+    azienda.antiriciclaggioPrestazione ||
+    (azienda.settoreAttivita === 'PAGHE'
+      ? 'Consulenza del lavoro, elaborazione buste paga/LUL e adempimenti previdenziali'
+      : azienda.settoreAttivita === 'CONTABILITA'
+      ? 'Tenuta della contabilità, redazione bilanci e consulenza fiscale/societaria continuativa'
+      : azienda.settoreAttivita === 'FORFETTARI'
+      ? 'Dichiarazione dei redditi e adempimenti fiscali annuali (Regime Forfettario)'
+      : azienda.settoreAttivita === 'SUCCESSIONI'
+      ? 'Assistenza e predisposizione pratica di Dichiarazione di Successione'
+      : 'Consulenza fiscale e assistenza tributaria')
+
+  const doc = (
+    <Document title={`AV4_Dichiarazione_Antiriciclaggio_${azienda.ragioneSociale}`}>
+      {/* PAGINA 1: MODELLO AV.4 — DICHIARAZIONE DEL CLIENTE DA FIRMARE */}
       <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Header Studio */}
+        <View style={styles.headerBox}>
           <View>
-            <Text style={styles.headerStudio}>{studioNome}</Text>
-            <Text style={styles.headerSub}>
-              Dottore Commercialista e Tributarista · C.F./P.IVA: {studioPIVA}
-            </Text>
-            <Text style={styles.headerSub}>
-              {studioIndirizzo} · {studioComune} (RE)
-            </Text>
+            <Text style={styles.studioTitle}>{studioDenominazione}</Text>
+            <Text style={styles.studioSub}>{studioIndirizzo}</Text>
+            {studioPiva ? <Text style={styles.studioSub}>{studioPiva}</Text> : null}
           </View>
-          <View style={{ textAlign: 'right' }}>
-            <Text style={[styles.bold, { fontSize: 8 }]}>FASCICOLO CLIENTE</Text>
-            <Text style={{ fontSize: 7.5, color: '#1e40af' }}>
-              {azienda.antiriciclaggioFascicolo || `ARC-${new Date().getFullYear()}-${azienda.id.slice(0, 5).toUpperCase()}`}
+          <View style={styles.docBadge}>
+            <Text style={styles.docBadgeText}>
+              MODELLO AV.4 CNDCEC — FASCICOLO: {azienda.antiriciclaggioFascicolo || `ARC-${new Date().getFullYear()}`}
             </Text>
           </View>
         </View>
 
-        {/* Titolo */}
-        <Text style={styles.docTitle}>Dichiarazione del Cliente ai fini Antiriciclaggio</Text>
-        <Text style={styles.docNorma}>
-          Articolo 22 del D.Lgs. 21 novembre 2007, n. 231 e successive modificazioni e integrazioni
+        <Text style={styles.mainTitle}>
+          AV.4 — DICHIARAZIONE DEL CLIENTE PER ADEGUATA VERIFICA DELLA CLIENTELA
+        </Text>
+        <Text style={styles.subTitle}>
+          (Ai sensi dell&apos;art. 22, co. 1, D.Lgs. 21 novembre 2007, n. 231 e Regola Tecnica n. 2 CNDCEC del 16/01/2025)
         </Text>
 
-        {/* Sezione 1: Dati Impresa / Cliente */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>1. Dati del Cliente / Impresa</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Ragione Sociale / Ditta:</Text>
-            <Text style={[styles.value, styles.bold]}>{azienda.ragioneSociale}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Partita IVA / Codice Fiscale:</Text>
-            <Text style={styles.value}>
-              {azienda.partitaIva ? `P.IVA: ${azienda.partitaIva}` : ''}
-              {azienda.codiceFiscale ? ` · C.F.: ${azienda.codiceFiscale}` : ''}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Sede Legale / Operativa:</Text>
-            <Text style={styles.value}>
-              {azienda.indirizzo || ''} - {azienda.cap || ''} {azienda.comune || ''} ({azienda.provincia || ''})
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Settore di Attività Studio:</Text>
-            <Text style={styles.value}>{azienda.settoreAttivita || 'CONTABILITA'}</Text>
-          </View>
-        </View>
+        <Text style={styles.paragraph}>
+          In ottemperanza alle disposizioni dell&apos;art. 22, co. 1, del D.Lgs. 231/2007 (come modificato dal D.Lgs. 90/2017 e D.Lgs. 125/2019) e delle Regole Tecniche CNDCEC vigenti, consapevole delle responsabilità penali previste dall&apos;art. 55, co. 3, del medesimo decreto in caso di informazioni false o mendaci (v. <Text style={styles.bold}>Nota 2</Text> allegata), il/la sottoscritto/a fornisce sotto la propria responsabilità le seguenti informazioni:
+        </Text>
 
-        {/* Sezione 2: Dichiarante / Legale Rappresentante */}
+        {/* Sezione 1: Dati del Dichiarante / Esecutore */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>2. Soggetto Dichiarante (Titolare / Legale Rappresentante)</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Nome e Cognome:</Text>
-            <Text style={[styles.value, styles.bold]}>
-              {azienda.legaleRappresentante || azienda.referente || '—'}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Codice Fiscale:</Text>
-            <Text style={styles.value}>{azienda.cfRappresentante || '—'}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Data e Luogo di Nascita:</Text>
-            <Text style={styles.value}>
-              {azienda.dataNascitaRappr ? formatDate(azienda.dataNascitaRappr) : '—'} {azienda.luogoNascitaRappr ? `a ${azienda.luogoNascitaRappr}` : ''}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Documento di Riconoscimento:</Text>
-            <Text style={styles.value}>
-              {docTipoStr} n° <Text style={styles.bold}>{azienda.documentoNumero || '—'}</Text>
-              {azienda.documentoRilasciatoDa ? ` rilasciata da ${azienda.documentoRilasciatoDa}` : ''}
-              {azienda.documentoScadenza ? ` · Scadenza: ${formatDate(azienda.documentoScadenza)}` : ''}
-            </Text>
-          </View>
-        </View>
-
-        {/* Sezione 3: Titolare Effettivo */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>3. Identificazione del Titolare Effettivo (Art. 20 D.Lgs. 231/2007)</Text>
-          <Text style={styles.textParagraph}>
-            Il sottoscritto dichiara, sotto la propria responsabilità e consapevole delle sanzioni penali previste dall'art. 55 del D.Lgs. 231/2007 in caso di dichiarazioni false o reticenti, che il titolare effettivo della società/ente è:
+          <Text style={styles.sectionTitle}>
+            1. Dati Identificativi del Dichiarante (Cliente Persona Fisica / Legale Rappresentante - Esecutore)
           </Text>
           <View style={styles.row}>
-            <Text style={styles.label}>Titolare Effettivo:</Text>
-            <Text style={[styles.value, styles.bold]}>
-              {azienda.antiriciclaggioTitolareEffettivo || azienda.legaleRappresentante || 'Coincidente con il Legale Rappresentante sopra generalizzato'}
-            </Text>
-          </View>
-          {azienda.antiriciclaggioCfTitolareEffettivo && (
-            <View style={styles.row}>
-              <Text style={styles.label}>C.F. Titolare Effettivo:</Text>
-              <Text style={styles.value}>{azienda.antiriciclaggioCfTitolareEffettivo}</Text>
+            <View style={styles.col2}>
+              <Text style={styles.label}>Cognome e Nome</Text>
+              <Text style={styles.value}>{rapprNome}</Text>
             </View>
-          )}
+            <View style={styles.col}>
+              <Text style={styles.label}>Codice Fiscale</Text>
+              <Text style={styles.value}>{rapprCf}</Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.col}>
+              <Text style={styles.label}>Luogo di Nascita</Text>
+              <Text style={styles.value}>{luogoNascita}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Data di Nascita</Text>
+              <Text style={styles.value}>{dataNascita}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Domicilio / Residenza</Text>
+              <Text style={styles.value}>{azienda.comune || '________________'} ({azienda.provincia || '__'})</Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.col}>
+              <Text style={styles.label}>Documento di Identità</Text>
+              <Text style={styles.value}>{getTipoDocLabel(azienda.documentoTipo)}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Numero Documento</Text>
+              <Text style={styles.value}>{azienda.documentoNumero || '____________________'}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Autorità di Rilascio</Text>
+              <Text style={styles.value}>{azienda.documentoRilasciatoDa || `Comune di ${azienda.comune || '________'}`}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Scadenza Documento</Text>
+              <Text style={styles.value}>{formatDate(azienda.documentoScadenza)}</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Sezione 4: Persona Politicamente Esposta (PEP) */}
+        {/* Sezione 2: Dati Soggetto Rappresentato */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>4. Persona Esposta Politicamente (P.E.P.)</Text>
-          <Text style={styles.textParagraph}>
-            Il sottoscritto dichiara che né il legale rappresentante né il titolare effettivo:
+          <Text style={styles.sectionTitle}>
+            2. Dati Identificativi della Società / Ente / Ditta Individuale
           </Text>
           <View style={styles.row}>
-            <Text style={styles.label}>Qualifica PEP:</Text>
-            <Text style={[styles.value, styles.bold]}>
-              {azienda.antiriciclaggioPep
-                ? 'SÌ — Riveste o ha rivestito importanti cariche pubbliche'
-                : 'NO — NON è Persona Politicamente Esposta (art. 1 c. 2 lett. dd)'}
-            </Text>
+            <View style={styles.col2}>
+              <Text style={styles.label}>Ragione Sociale / Denominazione</Text>
+              <Text style={styles.value}>{azienda.ragioneSociale}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Partita IVA</Text>
+              <Text style={styles.value}>{azienda.partitaIva || 'Non applicabile (Privato)'}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Codice Fiscale</Text>
+              <Text style={styles.value}>{azienda.codiceFiscale || azienda.partitaIva || '________________'}</Text>
+            </View>
+          </View>
+          <View style={styles.row}>
+            <View style={styles.col2}>
+              <Text style={styles.label}>Sede Legale (Indirizzo, CAP, Comune, Provincia)</Text>
+              <Text style={styles.value}>
+                {azienda.indirizzo || '________________________'} - {azienda.cap || '_____'} {azienda.comune || '____________'} ({azienda.provincia || '__'})
+              </Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>PEC / Email</Text>
+              <Text style={styles.value}>{azienda.pec || azienda.emailAmministrativa || '____________________'}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Sezione 5: Scopo e Natura della Prestazione */}
+        {/* Sezione 3: Scopo e Natura della Prestazione Professionale */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>5. Scopo e Natura della Prestazione Professionale</Text>
+          <Text style={styles.sectionTitle}>
+            3. Natura e Scopo della Prestazione Professionale (Art. 18, co. 1, lett. c, D.Lgs. 231/2007)
+          </Text>
           <View style={styles.row}>
-            <Text style={styles.label}>Prestazione Richiesta:</Text>
-            <Text style={[styles.value, styles.bold]}>
-              {azienda.antiriciclaggioPrestazione || `Incarico continuativo di ${azienda.settoreAttivita || 'assistenza contabile e fiscale'}`}
-            </Text>
+            <View style={styles.col2}>
+              <Text style={styles.label}>Oggetto della prestazione professionale richiesta allo Studio</Text>
+              <Text style={styles.value}>{prestazioneTesto}</Text>
+            </View>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>Origine dei Fondi:</Text>
-            <Text style={styles.value}>
-              Proventi derivanti dall'ordinario esercizio dell'attività d'impresa / lavoro autonomo lecita.
+            <View style={styles.col}>
+              <Text style={styles.label}>Scopo prevalente del rapporto</Text>
+              <Text style={styles.value}>Adempimenti contabili, fiscali, societari o del lavoro</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Ambito territoriale operatività</Text>
+              <Text style={styles.value}>Nazionale (Italia - Prov. {azienda.provincia || 'RE'})</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Mezzi pagamento e origine fondi</Text>
+              <Text style={styles.value}>Mezzi tracciati / Attività propria lecita</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Sezione 4: Titolare Effettivo (4 opzioni ufficiali CNDCEC AV.4) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            4. Dichiarazione sul Titolare Effettivo (Art. 20 e Art. 22 D.Lgs. 231/2007 — Nota 4)
+          </Text>
+          <View style={styles.checkboxRow}>
+            <Text style={styles.checkbox}>{!isSocieta ? 'X' : ' '}</Text>
+            <Text style={{ fontSize: 7.8, flex: 1 }}>
+              <Text style={styles.bold}>Opzione A (Persona Fisica / Ditta Individuale):</Text> di agire in proprio e per conto proprio e di essere l&apos;unico Titolare Effettivo della prestazione professionale richiesta.
+            </Text>
+          </View>
+          <View style={styles.checkboxRow}>
+            <Text style={styles.checkbox}>{isSocieta ? 'X' : ' '}</Text>
+            <Text style={{ fontSize: 7.8, flex: 1 }}>
+              <Text style={styles.bold}>Opzione B (Società / Ente):</Text> che il/i Titolare/i Effettivo/i della società/ente sopra indicato, individuato/i secondo i criteri di cui all&apos;art. 20 D.Lgs. 231/2007 (proprietà diretta/indiretta &gt; 25%, controllo o rappresentanza legale residuale), è/sono:
+            </Text>
+          </View>
+          <View style={[styles.row, { marginTop: 2 }]}>
+            <View style={styles.col2}>
+              <Text style={styles.label}>Cognome e Nome Titolare Effettivo</Text>
+              <Text style={styles.value}>{titolareEff}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>C.F. Titolare Effettivo</Text>
+              <Text style={styles.value}>{cfTitolareEff}</Text>
+            </View>
+            <View style={styles.col}>
+              <Text style={styles.label}>Criterio Art. 20 D.Lgs. 231/07</Text>
+              <Text style={styles.value}>{isSocieta ? 'Proprietà >25% / Amm.re' : 'Titolare Ditta'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Sezione 5: Status di Persona Politicamente Esposta (PPE) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            5. Dichiarazione su Persone Politicamente Esposte — PPE (Art. 1, co. 2, lett. dd, D.Lgs. 231/2007 — Nota 3)
+          </Text>
+          <View style={styles.checkboxRow}>
+            <Text style={styles.checkbox}>{!azienda.antiriciclaggioPep ? 'X' : ' '}</Text>
+            <Text style={{ fontSize: 7.8, flex: 1 }}>
+              Il sottoscritto (e il Titolare Effettivo indicato) dichiara di <Text style={styles.bold}>NON rivestire</Text> lo status di Persona Politicamente Esposta (PPE), né di essere familiare o soggetto con stretti legami con una PPE.
+            </Text>
+          </View>
+          <View style={styles.checkboxRow}>
+            <Text style={styles.checkbox}>{azienda.antiriciclaggioPep ? 'X' : ' '}</Text>
+            <Text style={{ fontSize: 7.8, flex: 1 }}>
+              Il sottoscritto (o il Titolare Effettivo) dichiara di <Text style={styles.bold}>RIVESTIRE</Text> la qualifica di Persona Politicamente Esposta (PPE), familiare o soggetto con stretti legami (specificare carica e origine fondi): _________________________________________________
             </Text>
           </View>
         </View>
 
-        {/* Firme */}
-        <View style={styles.signatureRow}>
+        <Text style={styles.paragraph}>
+          Il/La sottoscritto/a si impegna a comunicare tempestivamente allo Studio ogni eventuale variazione dei dati sopra dichiarati (compresi mutamenti della compagine societaria, del Titolare Effettivo o rinnovo del documento d&apos;identità) e dichiara di aver ricevuto l&apos;informativa sul trattamento dei dati personali ai sensi del Regolamento UE 2016/679 (GDPR).
+        </Text>
+
+        {/* PRIMA FIRMA DEL CLIENTE */}
+        <View style={styles.signatureGrid}>
           <View style={styles.signatureBox}>
-            <Text>Data e Luogo</Text>
-            <Text style={{ marginTop: 2 }}>
-              {studioComune}, {formatDate(azienda.antiriciclaggioDataVerifica || new Date())}
+            <Text style={styles.label}>Luogo e Data di Sottoscrizione</Text>
+            <Text style={[styles.value, { marginTop: 4 }]}>
+              {emittente?.comune || 'Reggio Emilia'}, lì {oggi}
             </Text>
           </View>
           <View style={styles.signatureBox}>
-            <Text>Firma del Cliente / Dichiarante</Text>
-            <Text style={{ marginTop: 15 }}>____________________________________</Text>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureLabel}>
+              Firma leggibile del Cliente / Legale Rappresentante ({rapprNome})
+            </Text>
           </View>
         </View>
 
-        <View style={[styles.signatureRow, { marginTop: 10 }]}>
-          <View style={[styles.signatureBox, { width: '100%', borderTop: '1pt solid #cbd5e1' }]}>
-            <Text style={[styles.bold, { marginBottom: 2 }]}>
-              Attestazione dell'Avvenuta Identificazione (a cura del Professionista)
-            </Text>
-            <Text style={styles.textParagraph}>
-              Il sottoscritto {studioNome} attesta di aver provveduto in data odierna all'identificazione del cliente e alla verifica del documento d'identità in corso di validità allegato al fascicolo.
-            </Text>
-            <Text style={{ marginTop: 8 }}>Firma del Professionista: ____________________________________</Text>
+        <Text style={styles.footer}>
+          Modello AV.4 CNDCEC (Marzo 2026) — Dichiarazione ex art. 22 D.Lgs. 231/2007 — {studioDenominazione} — Pag. 1/2
+        </Text>
+      </Page>
+
+      {/* PAGINA 2: ALLEGATO NOTE NORMATIVE UFFICIALI (NOTE 1, 2, 3, 4 CNDCEC) + SECONDA FIRMA PER PRESA VISIONE */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.headerBox}>
+          <View>
+            <Text style={styles.studioTitle}>{studioDenominazione}</Text>
+            <Text style={styles.studioSub}>Allegato normativo obbligatorio alla Dichiarazione del Cliente (Modello AV.4 CNDCEC)</Text>
+          </View>
+          <View style={styles.docBadge}>
+            <Text style={styles.docBadgeText}>ALLEGATO NOTE 1-4 (D.LGS. 231/2007)</Text>
           </View>
         </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text>Fascicolo Antiriciclaggio Studio {studioNome} · D.Lgs. 231/2007</Text>
-          <Text>Generato il {formatDate(new Date())}</Text>
+        <Text style={styles.mainTitle}>
+          ALLEGATO ALLA DICHIARAZIONE DEL CLIENTE — NOTE NORMATIVE (D.LGS. 231/2007)
+        </Text>
+        <Text style={styles.subTitle}>
+          (Da sottoscrivere per ricevuta e presa visione unitamente al Modello AV.4)
+        </Text>
+
+        <View style={styles.noteBox}>
+          <Text style={styles.noteHeading}>
+            NOTA 1 — Definizione di riciclaggio e di finanziamento del terrorismo (Art. 2, D.Lgs. 231/2007)
+          </Text>
+          <Text style={styles.noteText}>
+            Ai fini del D.Lgs. 231/2007 s&apos;intende per riciclaggio: a) la conversione o il trasferimento di beni, effettuati essendo a conoscenza che essi provengono da un&apos;attività criminosa o da una partecipazione a tale attività, allo scopo di occultare o dissimulare l&apos;origine illecita dei beni medesimi o di aiutare chiunque sia coinvolto in tale attività a sottrarsi alle conseguenze giuridiche delle proprie azioni; b) l&apos;occultamento o la dissimulazione della reale natura, provenienza, ubicazione, disposizione, movimento, proprietà dei beni o dei diritti sugli stessi, effettuati essendo a conoscenza che tali beni provengono da un&apos;attività criminosa; c) l&apos;acquisto, la detenzione o l&apos;utilizzazione di beni essendo a conoscenza, al momento della loro ricezione, che tali beni provengono da un&apos;attività criminosa; d) la partecipazione a uno degli atti di cui alle lettere precedenti. Il riciclaggio è considerato tale anche se le attività che hanno generato i beni da riciclare si sono svolte fuori dai confini nazionali. Per finanziamento del terrorismo si intende qualsiasi attività diretta, con ogni mezzo, alla fornitura, alla raccolta, alla provvista, all&apos;intermediazione, al deposito, alla custodia o all&apos;erogazione di fondi e risorse economiche, in qualunque modo realizzata, destinati ad essere, direttamente o indirettamente, in tutto o in parte, utilizzati per il compimento di una o più condotte con finalità di terrorismo.
+          </Text>
         </View>
+
+        <View style={styles.noteBox}>
+          <Text style={styles.noteHeading}>
+            NOTA 2 — Obblighi del cliente (Art. 22) e Sanzioni penali (Art. 55, co. 3, D.Lgs. 231/2007)
+          </Text>
+          <Text style={styles.noteText}>
+            <Text style={styles.bold}>Art. 22, co. 1 e 2, D.Lgs. 231/2007:</Text> I clienti forniscono per iscritto, sotto la propria responsabilità, tutte le informazioni necessarie e aggiornate per consentire ai soggetti obbligati di adempiere agli obblighi di adeguata verifica. Ai fini dell&apos;identificazione del titolare effettivo, i clienti forniscono per iscritto tutte le informazioni necessarie e aggiornate delle quali siano a conoscenza.
+          </Text>
+          <Text style={styles.noteText}>
+            <Text style={styles.bold}>Art. 55, co. 3, D.Lgs. 231/2007 (Sanzioni penali):</Text> Salvo che il fatto costituisca più grave reato, chiunque, essendo obbligato ai sensi del presente decreto a fornire i dati e le informazioni necessarie ai fini dell&apos;adeguata verifica della clientela, fornisce dati falsi o informazioni non veritiere, è punito con la <Text style={styles.bold}>reclusione da sei mesi a tre anni e con la multa da 10.000 euro a 30.000 euro</Text>.
+          </Text>
+          <Text style={styles.noteText}>
+            <Text style={styles.bold}>Art. 42, D.Lgs. 231/2007 (Obbligo di astensione):</Text> I soggetti obbligati che si trovano nell&apos;impossibilità oggettiva di effettuare l&apos;adeguata verifica della clientela secondo le modalità stabilite dall&apos;art. 19 si astengono dall&apos;instaurare, eseguire ovvero proseguire il rapporto continuativo o la prestazione professionale e valutano se effettuare una segnalazione di operazione sospetta (SOS) alla UIF.
+          </Text>
+        </View>
+
+        <View style={styles.noteBox}>
+          <Text style={styles.noteHeading}>
+            NOTA 3 — Persone Politicamente Esposte — PPE (Art. 1, co. 2, lett. dd, D.Lgs. 231/2007)
+          </Text>
+          <Text style={styles.noteText}>
+            Sono Persone Politicamente Esposte (PPE) le persone fisiche che occupano o hanno cessato di occupare da meno di un anno importanti cariche pubbliche, nonché i loro familiari diretti (genitori, coniuge o parificato, figli e loro coniugi) e coloro che con i predetti soggetti intrattengono notoriamente stretti legami (titolarità effettiva congiunta di enti giuridici o qualsiasi altro stretto rapporto d&apos;affari). Rientrano tra le cariche pubbliche: Presidente della Repubblica, Presidente del Consiglio, Ministri, Vice-Ministri e Sottosegretari, Presidente e componenti della Giunta Regionale, Sindaci di capoluoghi di provincia o città metropolitane o di comuni con popolazione non inferiore a 15.000 abitanti, Parlamentari nazionali ed europei, membri degli organi direttivi di partiti politici, magistrati delle corti supreme, dirigenti di imprese partecipate dallo Stato o da enti locali.
+          </Text>
+        </View>
+
+        <View style={styles.noteBox}>
+          <Text style={styles.noteHeading}>
+            NOTA 4 — Criteri per la determinazione della Titolarità Effettiva (Art. 20, D.Lgs. 231/2007)
+          </Text>
+          <Text style={styles.noteText}>
+            1. Il titolare effettivo di clienti diversi dalle persone fisiche coincide con la persona fisica o le persone fisiche cui, in ultima istanza, è attribuibile la proprietà diretta o indiretta dell&apos;ente ovvero il relativo controllo.
+          </Text>
+          <Text style={styles.noteText}>
+            2. Nel caso in cui il cliente sia una società di capitali: a) costituisce indicazione di proprietà diretta la titolarità di una partecipazione superiore al 25 per cento del capitale del cliente, detenuta da una persona fisica; b) costituisce indicazione di proprietà indiretta la titolarità di una percentuale di partecipazioni superiore al 25 per cento del capitale del cliente, posseduto per il tramite di società controllate, società fiduciarie o per interposta persona.
+          </Text>
+          <Text style={styles.noteText}>
+            3. Nelle ipotesi in cui l&apos;esame dell&apos;assetto proprietario non consenta di individuare in maniera univoca la persona fisica o le persone fisiche cui è attribuibile la proprietà diretta o indiretta dell&apos;ente, il titolare effettivo coincide con la persona fisica o le persone fisiche cui, in ultima istanza, è attribuibile il controllo del medesimo in forza: a) del controllo della maggioranza dei voti esercitabili in assemblea ordinaria; b) del controllo di voti sufficienti per esercitare un&apos;influenza dominante in assemblea ordinaria; c) dell&apos;esistenza di particolari vincoli contrattuali.
+          </Text>
+          <Text style={styles.noteText}>
+            5. Qualora l&apos;applicazione dei criteri di cui ai precedenti commi non consenta di individuare univocamente uno o più titolari effettivi, il titolare effettivo coincide con la persona fisica o le persone fisiche titolari, conformemente ai rispettivi assetti organizzativi o statutari, di poteri di rappresentanza legale, amministrazione o direzione della società o del cliente comunque diverso dalla persona fisica.
+          </Text>
+        </View>
+
+        <Text style={[styles.paragraph, { marginTop: 4, fontFamily: 'Helvetica-Bold' }]}>
+          Il/La sottoscritto/a {rapprNome}, nella qualità sopra indicata per {azienda.ragioneSociale}, dichiara di aver ricevuto copia e di aver preso integrale visione delle Note 1, 2, 3 e 4 sopra riportate.
+        </Text>
+
+        {/* SECONDA FIRMA DEL CLIENTE PER RICEVUTA E PRESA VISIONE DELLE NOTE */}
+        <View style={styles.signatureGrid}>
+          <View style={styles.signatureBox}>
+            <Text style={styles.label}>Luogo e Data</Text>
+            <Text style={[styles.value, { marginTop: 4 }]}>
+              {emittente?.comune || 'Reggio Emilia'}, lì {oggi}
+            </Text>
+          </View>
+          <View style={styles.signatureBox}>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureLabel}>
+              Firma del Cliente per ricevuta e presa visione delle Note 1-4
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.footer}>
+          Modello AV.4 CNDCEC (Marzo 2026) — Allegato Note Normative 1, 2, 3 e 4 — {studioDenominazione} — Pag. 2/2
+        </Text>
       </Page>
     </Document>
   )
-}
 
-export async function generaAntiriciclaggioDichiarazionePDF(azienda: any, emittente: any): Promise<Buffer> {
-  return await renderToBuffer(<AntiriciclaggioDichiarazioneDocument azienda={azienda} emittente={emittente} />)
+  return await renderToBuffer(doc)
 }
