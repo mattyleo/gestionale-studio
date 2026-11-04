@@ -13,8 +13,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { UploadCloud, CheckCircle2, AlertCircle, Loader2, FileArchive, Building2 } from 'lucide-react'
+import { UploadCloud, CheckCircle2, AlertCircle, Loader2, FileArchive, Building2, Trash2 } from 'lucide-react'
 import { formatEuro } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 
 interface ImportaArubaModalProps {
   trigger?: React.ReactNode
@@ -22,12 +23,39 @@ interface ImportaArubaModalProps {
 }
 
 export function ImportaArubaModal({ trigger, onSuccess }: ImportaArubaModalProps) {
+  const { toast } = useToast()
   const [open, setOpen] = React.useState(false)
   const [file, setFile] = React.useState<File | null>(null)
   const [segnaSaldate, setSegnaSaldate] = React.useState(true)
   const [loading, setLoading] = React.useState(false)
+  const [pulendoDb, setPulendoDb] = React.useState(false)
   const [errore, setErrore] = React.useState<string | null>(null)
   const [esito, setEsito] = React.useState<any | null>(null)
+
+  const handlePulisciDb = async () => {
+    if (!confirm('Sei sicuro di voler cancellare tutte le fatture e aziende attuali per ripartire da zero? (Il tuo account e il tariffario rimarranno intatti).')) {
+      return
+    }
+
+    setPulendoDb(true)
+    try {
+      const res = await fetch('/api/sistema/pulisci-db', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+
+      toast({
+        title: '✅ Database ripulito con successo',
+        description: `Eliminate ${data.eliminati.fatture} fatture e ${data.eliminati.aziende} aziende. Ora puoi ricaricare il file ZIP pulito.`,
+      })
+      setFile(null)
+      setEsito(null)
+      if (onSuccess) onSuccess()
+    } catch (err: any) {
+      toast({ title: 'Errore pulizia DB', description: err.message, variant: 'destructive' })
+    } finally {
+      setPulendoDb(false)
+    }
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -131,6 +159,22 @@ export function ImportaArubaModal({ trigger, onSuccess }: ImportaArubaModalProps
               <label htmlFor="segnaSaldateCheck" className="text-gray-700 text-xs cursor-pointer select-none">
                 Segna le fatture storiche importate come <strong>già saldate/incassate</strong> (consigliato per lo storico)
               </label>
+            </div>
+
+            {/* Pulsante Azzera Database opzionale */}
+            <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-[11px] text-gray-500">Vuoi azzerare le fatture attuali e ripartire da zero?</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handlePulisciDb}
+                disabled={loading || pulendoDb}
+                className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                {pulendoDb ? 'Azzeramento...' : 'Azzera Database'}
+              </Button>
             </div>
 
             {/* Messaggio di errore */}
