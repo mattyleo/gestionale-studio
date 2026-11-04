@@ -10,8 +10,9 @@ import { Decimal } from 'decimal.js'
 
 const generaBozzaSchema = z.object({
   companyId: z.string(),
-  periodoDal: z.string().transform(s => new Date(s)),
-  periodoAl: z.string().transform(s => new Date(s)),
+  periodoDal: z.string().optional().nullable().transform(s => s ? new Date(s) : undefined),
+  periodoAl: z.string().optional().nullable().transform(s => s ? new Date(s) : undefined),
+  attivitaIds: z.array(z.string()).optional(),
   raggruppamento: z.enum(['per_servizio', 'dettagliato']).default('per_servizio'),
   noteInterne: z.string().optional(),
 })
@@ -221,31 +222,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Azienda non trovata' }, { status: 404 })
     }
 
-    // Verifica che non esista già una bozza attiva per questa azienda/periodo
-    const bozzaEsistente = await prisma.invoice.findFirst({
-      where: {
-        companyId: dati.companyId,
-        stato: { in: ['BOZZA', 'DA_APPROVARE', 'PRONTA_EMISSIONE'] },
-        periodoDal: dati.periodoDal,
-        periodoAl: dati.periodoAl,
-      },
-    })
-
-    if (bozzaEsistente) {
-      return NextResponse.json(
-        { error: `Esiste già una bozza per questa azienda e periodo (ID: ${bozzaEsistente.id})` },
-        { status: 409 }
-      )
+    // Costruisci filtro per attività approvate non collegate a fatture
+    const whereAttivita: any = {
+      companyId: dati.companyId,
+      stato: 'APPROVATA',
+      invoiceLineId: null, // Non già collegate a una fattura
     }
 
-    // Carica le attività approvate nel periodo, non già in un documento attivo
+    if (dati.attivitaIds && dati.attivitaIds.length > 0) {
+      whereAttivita.id = { in: dati.attivitaIds }
+    } else if (dati.periodoDal || dati.periodoAl) {
+      whereAttivita.data = {
+        ...(dati.periodoDal && { gte: dati.periodoDal }),
+        ...(dati.periodoAl && { lte: dati.periodoAl }),
+      }
+    }
+
+    // Carica le attività approvate selezionate
     const attivita = await prisma.workEntry.findMany({
-      where: {
-        companyId: dati.companyId,
-        stato: 'APPROVATA',
-        data: { gte: dati.periodoDal, lte: dati.periodoAl },
-        invoiceLineId: null, // Non già collegate a una fattura
-      },
+      where: whereAttivita,
       include: {
         service: true,
       },
@@ -254,9 +249,33 @@ export async function POST(request: Request) {
 
     if (attivita.length === 0) {
       return NextResponse.json(
-        { error: 'Nessuna attività approvata trovata per questa azienda nel periodo selezionato' },
+        { error: 'Nessuna attività approvata trovata per questa azienda con i filtri selezionati' },
         { status: 400 }
       )
+    }
+
+    // Determina il periodo effettivo di fatturazione
+    const dateAttivita = attivita.map(a => a.data.getTime())
+    const periodoEffettivoDal = dati.periodoDal || new Date(Math.min(...dateAttivita))
+    const periodoEffettivoAl = dati.periodoAl || new Date(Math.max(...dateAttivita))
+
+    // Verifica se esiste già una bozza attiva per questa azienda con date sovrapposte
+    if (dati.periodoDal && dati.periodoAl) {
+      const bozzaEsistente = await prisma.invoice.findFirst({
+        where: {
+          companyId: dati.companyId,
+          stato: { in: ['BOZZA', 'DA_APPROVARE', 'PRONTA_EMISSIONE'] },
+          periodoDal: dati.periodoDal,
+          periodoAl: dati.periodoAl,
+        },
+      })
+
+      if (bozzaEsistente) {
+        return NextResponse.json(
+          { error: `Esiste già una bozza per questa azienda e periodo (ID: ${bozzaEsistente.id})` },
+          { status: 409 }
+        )
+      }
     }
 
     // Calcola totali
@@ -345,8 +364,8 @@ export async function POST(request: Request) {
           sezionale: 'FT',
           anno: new Date().getFullYear(),
           stato: 'BOZZA',
-          periodoDal: dati.periodoDal,
-          periodoAl: dati.periodoAl,
+          periodoDal: periodoEffettivoDal,
+          periodoAl: periodoEffettivoAl,
           imponibile,
           totaleCassa,
           totaleIva: new Decimal(0),
@@ -399,8 +418,8 @@ export async function POST(request: Request) {
         azione: 'BOZZA_CREATA',
         dettagli: {
           companyId: dati.companyId,
-          periodoDal: dati.periodoDal,
-          periodoAl: dati.periodoAl,
+          periodoDal: periodoEffettivoDal,
+          periodoAl: periodoEffettivoAl,
           attivitaCollegate: attivita.length,
           totale: totaleDocumento.toNumber(),
         },

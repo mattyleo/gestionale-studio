@@ -3,7 +3,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Plus, Eye, Send, Ban, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Plus, Eye, Send, Ban, RefreshCw, CheckCircle2, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { formatEuro, formatData, statoInvoiceLabel, statoInvoiceBadgeColor } from '@/lib/utils'
+import { formatEuro, formatData, statoInvoiceLabel, statoInvoiceBadgeColor, cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ImportaArubaModal } from '@/components/aruba/ImportaArubaModal'
@@ -24,30 +24,48 @@ export default function BozzePage() {
   const { toast } = useToast()
   const [bozze, setBozze] = React.useState<any[]>([])
   const [aziende, setAziende] = React.useState<any[]>([])
+  const [attivitaApprovate, setAttivitaApprovate] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
   const [generaDialog, setGeneraDialog] = React.useState(false)
   const [generando, setGenerando] = React.useState(false)
 
-  // Form genera bozza
+  // Form genera bozza: default da inizio anno a fine mese corrente per non perdersi nulla
   const [selectedAzienda, setSelectedAzienda] = React.useState('')
   const oggi = new Date()
-  const primoMese = new Date(oggi.getFullYear(), oggi.getMonth() - 1, 1).toISOString().split('T')[0]
-  const ultimoMese = new Date(oggi.getFullYear(), oggi.getMonth(), 0).toISOString().split('T')[0]
-  const [periodoDal, setPeriodoDal] = React.useState(primoMese)
-  const [periodoAl, setPeriodoAl] = React.useState(ultimoMese)
+  const inizioAnno = `${oggi.getFullYear()}-01-01`
+  const fineMese = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 0).toISOString().split('T')[0]
+  const [periodoDal, setPeriodoDal] = React.useState(inizioAnno)
+  const [periodoAl, setPeriodoAl] = React.useState(fineMese)
   const [raggruppamento, setRaggruppamento] = React.useState<'per_servizio' | 'dettagliato'>('per_servizio')
+
+  const impostaPresetPeriodo = (tipo: 'anno' | 'questo_mese' | 'mese_scorso') => {
+    const o = new Date()
+    if (tipo === 'anno') {
+      setPeriodoDal(`${o.getFullYear()}-01-01`)
+      setPeriodoAl(new Date(o.getFullYear(), o.getMonth() + 1, 0).toISOString().split('T')[0])
+    } else if (tipo === 'questo_mese') {
+      setPeriodoDal(new Date(o.getFullYear(), o.getMonth(), 1).toISOString().split('T')[0])
+      setPeriodoAl(new Date(o.getFullYear(), o.getMonth() + 1, 0).toISOString().split('T')[0])
+    } else if (tipo === 'mese_scorso') {
+      setPeriodoDal(new Date(o.getFullYear(), o.getMonth() - 1, 1).toISOString().split('T')[0])
+      setPeriodoAl(new Date(o.getFullYear(), o.getMonth(), 0).toISOString().split('T')[0])
+    }
+  }
 
   const caricaDati = React.useCallback(async () => {
     setLoading(true)
     try {
-      const [resBozze, resAziende] = await Promise.all([
+      const [resBozze, resAziende, resAttivita] = await Promise.all([
         fetch('/api/fatture?stato=bozze'),
         fetch('/api/aziende?stato=attive&perPagina=500'),
+        fetch('/api/attivita?stato=APPROVATA&perPagina=500'),
       ])
       const datiBozze = await resBozze.json()
       const datiAziende = await resAziende.json()
+      const datiAttivita = await resAttivita.json()
       setBozze(datiBozze.fatture ?? [])
       setAziende(datiAziende.aziende ?? [])
+      setAttivitaApprovate(datiAttivita.attivita ?? [])
     } catch {
       toast({ title: 'Errore', description: 'Impossibile caricare i dati', variant: 'destructive' })
     } finally {
@@ -56,6 +74,21 @@ export default function BozzePage() {
   }, [toast])
 
   React.useEffect(() => { caricaDati() }, [caricaDati])
+
+  // Attività approvate per l'azienda e il periodo selezionato nel popup
+  const attivitaSelezionatePerBozza = React.useMemo(() => {
+    if (!selectedAzienda) return []
+    return attivitaApprovate.filter(a => {
+      if (a.companyId !== selectedAzienda) return false
+      const dataStr = typeof a.data === 'string' ? a.data.split('T')[0] : new Date(a.data).toISOString().split('T')[0]
+      if (periodoDal && dataStr < periodoDal) return false
+      if (periodoAl && dataStr > periodoAl) return false
+      return true
+    })
+  }, [selectedAzienda, attivitaApprovate, periodoDal, periodoAl])
+
+  const totaleAttivitaSelezionate = attivitaSelezionatePerBozza.reduce((s, a) => s + Number(a.importo || 0), 0)
+  const totaleGeneraleApprovate = attivitaApprovate.reduce((s, a) => s + Number(a.importo || 0), 0)
 
   const handleGeneraBozza = async () => {
     if (!selectedAzienda) {
@@ -105,12 +138,34 @@ export default function BozzePage() {
         </div>
       </div>
 
+      {/* Banner attività approvate pronte per la fatturazione */}
+      {attivitaApprovate.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-green-200 bg-green-50 text-green-900 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-full text-green-700 shrink-0">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">
+                Ci sono {attivitaApprovate.length} {attivitaApprovate.length === 1 ? 'prestazione approvata' : 'prestazioni approvate'} in attesa di fatturazione ({formatEuro(totaleGeneraleApprovate)})
+              </p>
+              <p className="text-xs text-green-700 mt-0.5">
+                Clicca su <strong>"Genera bozze"</strong> per creare la fattura per il cliente desiderato.
+              </p>
+            </div>
+          </div>
+          <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white shrink-0" onClick={() => setGeneraDialog(true)}>
+            <Plus className="h-4 w-4 mr-1.5" /> Genera bozza ora
+          </Button>
+        </div>
+      )}
+
       {/* Banner importante */}
       <div className="flex items-center gap-3 p-4 rounded-lg border border-amber-200 bg-amber-50">
         <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
         <p className="text-sm text-amber-800">
           <strong>Le bozze sono escluse dal fatturato emesso e dagli insoluti.</strong>{' '}
-          Compaiono nel fatturato solo dopo la conferma di emissione con numero definitivo.
+          Compaiono nel fatturato e in <em>"Da incassare"</em> solo dopo la conferma di emissione con numero definitivo.
         </p>
       </div>
 
@@ -183,7 +238,7 @@ export default function BozzePage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>Azienda</Label>
+              <Label>Azienda / Cliente</Label>
               <SelettoreClienteCombobox
                 value={selectedAzienda}
                 onValueChange={(id) => setSelectedAzienda(id)}
@@ -191,16 +246,62 @@ export default function BozzePage() {
                 placeholder="Digita il nome del cliente o azienda…"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Dal</Label>
-                <Input type="date" value={periodoDal} onChange={e => setPeriodoDal(e.target.value)} />
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Periodo attività</Label>
+                <div className="flex items-center gap-1">
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('anno')}>
+                    Anno intero
+                  </Button>
+                  <span className="text-gray-300">·</span>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('questo_mese')}>
+                    Questo mese
+                  </Button>
+                  <span className="text-gray-300">·</span>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('mese_scorso')}>
+                    Mese scorso
+                  </Button>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Al</Label>
-                <Input type="date" value={periodoAl} onChange={e => setPeriodoAl(e.target.value)} />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <span className="text-xs text-gray-500">Dal</span>
+                  <Input type="date" value={periodoDal} onChange={e => setPeriodoDal(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-gray-500">Al</span>
+                  <Input type="date" value={periodoAl} onChange={e => setPeriodoAl(e.target.value)} />
+                </div>
               </div>
             </div>
+
+            {/* Anteprima attività trovate */}
+            {selectedAzienda && (
+              <div className={cn(
+                'p-3 rounded-lg border text-xs',
+                attivitaSelezionatePerBozza.length > 0
+                  ? 'bg-green-50 border-green-200 text-green-800'
+                  : 'bg-amber-50 border-amber-200 text-amber-800'
+              )}>
+                {attivitaSelezionatePerBozza.length > 0 ? (
+                  <p className="font-medium flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                    <span>
+                      Trovate <strong>{attivitaSelezionatePerBozza.length}</strong> prestazioni approvate nel periodo ({formatEuro(totaleAttivitaSelezionate)})
+                    </span>
+                  </p>
+                ) : (
+                  <p className="flex items-start gap-1.5">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <span>
+                      Nessuna attività approvata trovata per questa azienda nel periodo indicato. Se hai appena registrato una prestazione, verifica che la data rientri nel periodo o che sia in stato <strong>Approvata</strong> in Attività.
+                    </span>
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>Raggruppamento righe</Label>
               <Select value={raggruppamento} onValueChange={(v: any) => setRaggruppamento(v)}>

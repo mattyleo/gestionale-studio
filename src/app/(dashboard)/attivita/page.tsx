@@ -2,7 +2,9 @@
 // src/app/(dashboard)/attivita/page.tsx — con gestione Approva, Modifica ed Elimina attività
 
 import * as React from 'react'
-import { Plus, Search, Filter, RefreshCw, Check, AlertTriangle, Eye, Clock, Pencil, Trash2 } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Plus, Search, Filter, RefreshCw, Check, AlertTriangle, Eye, Clock, Pencil, Trash2, FileText, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -36,6 +38,7 @@ import { formatEuro, formatData, statoWorkEntryLabel, cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
 export default function AttivitaPage() {
+  const router = useRouter()
   const { toast } = useToast()
   const [attivita, setAttivita] = React.useState<any[]>([])
   const [aziende, setAziende] = React.useState<any[]>([])
@@ -44,6 +47,7 @@ export default function AttivitaPage() {
   const [ricerca, setRicerca] = React.useState('')
   const [filtroStato, setFiltroStato] = React.useState('TUTTI')
   const [filtroAzienda, setFiltroAzienda] = React.useState('TUTTE')
+  const [generandoBozzaId, setGenerandoBozzaId] = React.useState<string | null>(null)
 
   // Modale Nuova Attività
   const [openNuova, setOpenNuova] = React.useState(false)
@@ -245,10 +249,50 @@ export default function AttivitaPage() {
       const res = await fetch(`/api/attivita/${a.id}/approva`, { method: 'POST' })
       const dati = await res.json()
       if (!res.ok) throw new Error(dati.error)
-      toast({ title: '✅ Attività approvata', description: 'Attività pronta per la fatturazione' })
+      toast({
+        title: '✅ Attività approvata',
+        description: 'Attività pronta! Ora puoi cliccare su "Fattura ora" per creare la bozza.',
+      })
       caricaDati()
     } catch (e: any) {
       toast({ title: 'Errore approvazione', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  const handleCreaBozzaDaAttivita = async (a: any) => {
+    if (!a.companyId) {
+      toast({
+        title: '⚠️ Azienda mancante',
+        description: 'Associa un cliente prima di generare la bozza di fattura.',
+        variant: 'destructive',
+      })
+      apriModifica(a)
+      return
+    }
+
+    setGenerandoBozzaId(a.id)
+    try {
+      const res = await fetch('/api/fatture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyId: a.companyId,
+          attivitaIds: [a.id],
+          raggruppamento: 'dettagliato',
+        }),
+      })
+      const bozza = await res.json()
+      if (!res.ok) throw new Error(bozza.error)
+      toast({
+        title: '✅ Bozza di fattura creata!',
+        description: `Bozza generata per ${a.company?.ragioneSociale || 'il cliente'}. Apertura in corso…`,
+      })
+      caricaDati()
+      router.push(`/fatture/${bozza.id}`)
+    } catch (e: any) {
+      toast({ title: 'Errore creazione bozza', description: e.message, variant: 'destructive' })
+    } finally {
+      setGenerandoBozzaId(null)
     }
   }
 
@@ -329,6 +373,8 @@ export default function AttivitaPage() {
   })
 
   const totaleValore = attivitaFiltrate.reduce((sum, a) => sum + Number(a.importo || 0), 0)
+  const attivitaApprovate = attivita.filter(a => a.stato === 'APPROVATA')
+  const valoreApprovate = attivitaApprovate.reduce((sum, a) => sum + Number(a.importo || 0), 0)
 
   return (
     <div className="space-y-6 p-6">
@@ -350,6 +396,30 @@ export default function AttivitaPage() {
           </Button>
         </div>
       </div>
+
+      {/* Banner attività approvate pronte per la fatturazione */}
+      {attivitaApprovate.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-green-200 bg-green-50 text-green-900 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-full text-green-700 shrink-0">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">
+                {attivitaApprovate.length} {attivitaApprovate.length === 1 ? 'prestazione approvata pronta' : 'prestazioni approvate pronte'} per la fatturazione ({formatEuro(valoreApprovate)})
+              </p>
+              <p className="text-xs text-green-700 mt-0.5">
+                Puoi fatturare subito ogni attività con il tasto <strong>"Fattura ora"</strong> nella tabella, oppure andare su Bozze per raggrupparle.
+              </p>
+            </div>
+          </div>
+          <Link href="/fatture/bozze">
+            <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white shrink-0">
+              <FileText className="h-4 w-4 mr-1.5" /> Vai a Bozze fatture
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* Filtri */}
       <Card>
@@ -479,6 +549,20 @@ export default function AttivitaPage() {
                                 title={!a.prezzoUnitario ? 'Specifica il prezzo per approvare' : 'Approva per la fatturazione'}
                               >
                                 <Check className="h-3.5 w-3.5 mr-1 text-green-600" /> Approva
+                              </Button>
+                            )}
+
+                            {/* Pulsante Fattura ora (per attività già approvate) */}
+                            {a.stato === 'APPROVATA' && (
+                              <Button
+                                size="sm"
+                                className="h-7 px-2.5 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
+                                onClick={() => handleCreaBozzaDaAttivita(a)}
+                                disabled={generandoBozzaId === a.id}
+                                title="Genera subito la bozza di fattura per questa attività approvata"
+                              >
+                                <FileText className="h-3.5 w-3.5 mr-1" />
+                                {generandoBozzaId === a.id ? 'Creazione…' : 'Fattura ora'}
                               </Button>
                             )}
 

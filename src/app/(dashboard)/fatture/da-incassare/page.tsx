@@ -114,9 +114,24 @@ export default function DaIncassarePage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
       ) : fattureAperte.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <Clock className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p className="text-lg font-medium">Nessuna fattura da incassare</p>
+        <div className="text-center py-20 text-gray-400 max-w-md mx-auto">
+          <Clock className="h-10 w-10 mx-auto mb-3 opacity-30 text-gray-500" />
+          <p className="text-lg font-medium text-gray-700">Nessuna fattura da incassare</p>
+          <p className="text-sm mt-1 text-gray-500">
+            Tutte le fatture sono state saldate, oppure le nuove fatture sono ancora in preparazione in <strong>Bozze</strong>.
+          </p>
+          <div className="mt-5 flex items-center justify-center gap-3">
+            <Link href="/fatture/bozze">
+              <Button variant="outline" size="sm">
+                Vai a Bozze fatture
+              </Button>
+            </Link>
+            <Link href="/attivita">
+              <Button variant="ghost" size="sm">
+                Vai ad Attività
+              </Button>
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="border rounded-lg overflow-hidden">
