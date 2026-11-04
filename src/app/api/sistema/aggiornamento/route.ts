@@ -116,6 +116,9 @@ export async function POST() {
 
     // 1. Git pull
     logFasi.push('1. Scaricamento codice aggiornato da GitHub...')
+    try {
+      execSync('git fetch origin main 2>/dev/null || git fetch origin 2>/dev/null || true', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 })
+    } catch {}
     const pullOut = execSync('git checkout -B main origin/main 2>/dev/null || git pull origin main || git pull', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 }).trim()
     logFasi.push(`   ${pullOut}`)
 
