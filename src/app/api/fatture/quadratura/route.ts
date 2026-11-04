@@ -40,26 +40,26 @@ export async function GET(req: Request) {
 
       if (isNC) {
         totaleEmesse -= totDoc
-        totaleIncassate -= inc
+        totaleIncassate -= totDoc
       } else {
         totaleEmesse += totDoc
         totaleIncassate += inc
       }
-      totaleResiduo += res
+      totaleResiduo += (isNC ? 0 : res)
 
       return {
         id: f.id,
         numero: f.numeroCompleto,
         data: f.dataDocumento,
         cliente: f.company?.ragioneSociale || 'Sconosciuto',
-        totaleDocumento: isNC ? -totaleDocumentoNetto(totDoc) : totDoc,
-        incassato: isNC ? -inc : inc,
-        residuo: res,
-        saldata: res <= 0.005 && inc > 0,
+        totaleDocumento: isNC ? -totDoc : totDoc,
+        incassato: isNC ? -totDoc : inc,
+        residuo: isNC ? 0 : res,
+        saldata: isNC ? true : (res <= 0.05 && inc > 0),
         isNotaCredito: isNC,
         note: f.note,
         sezionale: f.sezionale,
-        haPagamenti: f.payments.length > 0,
+        haPagamenti: f.payments.length > 0 || isNC,
       }
     })
 
