@@ -74,6 +74,7 @@ export default function AntiriciclaggioPage() {
   const [rischio, setRischio] = React.useState('TUTTI')
   const [statoDocumento, setStatoDocumento] = React.useState('TUTTI')
   const [soloPiva, setSoloPiva] = React.useState(true)
+  const [zonaFiltro, setZonaFiltro] = React.useState<'TUTTE' | 'ZONA_3' | 'ZONA_2' | 'ZONA_1'>('TUTTE')
 
   // Modal fascicolo
   const [selectedAziendaId, setSelectedAziendaId] = React.useState<string | null>(null)
@@ -91,7 +92,8 @@ export default function AntiriciclaggioPage() {
         statoFascicolo,
         rischio,
         statoDocumento,
-        soloPiva: String(soloPiva),
+        soloPiva: String(zonaFiltro === 'ZONA_1' ? false : soloPiva),
+        zona: zonaFiltro,
       })
 
       const res = await fetch(`/api/antiriciclaggio?${params}`)
@@ -104,7 +106,7 @@ export default function AntiriciclaggioPage() {
     } finally {
       setLoading(false)
     }
-  }, [cerca, settore, statoFascicolo, rischio, statoDocumento, soloPiva, toast])
+  }, [cerca, settore, statoFascicolo, rischio, statoDocumento, soloPiva, zonaFiltro, toast])
 
   React.useEffect(() => {
     caricaDati()
@@ -411,6 +413,109 @@ export default function AntiriciclaggioPage() {
         </Card>
       )}
 
+      {/* 🤖 BOT RAGGRUPPAMENTO AUTOMATICO IN ZONA 1 · ZONA 2 · ZONA 3 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div
+          onClick={() => {
+            setZonaFiltro('TUTTE')
+            setSoloPiva(true)
+          }}
+          className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            zonaFiltro === 'TUTTE'
+              ? 'border-blue-600 bg-blue-50/70 shadow-sm'
+              : 'border-slate-200 bg-white hover:border-blue-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-900">
+              Tutte le Aziende P.IVA
+            </span>
+            <Badge className="bg-blue-600 text-white text-[10px]">ZONA 2 + ZONA 3</Badge>
+          </div>
+          <div className="text-3xl font-extrabold text-blue-950 mt-1.5">
+            {statistiche.totaleCensiti ?? 0}
+          </div>
+          <p className="text-[11px] text-slate-600 mt-1">
+            Tutti i fascicoli aziendali P.IVA monitorati dal Bot ({statistiche.zona3Count ?? 0} in Zona 3 + {statistiche.zona2Count ?? 0} in Zona 2)
+          </p>
+        </div>
+
+        <div
+          onClick={() => {
+            setZonaFiltro('ZONA_3')
+            setSoloPiva(true)
+          }}
+          className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            zonaFiltro === 'ZONA_3'
+              ? 'border-indigo-600 bg-indigo-50/80 shadow-sm'
+              : 'border-indigo-200 bg-white hover:border-indigo-400'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-indigo-950">
+              🔴 ZONA 3 · Soggette AVC
+            </span>
+            <Badge className="bg-indigo-600 text-white text-[10px]">Obbligo Scheda AV2</Badge>
+          </div>
+          <div className="text-3xl font-extrabold text-indigo-700 mt-1.5">
+            {statistiche.zona3Count ?? 0}
+          </div>
+          <p className="text-[11px] text-slate-600 mt-1">
+            Contabilità, Bilanci, Consulenza straordinaria (es. Verbali ITL), Registro Imprese e Successioni
+          </p>
+        </div>
+
+        <div
+          onClick={() => {
+            setZonaFiltro('ZONA_2')
+            setSoloPiva(true)
+          }}
+          className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            zonaFiltro === 'ZONA_2'
+              ? 'border-amber-500 bg-amber-50/80 shadow-sm'
+              : 'border-amber-200 bg-white hover:border-amber-400'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-950">
+              🟡 ZONA 2 · Solo Paghe / Forfettari
+            </span>
+            <Badge className="bg-amber-500 text-white text-[10px]">Esente Scheda · Presidio SOS</Badge>
+          </div>
+          <div className="text-3xl font-extrabold text-amber-700 mt-1.5">
+            {statistiche.zona2Count ?? 0}
+          </div>
+          <p className="text-[11px] text-slate-600 mt-1">
+            Mera elaborazione Buste Paga/LUL (art. 17 co. 7) e Forfettari senza contabilità (solo ID + SOS)
+          </p>
+        </div>
+
+        <div
+          onClick={() => {
+            setZonaFiltro('ZONA_1')
+            setSoloPiva(false)
+          }}
+          className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+            zonaFiltro === 'ZONA_1'
+              ? 'border-emerald-600 bg-emerald-50/80 shadow-sm'
+              : 'border-emerald-200 bg-white hover:border-emerald-400'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-950">
+              🟢 ZONA 1 · Privati 730 / CAF
+            </span>
+            <Badge className="bg-emerald-600 text-white text-[10px]">Esonerati Tab. 1</Badge>
+          </div>
+          <div className="text-3xl font-extrabold text-emerald-700 mt-1.5">
+            {statistiche.zona1Count ?? statistiche.totalePrivatiCaf ?? 0}
+          </div>
+          <p className="text-[11px] text-slate-600 mt-1">
+            Persone fisiche senza P.IVA (Mod. 730, IMU, Redditi PF, Maternità, NASpI, Dimissioni)
+          </p>
+        </div>
+      </div>
+
       {/* KPI Cards / Monitoraggio Studio */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <Card className="border-blue-200 bg-blue-50/40">
@@ -570,10 +675,10 @@ export default function AntiriciclaggioPage() {
                 <TableRow className="bg-slate-50/80">
                   <TableHead className="w-24">N. Fascicolo</TableHead>
                   <TableHead>Cliente / Ragione Sociale</TableHead>
-                  <TableHead>Settore</TableHead>
+                  <TableHead>Zona Bot &amp; Settore</TableHead>
                   <TableHead>Legale Rappresentante</TableHead>
                   <TableHead>Documento d&apos;Identità</TableHead>
-                  <TableHead>Rischio</TableHead>
+                  <TableHead>Rischio CNDCEC</TableHead>
                   <TableHead>Privacy</TableHead>
                   <TableHead>Stato</TableHead>
                   <TableHead className="text-right">Azioni</TableHead>
@@ -615,18 +720,37 @@ export default function AntiriciclaggioPage() {
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          <Badge variant="outline" className="text-xs bg-slate-50">
-                            {az.settoreAttivita || 'CONTABILITA'}
-                          </Badge>
-                          {az.antiriciclaggioPrestazione?.includes('[SOGGETTA AVC]') ? (
-                            <span className="block text-[10px] font-semibold text-indigo-700">
-                              ● Soggetta AVC (Scheda Rischio)
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {az.botValutazione?.zona === 'ZONA_3' ? (
+                              <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] py-0 px-1.5">
+                                🔴 ZONA 3 · AVC
+                              </Badge>
+                            ) : az.botValutazione?.zona === 'ZONA_2' ? (
+                              <Badge className="bg-amber-500 hover:bg-amber-600 text-white text-[10px] py-0 px-1.5">
+                                🟡 ZONA 2 · Paghe/Forf.
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] py-0 px-1.5">
+                                🟢 ZONA 1 · Esente
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className="text-[10px] bg-slate-50">
+                              {az.settoreAttivita || 'CONTABILITA'}
+                            </Badge>
+                          </div>
+                          {az.botValutazione?.zona === 'ZONA_3' ? (
+                            <span className="block text-[10px] font-semibold text-indigo-700" title={az.botValutazione?.motivoBot}>
+                              ● Obbligo Scheda AV2 + AV4
                             </span>
-                          ) : az.antiriciclaggioPrestazione?.includes('[ESENTE') ? (
-                            <span className="block text-[10px] font-medium text-emerald-700" title="Esente da scheda di rischio cliente ex art. 17 co. 7 / Tab. 1 CNDCEC, fermo obbligo SOS">
-                              ○ Esente Scheda (Solo SOS/ID)
+                          ) : az.botValutazione?.zona === 'ZONA_2' ? (
+                            <span className="block text-[10px] font-medium text-amber-800" title={az.botValutazione?.motivoBot}>
+                              ○ Esente Scheda (Solo ID + SOS)
                             </span>
-                          ) : null}
+                          ) : (
+                            <span className="block text-[10px] text-emerald-700">
+                              Esonerato Tab. 1 CNDCEC
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-xs text-slate-700">
@@ -657,9 +781,16 @@ export default function AntiriciclaggioPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={`text-xs ${rischioColor}`}>
-                          {rischioUpper}
-                        </Badge>
+                        <div className="space-y-0.5">
+                          <Badge variant="outline" className={`text-xs ${rischioColor}`}>
+                            {rischioUpper}
+                          </Badge>
+                          {az.botValutazione?.rischioEffettivo && (
+                            <div className="text-[10px] font-mono text-slate-500">
+                              Indice: {az.botValutazione.rischioEffettivo.toFixed(2)}/4,00
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {az.privacyFirmata ? (

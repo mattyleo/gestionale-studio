@@ -1,11 +1,11 @@
 // src/app/api/antiriciclaggio/route.ts
-// Elenco e statistiche Registro Antiriciclaggio & Privacy (D.Lgs. 231/2007 & GDPR)
+// Elenco e statistiche Registro Antiriciclaggio & Privacy con Bot Classificazione ZONA 1, ZONA 2, ZONA 3
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { eseguiRegolarizzazioneCNDCEC } from '@/lib/antiriciclaggio-engine'
+import { eseguiRegolarizzazioneCNDCEC, calcolaZonaERischioBot } from '@/lib/antiriciclaggio-engine'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
@@ -13,30 +13,34 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const cerca = searchParams.get('cerca')?.trim() || ''
-  const settore = searchParams.get('settore') || 'TUTTI' // 'CONTABILITA' | 'PAGHE' | 'CAF' | 'TUTTI'
-  const statoFascicolo = searchParams.get('statoFascicolo') || 'TUTTI' // 'REGOLARE' | 'DA_VERIFICARE' | 'TUTTI'
-  const rischio = searchParams.get('rischio') || 'TUTTI' // 'BASSO' | 'MEDIO' | 'ALTO' | 'TUTTI'
-  const filtroDoc = searchParams.get('statoDocumento') || 'TUTTI' // 'SCADUTO' | 'IN_SCADENZA' | 'MANCANTE' | 'VALIDO' | 'TUTTI'
-  const soloConPartitaIva = searchParams.get('soloPiva') !== 'false' // default: escludi soggetti senza P.IVA (CAF privati)
+  const settore = searchParams.get('settore') || 'TUTTI'
+  const statoFascicolo = searchParams.get('statoFascicolo') || 'TUTTI'
+  const rischio = searchParams.get('rischio') || 'TUTTI'
+  const filtroDoc = searchParams.get('statoDocumento') || 'TUTTI'
+  const soloConPartitaIva = searchParams.get('soloPiva') !== 'false'
+  const zonaFiltro = searchParams.get('zona') || 'TUTTE' // 'TUTTE' | 'ZONA_1' | 'ZONA_2' | 'ZONA_3'
 
   try {
-    // Auto-regolarizzazione al primo accesso se nessun cliente è stato ancora classificato
-    const giaClassificati = await prisma.company.count({
-      where: { archiviata: false, antiriciclaggioStato: 'REGOLARE' },
+    // Auto-regolarizzazione al primo accesso se nessun cliente ha ancora i tag di Zona
+    const giaConZona = await prisma.company.count({
+      where: {
+        archiviata: false,
+        antiriciclaggioPrestazione: { contains: 'ZONA' },
+      },
     })
-    if (giaClassificati === 0) {
+    if (giaConZona === 0) {
       await eseguiRegolarizzazioneCNDCEC()
     }
 
     const oggi = new Date()
     const fra60Giorni = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
 
-    // Costruisci filtro
     const where: any = {
       archiviata: false,
     }
 
-    if (soloConPartitaIva) {
+    // Se l'utente filtra esplicitamente per ZONA_1 (Privati 730/CAF), mostriamo anche i senza P.IVA
+    if (soloConPartitaIva && zonaFiltro !== 'ZONA_1') {
       where.OR = [
         { AND: [{ partitaIva: { not: null } }, { NOT: { partitaIva: '' } }] },
         { settoreAttivita: 'SUCCESSIONI' },
@@ -69,7 +73,6 @@ export async function GET(request: Request) {
       ]
     }
 
-    // Filtro documento speciale
     if (filtroDoc === 'SCADUTO') {
       where.documentoScadenza = { lt: oggi }
     } else if (filtroDoc === 'IN_SCADENZA') {
@@ -80,81 +83,88 @@ export async function GET(request: Request) {
       where.documentoScadenza = { gt: fra60Giorni }
     }
 
-    // Carica aziende e documenti collegati
-    const aziende = await prisma.company.findMany({
-      where,
-      orderBy: [
-        { antiriciclaggioFascicolo: 'asc' },
-        { ragioneSociale: 'asc' },
-      ],
-      include: {
-        documents: {
-          where: {
-            tipoDoc: { in: ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria'] },
+    const [aziendeRaw, tutteAziendeStudio] = await Promise.all([
+      prisma.company.findMany({
+        where,
+        orderBy: [
+          { antiriciclaggioFascicolo: 'asc' },
+          { ragioneSociale: 'asc' },
+        ],
+        include: {
+          documents: {
+            where: {
+              tipoDoc: { in: ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria'] },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 3,
           },
-          orderBy: { createdAt: 'desc' },
-          take: 3,
-        },
-      },
-    })
-
-    // Statistiche generali dello studio (sempre calcolate su tutti i soggetti obbligati con P.IVA o Successioni)
-    const baseObbligatiWhere: any = {
-      archiviata: false,
-      OR: [
-        { AND: [{ partitaIva: { not: null } }, { NOT: { partitaIva: '' } }] },
-        { settoreAttivita: 'SUCCESSIONI' },
-      ],
-    }
-
-    const [
-      totaleCensiti,
-      totaleRegolari,
-      totaleDaVerificare,
-      docScaduti,
-      docInScadenza,
-      docMancanti,
-      privacyMancante,
-      totalePrivatiCaf,
-    ] = await Promise.all([
-      prisma.company.count({ where: baseObbligatiWhere }),
-      prisma.company.count({ where: { ...baseObbligatiWhere, antiriciclaggioStato: 'REGOLARE' } }),
-      prisma.company.count({ where: { ...baseObbligatiWhere, antiriciclaggioStato: 'DA_VERIFICARE' } }),
-      prisma.company.count({
-        where: {
-          ...baseObbligatiWhere,
-          documentoScadenza: { lt: oggi },
         },
       }),
-      prisma.company.count({
-        where: {
-          ...baseObbligatiWhere,
-          documentoScadenza: { gte: oggi, lte: fra60Giorni },
-        },
-      }),
-      prisma.company.count({
-        where: {
-          ...baseObbligatiWhere,
-          documentoNumero: null,
-        },
-      }),
-      prisma.company.count({
-        where: {
-          ...baseObbligatiWhere,
-          privacyFirmata: false,
-        },
-      }),
-      prisma.company.count({
-        where: {
-          archiviata: false,
-          OR: [{ partitaIva: null }, { partitaIva: '' }],
-          NOT: { settoreAttivita: 'SUCCESSIONI' },
+      prisma.company.findMany({
+        where: { archiviata: false },
+        select: {
+          id: true,
+          ragioneSociale: true,
+          partitaIva: true,
+          settoreAttivita: true,
+          antiriciclaggioPep: true,
+          antiriciclaggioPrestazione: true,
+          antiriciclaggioNote: true,
+          antiriciclaggioStato: true,
+          documentoNumero: true,
+          documentoScadenza: true,
+          privacyFirmata: true,
         },
       }),
     ])
 
+    // Calcola la valutazione Bot (Zona 1, 2, 3 + Matrice CNDCEC) per ogni cliente
+    const aziendeConBot = aziendeRaw
+      .map((az) => ({
+        ...az,
+        botValutazione: calcolaZonaERischioBot(az),
+      }))
+      .filter((az) => {
+        if (zonaFiltro === 'TUTTE') return true
+        return az.botValutazione.zona === zonaFiltro
+      })
+
+    // Statistiche globali dello studio divise per Zona 1, Zona 2, Zona 3
+    let zona1Count = 0
+    let zona2Count = 0
+    let zona3Count = 0
+    let totaleCensiti = 0
+    let totaleRegolari = 0
+    let totaleDaVerificare = 0
+    let docScaduti = 0
+    let docInScadenza = 0
+    let docMancanti = 0
+    let privacyMancante = 0
+
+    for (const a of tutteAziendeStudio) {
+      const val = calcolaZonaERischioBot(a)
+      if (val.zona === 'ZONA_1') {
+        zona1Count++
+      } else {
+        if (val.zona === 'ZONA_2') zona2Count++
+        if (val.zona === 'ZONA_3') zona3Count++
+        totaleCensiti++
+        if (a.antiriciclaggioStato === 'REGOLARE') totaleRegolari++
+        else totaleDaVerificare++
+
+        if (!a.documentoNumero) {
+          docMancanti++
+        } else if (a.documentoScadenza) {
+          const scad = new Date(a.documentoScadenza)
+          if (scad < oggi) docScaduti++
+          else if (scad <= fra60Giorni) docInScadenza++
+        }
+        if (!a.privacyFirmata) privacyMancante++
+      }
+    }
+
     return NextResponse.json({
-      aziende,
+      aziende: aziendeConBot,
       statistiche: {
         totaleCensiti,
         totaleRegolari,
@@ -163,7 +173,10 @@ export async function GET(request: Request) {
         docInScadenza,
         docMancanti,
         privacyMancante,
-        totalePrivatiCaf,
+        totalePrivatiCaf: zona1Count,
+        zona1Count,
+        zona2Count,
+        zona3Count,
       },
     })
   } catch (error: any) {

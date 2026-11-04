@@ -1,22 +1,145 @@
 // src/lib/antiriciclaggio-engine.ts
-// Motore Normativo Antiriciclaggio CNDCEC 2025 / Consulenti del Lavoro / Verifiche Guardia di Finanza
-// Applica esattamente la distinzione delle Fonti Ufficiali (D.Lgs. 231/2007 art. 17 co. 7, Regole Tecniche CNDCEC e CdL 2025):
+// 🤖 BOT AUTOMATICO ANTIRICICLAGGIO — Classificazione in ZONA 1, ZONA 2, ZONA 3 e Calcolo Matrice Rischio CNDCEC 2025
 //
-// A) PRESTAZIONI SOGGETTE AD ADEGUATA VERIFICA (AVC - Obbligo Scheda Rischio Cliente AV2 + Titolare Effettivo AV4):
-//    - Gestione fiscale, contabile e civilistica continuativa (tenuta contabilità Ditte, Società di persone, S.r.l., Consorzi)
-//    - Consulenza continuativa o straordinaria fiscale, societaria, contrattuale o giuslavoristica NON strettamente limitata
-//      all'elaborazione paghe (es. assistenza su verbale ispettivo ITL, contenzioso, riorganizzazioni, contrattazione 2° livello)
+// Il Bot analizza automaticamente ogni cliente/azienda (forma giuridica, P.IVA, comune/area geografica, PEP, documento d'identità
+// e righe delle fatture emesse) e lo assegna a una delle 3 Zone Operative:
 //
-// B) PRESTAZIONI CON P.IVA ESENTI DA SCHEDA DI RISCHIO CLIENTE (Art. 17 co. 7 D.Lgs. 231/2007 e Tab. 1 Regola Tecnica n. 2):
+// 🟢 ZONA 1 — ESENTI / PRIVATI CAF (Tab. 1 Regola Tecnica n. 2 CNDCEC):
+//    Persone fisiche senza P.IVA (Mod. 730, Redditi PF, IMU, pratiche CAF, maternità, NASpI, dimissioni online).
+//    -> Nessun obbligo di scheda di rischio né fascicolo P.IVA (fermo restando l'obbligo generale SOS).
+//
+// 🟡 ZONA 2 — AZIENDE P.IVA IN REGIME SEMPLIFICATO / ESENTI SCHEDA RISCHIO (Art. 17 co. 7 D.Lgs. 231/2007 & Tab. 1 CNDCEC):
+//    Aziende e Ditte con P.IVA per cui lo studio svolge ESCLUSIVAMENTE:
 //    - Mera elaborazione buste paga / cedolini / LUL / UNILAV / autoliquidazione INAIL / Mod. 770
-//    - Mera redazione dichiarazione dei redditi Ditte Individuali e Professionisti in Regime Forfettario senza contabilità
-//    -> NOTA DI ATTENZIONE: Non occorre comporre la scheda di rischio cliente, ma resta sempre fermo l'obbligo di
-//       Segnalazione di Operazioni Sospette (SOS) e l'AVC torna obbligatoria in caso di sospetto o dubbi sull'identità.
+//    - Mera dichiarazione dei redditi annuale per Ditte Individuali / Professionisti in Regime Forfettario senza contabilità
+//    -> Fascicolo identificativo numerato (ARC-YYYY-NNN) + Carta d'Identità + Presidio SOS. Se il Bot rileva una fattura
+//       di contabilità o consulenza straordinaria, promuove automaticamente l'azienda in ZONA 3!
 //
-// C) PRESTAZIONI PRIVATI ESCLUSE (Tab. 1 Regola Tecnica n. 2 CNDCEC):
-//    - Mod. 730, Redditi PF, IMU, pratiche CAF, maternità, NASpI, dimissioni online.
+// 🔴 ZONA 3 — AZIENDE SOGGETTE AD ADEGUATA VERIFICA COMPLETA (AVC OBBLIGATORIA — Regola Tecnica n. 2 CNDCEC):
+//    - Tenuta della Contabilità e Predisposizione Bilanci (Ditte, S.n.c., S.a.s., S.r.l., S.r.l.s., Consorzi)
+//    - Consulenza continuativa o straordinaria fiscale, societaria, contrattuale o giuslavoristica (es. verbali ispettivi ITL,
+//      pratiche Registro Imprese, riorganizzazioni aziendali, contrattazione 2° livello)
+//    - Pratiche di Dichiarazione di Successione o soggetti con indicatori di rischio / PEP
+//    -> Calcolo automatico Matrice CNDCEC (30% Rischio Inerente + 70% Rischio Specifico), Obbligo Scheda Rischio AV2 +
+//       Dichiarazione Titolare Effettivo AV4 + Controllo Costante periodico.
 
 import { prisma } from '@/lib/prisma'
+
+export interface ValutazioneBotZona {
+  zona: 'ZONA_1' | 'ZONA_2' | 'ZONA_3'
+  zonaLabel: string
+  rischioInerente: number
+  rischioSpecifico: number
+  rischioEffettivo: number
+  classeRischio: 'BASSO' | 'MEDIO' | 'ALTO'
+  obbligoSchedaAv2: boolean
+  obbligoTitolareEffettivo: boolean
+  periodicitaMesi: number
+  motivoBot: string
+}
+
+export function calcolaZonaERischioBot(az: any, testoFatture?: string): ValutazioneBotZona {
+  const haPiva = Boolean(az.partitaIva && String(az.partitaIva).trim().length > 0)
+  const ragSocUpper = String(az.ragioneSociale || '').toUpperCase()
+  const noteTesto = `${az.antiriciclaggioPrestazione || ''} ${az.antiriciclaggioNote || ''} ${testoFatture || ''}`.toLowerCase()
+
+  const isSuccessione = noteTesto.includes('succession') || az.settoreAttivita === 'SUCCESSIONI'
+  const isSrlSocieta =
+    ragSocUpper.includes('S.R.L') ||
+    ragSocUpper.includes('SRL') ||
+    ragSocUpper.includes('S.P.A') ||
+    ragSocUpper.includes('SPA') ||
+    ragSocUpper.includes('S.N.C') ||
+    ragSocUpper.includes('SNC') ||
+    ragSocUpper.includes('S.A.S') ||
+    ragSocUpper.includes('SAS') ||
+    ragSocUpper.includes('CONSORZIO') ||
+    ragSocUpper.includes('COOP')
+
+  // ZONA 1: Privato senza P.IVA (730, CAF, IMU, INPS, NASpI, Maternità, Dimissioni)
+  if (!haPiva && !isSuccessione) {
+    return {
+      zona: 'ZONA_1',
+      zonaLabel: 'ZONA 1 · Esente (Privati 730 / CAF / INPS)',
+      rischioInerente: 1.0,
+      rischioSpecifico: 1.0,
+      rischioEffettivo: 1.0,
+      classeRischio: 'BASSO',
+      obbligoSchedaAv2: false,
+      obbligoTitolareEffettivo: false,
+      periodicitaMesi: 0,
+      motivoBot: 'Privato senza P.IVA (730/CAF/IMU/INPS): esente da adeguata verifica ex Tab. 1 Regola Tecnica n. 2 CNDCEC.',
+    }
+  }
+
+  // Verifica se rientra in ZONA 3 (Soggetta ad Adeguata Verifica Completa AVC)
+  const isSoggettaAvc =
+    isSuccessione ||
+    Boolean(az.antiriciclaggioPep) ||
+    noteTesto.includes('[soggetta avc]') ||
+    noteTesto.includes('consulenza') ||
+    noteTesto.includes('verbale ispettivo') ||
+    noteTesto.includes('itl') ||
+    noteTesto.includes('tenuta della contabilit') ||
+    noteTesto.includes('bilancio') ||
+    noteTesto.includes('registro imprese') ||
+    noteTesto.includes('inizio attivita') ||
+    noteTesto.includes('attribuzione p.iva') ||
+    (az.settoreAttivita === 'CONTABILITA' && !noteTesto.includes('caf Nazionale') && !noteTesto.includes('[esente'))
+
+  if (isSoggettaAvc) {
+    const isContabilitaOBilancio =
+      noteTesto.includes('contabilit') || noteTesto.includes('bilancio') || isSrlSocieta
+    const rischioInerente = isContabilitaOBilancio ? 2.5 : 2.0
+    const rischioSpecifico = az.antiriciclaggioPep ? 3.5 : isSrlSocieta ? 1.5 : 1.25
+    const rischioEffettivo = +(rischioInerente * 0.3 + rischioSpecifico * 0.7).toFixed(2)
+    const classeRischio: 'BASSO' | 'MEDIO' | 'ALTO' =
+      rischioEffettivo > 3.0 || az.antiriciclaggioPep
+        ? 'ALTO'
+        : rischioEffettivo > 2.2
+        ? 'MEDIO'
+        : 'BASSO'
+
+    return {
+      zona: 'ZONA_3',
+      zonaLabel: 'ZONA 3 · Soggetta AVC (Scheda Rischio & Controllo)',
+      rischioInerente,
+      rischioSpecifico,
+      rischioEffettivo,
+      classeRischio,
+      obbligoSchedaAv2: true,
+      obbligoTitolareEffettivo: isSrlSocieta,
+      periodicitaMesi: classeRischio === 'ALTO' ? 12 : classeRischio === 'MEDIO' ? 24 : 36,
+      motivoBot:
+        noteTesto.includes('verbale ispettivo') || noteTesto.includes('itl')
+          ? 'Rilevata consulenza giuslavoristica straordinaria (Verbale Ispettivo ITL): obbligatoria Scheda Rischio AV2 + AV4.'
+          : isSuccessione
+          ? 'Pratica di Dichiarazione di Successione: obbligatoria identificazione eredi e Scheda AVC.'
+          : 'Gestione fiscale/contabile/societaria continuativa o pratiche Registro Imprese: obbligatoria Scheda Rischio AV2 + AV4.',
+    }
+  }
+
+  // Altrimenti ZONA 2: Azienda P.IVA con mera elaborazione Buste Paga/LUL (art. 17 co. 7) o Forfettario senza contabilità
+  const rischioInerente = 1.0
+  const rischioSpecifico = isSrlSocieta ? 1.25 : 1.0
+  const rischioEffettivo = +(rischioInerente * 0.3 + rischioSpecifico * 0.7).toFixed(2)
+
+  return {
+    zona: 'ZONA_2',
+    zonaLabel: 'ZONA 2 · Semplificata Paghe / Forfettari (Presidio SOS)',
+    rischioInerente,
+    rischioSpecifico,
+    rischioEffettivo,
+    classeRischio: 'BASSO',
+    obbligoSchedaAv2: false,
+    obbligoTitolareEffettivo: isSrlSocieta,
+    periodicitaMesi: 36,
+    motivoBot:
+      az.settoreAttivita === 'FORFETTARI'
+        ? 'Ditta individuale / Professionista in Regime Forfettario senza contabilità (Tab. 1 CNDCEC): esente da scheda rischio, attivo presidio ID e SOS.'
+        : 'Mera elaborazione Buste Paga / LUL / INAIL / UNILAV (art. 17 co. 7 D.Lgs. 231/2007): esente da scheda rischio, attivo presidio ID e SOS.',
+  }
+}
 
 export async function eseguiRegolarizzazioneCNDCEC() {
   const aziende = await prisma.company.findMany({
@@ -32,9 +155,9 @@ export async function eseguiRegolarizzazioneCNDCEC() {
   })
 
   let aggiornateObbligate = 0
-  let soggetteAvcPiena = 0
-  let esentiConPresidioSos = 0
-  let esonerateCaf = 0
+  let zona1Count = 0
+  let zona2Count = 0
+  let zona3Count = 0
   let contatoreFascicolo = 1
   const annoCorrente = new Date().getFullYear()
 
@@ -82,7 +205,7 @@ export async function eseguiRegolarizzazioneCNDCEC() {
   for (const item of classificate) {
     const { az, haPiva, isSuccessione, isSrlSocieta, isEntePaCaf, lineeTesto, primaFatturaData } = item
 
-    // CASO C: Privato senza P.IVA (730, Redditi PF, IMU, Libretto Famiglia INPS, NASpI, Maternità, Dimissioni)
+    // ZONA 1: Privato senza P.IVA (730, Redditi PF, IMU, Libretto Famiglia INPS, NASpI, Maternità, Dimissioni)
     if (!haPiva && !isSuccessione) {
       await prisma.company.update({
         where: { id: az.id },
@@ -97,19 +220,19 @@ export async function eseguiRegolarizzazioneCNDCEC() {
           cfRappresentante: az.cfRappresentante || az.codiceFiscale || null,
           antiriciclaggioPrestazione:
             lineeTesto.includes('imu')
-              ? 'Elaborazione conteggi IMU e assistenza tributaria locale (Persona Fisica)'
+              ? '[ZONA 1 - ESENTE] Elaborazione conteggi IMU e assistenza tributaria locale (Persona Fisica)'
               : lineeTesto.includes('inps') || lineeTesto.includes('libretto')
-              ? 'Pratiche previdenziali INPS / Libretto di Famiglia / Dimissioni / NASpI'
-              : 'Elaborazione e trasmissione Modello 730 / Modello Redditi PF e assistenza fiscale CAF',
+              ? '[ZONA 1 - ESENTE] Pratiche previdenziali INPS / Libretto di Famiglia / Dimissioni / NASpI'
+              : '[ZONA 1 - ESENTE] Elaborazione e trasmissione Modello 730 / Modello Redditi PF e assistenza fiscale CAF',
           antiriciclaggioNote:
-            'PRESTAZIONE ESENTE DA AVC (Tab. 1 Regola Tecnica n. 2 CNDCEC): Non occorre comporre la scheda di rischio cliente. Resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e l\'attivazione dell\'adeguata verifica qualora emergano sospetti di riciclaggio o dubbi sull\'identità.',
+            'BOT ZONA 1 (ESENTE DA AVC ex Tab. 1 Regola Tecnica n. 2 CNDCEC): Soggetto privato senza P.IVA. Non occorre comporre la scheda di rischio cliente. Resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e l\'attivazione dell\'adeguata verifica qualora emergano sospetti di riciclaggio o dubbi sull\'identità.',
         },
       })
-      esonerateCaf++
+      zona1Count++
       continue
     }
 
-    // Soggetti con P.IVA o Pratiche di Successione
+    // Soggetti con P.IVA o Pratiche di Successione (ZONA 2 o ZONA 3)
     const numFascicolo = `ARC-${primaFatturaData.getFullYear()}-${String(contatoreFascicolo).padStart(3, '0')}`
     contatoreFascicolo++
 
@@ -119,7 +242,6 @@ export async function eseguiRegolarizzazioneCNDCEC() {
       primaFatturaData.getDate()
     )
 
-    // Rileva se c'è consulenza straordinaria/continuativa non strettamente limitata alle paghe o tenuta contabilità
     const haConsulenzaOStraordinaria =
       lineeTesto.includes('consulenza') ||
       lineeTesto.includes('verbale ispettivo') ||
@@ -153,62 +275,58 @@ export async function eseguiRegolarizzazioneCNDCEC() {
     if (isSuccessione) {
       settore = 'SUCCESSIONI'
       tipoSogg = 'PERSONA_FISICA'
-      prestazione = '[SOGGETTA AVC] Pratica di Dichiarazione di Successione e volture catastali'
-      punteggio = 1
-      soggetteAvcPiena++
+      prestazione = '[ZONA 3 - SOGGETTA AVC] Pratica di Dichiarazione di Successione e volture catastali'
+      punteggio = 2
+      zona3Count++
       motivazione =
-        'PRESTAZIONE SOGGETTA AD ADEGUATA VERIFICA (AVC): Pratica di successione ereditaria. Identificazione degli eredi/dichiaranti de visu con documento d\'identità valido e verifica consistenza asse ereditario. Rischio effettivo Basso (Non Significativo).'
+        'BOT ZONA 3 (SOGGETTA AD ADEGUATA VERIFICA AVC): Pratica di successione ereditaria. Identificazione degli eredi/dichiaranti de visu con documento d\'identità valido e verifica consistenza asse ereditario. Rischio effettivo Basso (1,48/4,00).'
     } else if (haConsulenzaOStraordinaria) {
-      // Caso A: SOGGETTA AD ADEGUATA VERIFICA (Consulenza continuativa/straordinaria es. Verbale Ispettivo ITL, Consulenza fiscale/societaria, Contabilità)
       settore = lineeTesto.includes('verbale ispettivo') || lineeTesto.includes('cedolin') ? 'PAGHE' : 'CONTABILITA'
       tipoSogg = isSrlSocieta ? 'PERSONA_GIURIDICA' : 'DITTA_INDIVIDUALE'
       prestazione =
         lineeTesto.includes('verbale ispettivo') || lineeTesto.includes('itl')
-          ? '[SOGGETTA AVC] Consulenza giuslavoristica straordinaria (Assistenza su verbale ispettivo ITL) e gestione personale'
-          : '[SOGGETTA AVC] Consulenza fiscale, contabile e civilistica continuativa'
+          ? '[ZONA 3 - SOGGETTA AVC] Consulenza giuslavoristica straordinaria (Assistenza su verbale ispettivo ITL) e gestione personale'
+          : '[ZONA 3 - SOGGETTA AVC] Consulenza fiscale, contabile e civilistica continuativa'
       punteggio = 2
-      soggetteAvcPiena++
+      zona3Count++
       motivazione =
-        'PRESTAZIONE SOGGETTA AD ADEGUATA VERIFICA (AVC - Regola Tecnica n. 2 CNDCEC / Regole CdL): Consulenza continuativa o straordinaria non strettamente limitata alla mera elaborazione paghe / Tenuta contabilità. Composta Scheda di Valutazione del Rischio Cliente (Matrice CNDCEC: Rischio Inerente 30% = 2,00; Rischio Specifico 70% = 1,25 -> Rischio Effettivo = 1,48/4,00 BASSO). Acquisito Titolare Effettivo e documento d\'identità con rinnovo a 36 mesi.'
+        'BOT ZONA 3 (SOGGETTA AD ADEGUATA VERIFICA AVC - Regola Tecnica n. 2 CNDCEC / Regole CdL): Consulenza continuativa o straordinaria non strettamente limitata alla mera elaborazione paghe / Tenuta contabilità. Composta Scheda di Valutazione del Rischio Cliente (Matrice CNDCEC: Rischio Inerente 30% = 2,00; Rischio Specifico 70% = 1,25 -> Rischio Effettivo = 1,48/4,00 BASSO). Acquisito Titolare Effettivo e documento d\'identità con controllo costante a 36 mesi.'
     } else if (isMeraPaghe) {
-      // Caso B1: Mera elaborazione buste paga / LUL / adempimenti lavoro (Art. 17 co. 7 D.Lgs. 231/2007)
       settore = 'PAGHE'
       tipoSogg = isSrlSocieta ? 'PERSONA_GIURIDICA' : 'DITTA_INDIVIDUALE'
       prestazione =
-        '[ESENTE SCHEDA RISCHIO ex art. 17 co. 7] Elaborazione buste paga (LUL), pratiche assunzione UNILAV, autoliquidazione INAIL e Mod. 770'
+        '[ZONA 2 - ESENTE SCHEDA ex art. 17 co. 7] Elaborazione buste paga (LUL), pratiche assunzione UNILAV, autoliquidazione INAIL e Mod. 770'
       punteggio = 1
-      esentiConPresidioSos++
+      zona2Count++
       motivazione =
-        'PRESTAZIONE ESENTE DA SCHEDA DI RISCHIO CLIENTE (Art. 17 co. 7 D.Lgs. 231/2007 e Regole Tecniche CdL/CNDCEC): Attività strettamente limitata all\'elaborazione buste paga/LUL e adempimenti previdenziali. NOTA DI ATTENZIONE: Non occorre comporre la scheda di rischio cliente, ma il fascicolo è mantenuto a presidio dell\'identità del cliente/Titolare Effettivo; resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e l\'AVC torna obbligatoria qualora emergano dubbi sull\'identità o consulenze straordinarie.'
+        'BOT ZONA 2 (ESENTE DA SCHEDA DI RISCHIO CLIENTE ex Art. 17 co. 7 D.Lgs. 231/2007): Attività strettamente limitata all\'elaborazione buste paga/LUL e adempimenti previdenziali. Non occorre comporre la scheda di rischio cliente, ma il fascicolo è mantenuto a presidio dell\'identità del cliente/Titolare Effettivo; resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e il passaggio automatico in ZONA 3 qualora subentrino consulenze straordinarie o contabilità.'
     } else if (isForfettario && !isSrlSocieta) {
-      // Caso B2: Dichiarazione redditi ditte individuali e professionisti regime forfettario senza contabilità
       settore = 'FORFETTARI'
       tipoSogg = 'DITTA_INDIVIDUALE'
       prestazione =
-        '[ESENTE / SEMPLIFICATA Tab. 1 CNDCEC] Dichiarazione dei Redditi (Mod. Redditi PF) per Ditta Individuale / Professionista in Regime Forfettario'
+        '[ZONA 2 - ESENTE / SEMPLIFICATA Tab. 1] Dichiarazione dei Redditi (Mod. Redditi PF) per Ditta Individuale / Professionista in Regime Forfettario'
       punteggio = 1
-      esentiConPresidioSos++
+      zona2Count++
       motivazione =
-        'PRESTAZIONE ESENTE / RISCHIO NON SIGNIFICATIVO (Tabella 1 Regola Tecnica n. 2 CNDCEC): Redazione e trasmissione dichiarazione fiscale per contribuente in regime forfettario (L. 190/2014) senza tenuta di scritture contabili. Conservata anagrafica, incarico e documento d\'identità; resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e attivazione AVC in caso di operazioni straordinarie o sospetto di riciclaggio.'
+        'BOT ZONA 2 (ESENTE / RISCHIO NON SIGNIFICATIVO ex Tabella 1 Regola Tecnica n. 2 CNDCEC): Redazione e trasmissione dichiarazione fiscale per contribuente in regime forfettario (L. 190/2014) senza tenuta di scritture contabili. Conservata anagrafica, incarico e documento d\'identità; resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e passaggio in ZONA 3 in caso di operazioni straordinarie.'
     } else if (isEntePaCaf) {
       settore = 'CONTABILITA'
       tipoSogg = 'PERSONA_GIURIDICA'
-      prestazione = '[VERIFICA SEMPLIFICATA art. 23] Convenzione assistenza fiscale CAF Nazionale vigilato'
+      prestazione = '[ZONA 2 - VERIFICA SEMPLIFICATA art. 23] Convenzione assistenza fiscale CAF Nazionale vigilato'
       punteggio = 1
-      esentiConPresidioSos++
+      zona2Count++
       motivazione =
-        'Controparte istituzionale / CAF Nazionale (art. 23 D.Lgs. 231/2007 - Obblighi semplificati). Rischio Non Significativo (Basso).'
+        'BOT ZONA 2: Controparte istituzionale / CAF Nazionale (art. 23 D.Lgs. 231/2007 - Obblighi semplificati). Rischio Non Significativo (1,00/4,00 Basso).'
     } else {
-      // Caso A2: Gestione fiscale, civilistica e societaria continuativa (SRL, Consorzi, Ditte con pratiche Registro Imprese / inizio attività)
       settore = 'CONTABILITA'
       tipoSogg = isSrlSocieta ? 'PERSONA_GIURIDICA' : 'DITTA_INDIVIDUALE'
       prestazione = isSrlSocieta
-        ? '[SOGGETTA AVC] Gestione fiscale, contabile e civilistica continuativa (Società / S.r.l. / Consorzio)'
-        : '[SOGGETTA AVC] Pratiche Registro Imprese / Agenzia Entrate e gestione fiscale continuativa Ditta Individuale'
+        ? '[ZONA 3 - SOGGETTA AVC] Gestione fiscale, contabile e civilistica continuativa (Società / S.r.l. / Consorzio)'
+        : '[ZONA 3 - SOGGETTA AVC] Pratiche Registro Imprese / Agenzia Entrate e gestione fiscale continuativa Ditta Individuale'
       punteggio = 2
-      soggetteAvcPiena++
+      zona3Count++
       motivazione =
-        'PRESTAZIONE SOGGETTA AD ADEGUATA VERIFICA (AVC - Regola Tecnica n. 2 CNDCEC): Gestione fiscale, contabile e societaria continuativa / Pratiche Registro Imprese. Composta Scheda di Valutazione del Rischio Cliente (Matrice CNDCEC: Rischio Effettivo 1,48/4,00 BASSO). Identificato Titolare Effettivo e programmato controllo costante a 36 mesi.'
+        'BOT ZONA 3 (SOGGETTA AD ADEGUATA VERIFICA AVC - Regola Tecnica n. 2 CNDCEC): Gestione fiscale, contabile e societaria continuativa / Pratiche Registro Imprese. Composta Scheda di Valutazione del Rischio Cliente (Matrice CNDCEC: Rischio Effettivo 1,48/4,00 BASSO). Identificato Titolare Effettivo e programmato controllo costante a 36 mesi.'
     }
 
     const titolareDefault = !isSrlSocieta
@@ -246,8 +364,11 @@ export async function eseguiRegolarizzazioneCNDCEC() {
   return {
     totaleAnalizzate: aziende.length,
     aggiornateObbligate,
-    soggetteAvcPiena,
-    esentiConPresidioSos,
-    esonerateCaf,
+    zona1Count,
+    zona2Count,
+    zona3Count,
+    soggetteAvcPiena: zona3Count,
+    esentiConPresidioSos: zona2Count,
+    esonerateCaf: zona1Count,
   }
 }
