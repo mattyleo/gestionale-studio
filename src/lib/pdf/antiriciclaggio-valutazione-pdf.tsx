@@ -260,11 +260,19 @@ export async function generaAntiriciclaggioValutazionePDF(
   const b345Score = isSocieta ? 1.5 : 1.0
   const b6Score = 1
   const tipoVerificaLabel =
-    bot.classeRischio === 'ALTO'
-      ? 'RAFFORZATA (Art. 24-25)'
-      : bot.zona === 'ZONA_3'
-      ? 'ORDINARIA (Art. 18-19)'
-      : 'SEMPLIFICATA (Art. 17 co. 7)'
+    bot.rischioEffettivo >= 3.6 || azienda.antiriciclaggioPep
+      ? 'ADEGUATA VERIFICA RAFFORZATA (12/6 mesi)'
+      : bot.rischioEffettivo >= 2.6
+      ? 'ADEGUATA VERIFICA ORDINARIA (24 mesi)'
+      : 'ADEGUATA VERIFICA SEMPLIFICATA (36 mesi)'
+  const gradoRischioLabel =
+    bot.rischioEffettivo >= 3.6 || azienda.antiriciclaggioPep
+      ? 'MOLTO SIGNIFICATIVO / PEP (3,6 - 4,0)'
+      : bot.rischioEffettivo >= 2.6
+      ? 'ABBASTANZA SIGNIFICATIVO (2,6 - <3,6)'
+      : bot.rischioEffettivo >= 1.6
+      ? 'POCO SIGNIFICATIVO (1,6 - <2,6)'
+      : 'NON SIGNIFICATIVO (1,0 - <1,6)'
   const punteggio100 = Math.round((bot.rischioEffettivo / 4) * 100)
 
   const bannerColors =
@@ -405,23 +413,23 @@ export async function generaAntiriciclaggioValutazionePDF(
           </View>
         </View>
 
-        {/* Sezione III & IV: Ponderazione 30% / 70% e Tipologia Adeguata Verifica */}
+        {/* Sezione III & IV: Ponderazione 30% / 70% (Semplificazione Contabile/Societaria Tabella A / 4) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            Sezione III &amp; IV (AV.1) — Ponderazione Rischio Effettivo (30% Inerente + 70% Specifico)
+            Sezione III &amp; IV (AV.1) — Rischio Effettivo RE = (Rischio Inerente × 30%) + (Rischio Specifico Tab. A/4 × 70%)
           </Text>
           <View style={styles.row}>
             <View style={styles.col}>
-              <Text style={styles.label}>Rischio Inerente (Peso 30%)</Text>
+              <Text style={styles.label}>Rischio Inerente Prestazione (30%)</Text>
               <Text style={styles.value}>{bot.rischioInerente.toFixed(2)} × 0,30 = {(bot.rischioInerente * 0.3).toFixed(2)}</Text>
             </View>
             <View style={styles.col}>
-              <Text style={styles.label}>Rischio Specifico A+B (Peso 70%)</Text>
+              <Text style={styles.label}>Rischio Specifico Tab. A / 4 (70%)</Text>
               <Text style={styles.value}>{bot.rischioSpecifico.toFixed(2)} × 0,70 = {(bot.rischioSpecifico * 0.7).toFixed(2)}</Text>
             </View>
             <View style={styles.col}>
-              <Text style={styles.label}>Rischio Effettivo Totale</Text>
-              <Text style={styles.value}>{bot.rischioEffettivo.toFixed(2)} / 4.00 ({punteggio100}/100)</Text>
+              <Text style={styles.label}>Rischio Effettivo (RE)</Text>
+              <Text style={styles.value}>{bot.rischioEffettivo.toFixed(2)} / 4.00 ({gradoRischioLabel})</Text>
             </View>
           </View>
 
@@ -432,8 +440,8 @@ export async function generaAntiriciclaggioValutazionePDF(
             ]}
           >
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: bannerColors.text }}>
-                ESITO AV.1: RISCHIO {bot.classeRischio} ({bot.rischioEffettivo.toFixed(2)} / 4.00) — ADEGUATA VERIFICA: {tipoVerificaLabel}
+              <Text style={{ fontSize: 8.2, fontFamily: 'Helvetica-Bold', color: bannerColors.text }}>
+                ESITO AV.1: GRADO RISCHIO {gradoRischioLabel} — {tipoVerificaLabel}
               </Text>
               <Text style={{ fontSize: 7.2, color: '#334155', marginTop: 1.5 }}>
                 {azienda.antiriciclaggioNote || bot.motivoBot}

@@ -352,7 +352,7 @@ export default function AntiriciclaggioPage() {
         </Card>
       )}
 
-      {/* Pannello Vademecum Regolarizzazione Studio (6 Discipline CNDCEC 2025 & Guardia di Finanza) */}
+      {/* Pannello Vademecum Regolarizzazione Studio (Guida Operativa Antiriciclaggio di Studio — 5 Sezioni) */}
       {mostraGuida && (
         <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/50 shadow-sm">
           <CardContent className="p-5 space-y-4 text-xs text-slate-700">
@@ -360,53 +360,76 @@ export default function AntiriciclaggioPage() {
               <div>
                 <h3 className="text-sm font-bold text-indigo-950 flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-indigo-600" />
-                  Piano Operativo di Regolarizzazione Antiriciclaggio Studio (Regole Tecniche CNDCEC &amp; CdL 2025)
+                  Guida Operativa Antiriciclaggio di Studio (D.Lgs. 231/2007 — Regole Tecniche CNDCEC &amp; CNOCDL)
                 </h3>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Inquadramento automatico delle 6 discipline dello Studio Dott. Antonio Tuzio ai sensi del D.Lgs. 231/2007 (mod. D.Lgs. 90/2017) e prassi ispettiva Guardia di Finanza.
+                  Manuale procedurale in 5 sezioni integrato nel gestionale: Perimetro prestazioni, Autovalutazione Studio (Mod. AV.0 — scad. 27/05/2026), Semplificazione Contabile Tabella A/4, Piano in 5 Passaggi e Fascicoli RT n. 3.
                 </p>
               </div>
               <Button size="sm" variant="outline" onClick={scaricaAutovalutazioneStudioPdf} className="shrink-0 bg-white border-indigo-300 text-indigo-700">
-                <Printer className="h-3.5 w-3.5 mr-1.5" /> Scarica Autovalutazione Studio (Mod. AV1)
+                <Printer className="h-3.5 w-3.5 mr-1.5" /> Scarica Autovalutazione Studio (Mod. AV.0)
               </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
                 <div className="font-bold text-emerald-800 flex items-center justify-between">
-                  <span>Discipline 4 (730 / CAF / INPS)</span>
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">ESONERATE</Badge>
+                  <span>Gruppo A · ZONA 1 (730 / CAF / Patronato)</span>
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">ESENTI DA AVC</Badge>
                 </div>
                 <p className="text-[11px] leading-relaxed text-slate-600">
-                  <strong>Mod. 730, Redditi PF, IMU, Maternità, NASpI, Dimissioni online:</strong> ai sensi della <em>Tabella 1 Regola Tecnica n. 2 CNDCEC</em> sono <strong>escluse dagli obblighi di adeguata verifica</strong>. Il programma separa automaticamente i {statistiche.totalePrivatiCaf} clienti privati senza P.IVA per non inquinare il Registro Antiriciclaggio.
+                  <strong>Mera redazione/invio 730, Mod. Redditi PF, IMU, Patronato (NASpI, Maternità, Dimissioni):</strong> esenti da AVC ex <em>art. 17 co. 7 D.Lgs. 231/2007</em>. Nessun fascicolo AVC ({statistiche.totalePrivatiCaf} privati separati automaticamente).
                 </p>
               </div>
 
               <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
-                <div className="font-bold text-blue-900 flex items-center justify-between">
-                  <span>Discipline 1, 2 e 5 (Paghe &amp; Forfettari)</span>
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px]">VERIFICA SEMPLIFICATA</Badge>
+                <div className="font-bold text-amber-900 flex items-center justify-between">
+                  <span>Gruppo A · ZONA 2 (Paghe, Redditi, Successioni)</span>
+                  <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-200 text-[10px]">ESENTI SCHEDA (Art. 17 c.7)</Badge>
                 </div>
                 <p className="text-[11px] leading-relaxed text-slate-600">
-                  <strong>Elaborazione Buste Paga/LUL, Consulenza Lavoro (art. 17 co. 7) e Regime Forfettario:</strong> rischio inerente <em>Non Significativo (1,00)</em>. Richiedono fascicolo numerato (`ARC-2026-NNN`), documento d&apos;identità valido e revisione ogni <strong>36 mesi</strong>.
+                  <strong>Elaborazione buste paga L. 12/1979, Mera redazione Mod. Redditi/IRAP/770 (Forfettari) e Successioni isolate:</strong> esenti da fascicolo AVC (regola di condotta). Conservazione documenti fiscali/ID e obbligo generale di <strong>SOS</strong>.
                 </p>
               </div>
 
               <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
                 <div className="font-bold text-indigo-900 flex items-center justify-between">
-                  <span>Discipline 3 e 6 (Contabilità, SRL, Successioni)</span>
-                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">VERIFICA ORDINARIA</Badge>
+                  <span>Gruppo B · ZONA 3 (Contabilità, Bilanci, Consulenza)</span>
+                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">SOGGETTE AD AVC (Grado 3)</Badge>
                 </div>
                 <p className="text-[11px] leading-relaxed text-slate-600">
-                  <strong>Contabilità Ditte/Società/SRL/Consorzi e Successioni:</strong> richiedono <strong>Modello AV4</strong> (Dichiarazione Cliente + <em>Titolare Effettivo</em> per SRL/Consorzi), <strong>Modello AV2</strong> (Scheda Valutazione Rischio Matrice CNDCEC) e copia Carta d&apos;Identità.
+                  <strong>Tenuta contabilità (Ditte, Soc. Persone, SRL, Consorzi), Consulenza continuativa/bilanci (Grado 3) e Consulenza lavoro straordinaria (Grado 2/3):</strong> obbligatori <strong>Mod. AV.1, AV.2, AV.3, AV.4, AV.7</strong> e conservazione 10 anni.
                 </p>
               </div>
             </div>
 
-            <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-lg space-y-1.5">
-              <div className="text-[11px] text-amber-950">
-                <strong>Nota di attenzione (Obbligo SOS &amp; Riattrazione in AVC):</strong>{' '}
-                <em>Per le prestazioni esenti non occorre comporre la scheda di rischio cliente, ma <strong>resta sempre fermo l&apos;obbligo di Segnalazione di Operazioni Sospette (SOS)</strong>. Inoltre, l&apos;Adeguata Verifica (AVC) torna obbligatoria anche per i clienti paghe/forfettari qualora vi sia una <strong>consulenza continuativa o straordinaria</strong> (es. assistenza su verbale ispettivo ITL, riorganizzazioni aziendali, contrattazione di 2° livello), un sospetto di riciclaggio o dubbi sull&apos;identità.</em>
+            {/* Piano Operativo in 5 Passaggi + Struttura a 2 Livelli RT n. 3 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="p-3 bg-white rounded-lg border border-indigo-200 space-y-1.5">
+                <div className="font-bold text-indigo-950 text-xs">
+                  4. Piano Operativo di Regolarizzazione in 5 Passaggi (Attivo nel Gestionale)
+                </div>
+                <ol className="text-[11px] text-slate-600 space-y-1 list-decimal pl-4">
+                  <li><strong>Cernita Anagrafiche:</strong> separazione automatica tra <em>Gruppo A (Esenti: ZONA 1 + ZONA 2)</em> e <em>Gruppo B (Soggetti ad AVC: ZONA 3)</em>.</li>
+                  <li><strong>Inizializzazione Posizioni:</strong> importazione dati anagrafici e codici prestazione CNDCEC/CNOCDL.</li>
+                  <li><strong>Sanatoria al Primo Contatto Utile:</strong> stampa con 1 click di <strong>Mod. AV.4</strong> (da far firmare) e <strong>Mod. AV.1</strong> (Semplificazione Tabella A / 4).</li>
+                  <li><strong>Registrazione Titolare Effettivo &amp; PEP:</strong> criterio a cascata (&gt;25% quote → controllo → legale rappr.) e upload <strong>Visura Camerale</strong>.</li>
+                  <li><strong>Scadenzario Automatico (Mod. AV.7):</strong> rinnovo automatico a <strong>36 mesi</strong> (Non/Poco signif.), <strong>24 mesi</strong> (Abbastanza signif.), <strong>12/6 mesi</strong> (Molto signif./PEP).</li>
+                </ol>
+              </div>
+
+              <div className="p-3 bg-white rounded-lg border border-blue-200 space-y-1.5">
+                <div className="font-bold text-blue-950 text-xs">
+                  5. Conservazione Decennale e Struttura dei Fascicoli a 2 Livelli (RT n. 3)
+                </div>
+                <ul className="text-[11px] text-slate-600 space-y-1.5 list-disc pl-4">
+                  <li>
+                    <strong>Fascicolo Generale di Studio (Trasversale):</strong> Documento di Autovalutazione del Rischio (<strong>Modello AV.0</strong> — prossima scadenza CSF: <strong>27 maggio 2026</strong>), attestati di formazione del personale e procedure organizzative interne.
+                  </li>
+                  <li>
+                    <strong>Fascicolo Specifico del Cliente (Individuale — 10 anni):</strong> Documento d&apos;identità e C.F. (Cliente, Esecutore, TE), <strong>Visura Camerale</strong> / estratto Registro TE, <strong>Mod. AV.4</strong> sottoscritto, <strong>Mod. AV.1</strong> (Rischio Effettivo), <strong>Mod. AV.2</strong> (Check-list), <strong>Mod. AV.3</strong> (Istruttoria) e <strong>Mod. AV.7</strong> (Controllo costante).
+                  </li>
+                </ul>
               </div>
             </div>
           </CardContent>

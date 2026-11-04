@@ -276,19 +276,20 @@ export function AutovalutazioneStudioDocument({
 
         <View style={styles.badgeBox}>
           <Text style={[styles.bold, { fontSize: 9.5, color: '#16a34a' }]}>
-            ESITO AUTOVALUTAZIONE STUDIO: RISCHIO RESIDUO BASSO (1,26 su 4,00)
+            ESITO AUTOVALUTAZIONE STUDIO (MOD. AV.0): RISCHIO RESIDUO NON SIGNIFICATIVO (1,26 su 4,00 — Fascia 1,0 &lt; 1,6)
           </Text>
           <Text style={{ fontSize: 7.2, color: '#334155', marginTop: 2 }}>
-            Clienti totali in anagrafica: {stats.totaleClienti} · Soggetti iscritti nel Registro Antiriciclaggio: {stats.totaleObbligati} · Pratiche CAF/730 esonerate ex Tab. 1 Regola Tecnica n. 2: {stats.totaleEsoneratiCaf}
+            Clienti totali in anagrafica: {stats.totaleClienti} · Soggetti nel Registro Antiriciclaggio: {stats.totaleObbligati} · Pratiche CAF/730 esenti ex art. 17 co. 7: {stats.totaleEsoneratiCaf} · Prossimo aggiornamento CSF entro: 27/05/2026
           </Text>
         </View>
 
-        {/* 4. Presidi Adottati e Regolarizzazione */}
+        {/* 4. Presidi Adottati e Struttura dei Fascicoli a 2 Livelli (RT n. 3) */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>4. Presidi Organizzativi e Regolarizzazione Fascicoli (Allineamento Verifiche GdF)</Text>
-          <Text style={{ fontSize: 7.3, color: '#334155' }}>
-            • Conservazione Informatica (Art. 31-32 D.Lgs. 231/2007 e Regola Tecnica n. 3 CNDCEC): lo Studio utilizza un sistema gestionale dedicato con numerazione progressiva dei fascicoli (ARC-YYYY-NNN), archiviazione digitale dei documenti di riconoscimento, alert automatico di scadenza a 60 giorni e conservazione decennale.{'\n'}
-            • Ricognizione e Regolarizzazione Periodica: per i rapporti continuativi in essere, lo Studio ha provveduto alla ricognizione integrale delle anagrafiche, all&apos;aggiornamento dei documenti d&apos;identità, alla verifica del Titolare Effettivo (S.r.l., S.r.l.s., Consorzi e Società di persone) e al ricalcolo del profilo di rischio secondo le Regole Tecniche CNDCEC 2025.
+          <Text style={styles.sectionTitle}>4. Griglia Rischio Residuo, Struttura Fascicoli a 2 Livelli (RT n. 3) e Conservazione Decennale</Text>
+          <Text style={{ fontSize: 7.2, color: '#334155' }}>
+            • Fasce Rischio Residuo Studio (CNDCEC/CNOCDL): Da 1,0 a &lt;1,6 Non Significativo (Presidi ordinari base) · Da 1,6 a &lt;2,6 Poco Significativo · Da 2,6 a &lt;3,6 Abbastanza Significativo · Da 3,6 a 4,0 Molto Significativo.{'\n'}
+            • Livello 1 — Fascicolo Generale di Studio (Trasversale): Modello AV.0 (scad. 27/05/2026), Attestati di formazione del personale e dei collaboratori, Procedure organizzative interne e Guida Operativa Antiriciclaggio di Studio.{'\n'}
+            • Livello 2 — Fascicolo Specifico del Cliente (Individuale, conservazione 10 anni): Documenti d&apos;identità e C.F. (Cliente, Esecutore, TE), Visura Camerale ed estratto Registro TE, Dichiarazione ex art. 22 (Mod. AV.4) sottoscritta, Scheda Rischio Effettivo (Mod. AV.1), Check-list (Mod. AV.2), Istruttoria (Mod. AV.3) e Controllo Costante (Mod. AV.7).
           </Text>
         </View>
 
