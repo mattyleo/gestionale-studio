@@ -6,8 +6,11 @@ $destZip = Join-Path (Split-Path $sourceDir -Parent) "fattura-studio-installazio
 
 Write-Host "Creazione del pacchetto di installazione..." -ForegroundColor Cyan
 
-$excludeNames = @('node_modules', '.next', '.git')
-$itemsToZip = Get-ChildItem -Path $sourceDir -Force | Where-Object { $excludeNames -notcontains $_.Name } | ForEach-Object { $_.FullName }
+$excludeNames = @('node_modules', '.next', '.git', '.env', '.env.local', '.env.production')
+$excludeExtensions = @('.xml', '.p7m', '.zip', '.sql', '.bak', '.csv', '.xlsx', '.sqlite')
+$itemsToZip = Get-ChildItem -Path $sourceDir -Force | Where-Object { 
+    $excludeNames -notcontains $_.Name -and $excludeExtensions -notcontains $_.Extension 
+} | ForEach-Object { $_.FullName }
 
 if (Test-Path $destZip) {
     Remove-Item $destZip -Force
