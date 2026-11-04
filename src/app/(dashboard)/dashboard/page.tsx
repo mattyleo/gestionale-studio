@@ -218,12 +218,19 @@ export default function DashboardPage() {
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">{formatEuro(kpi.fatturatoEmesso ?? 0)}</TableCell>
+                  <TableCell className="text-right">
+                    <div>{formatEuro(kpi.fatturatoEmesso ?? 0)}</div>
+                    {(kpi.speseArt15 ?? 0) > 0 && (
+                      <div className="text-[11px] font-normal text-gray-500">
+                        Lordo: {formatEuro(kpi.fatturatoEmessoLordo ?? kpi.fatturatoEmesso ?? 0)}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right text-green-600">
                     <div>{formatEuro(kpi.fatturatoIncassato ?? 0)}</div>
                     {(kpi.speseArt15 ?? 0) > 0 && (
-                      <div className="text-[11px] font-normal text-indigo-700">
-                        Ricavi netti: {formatEuro(kpi.ricaviCompensi ?? 0)}
+                      <div className="text-[11px] font-normal text-gray-500">
+                        Cassa lorda: {formatEuro(kpi.fatturatoIncassatoLordo ?? kpi.fatturatoIncassato ?? 0)}
                       </div>
                     )}
                   </TableCell>

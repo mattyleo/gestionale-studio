@@ -36,7 +36,7 @@ export default function IncassatePage() {
   const [loading, setLoading] = React.useState(true)
   const [ricerca, setRicerca] = React.useState('')
   const [filtroAzienda, setFiltroAzienda] = React.useState('TUTTE')
-  const [escludiArt15, setEscludiArt15] = React.useState(false)
+  const [escludiArt15, setEscludiArt15] = React.useState(true)
 
   const caricaDati = React.useCallback(async () => {
     setLoading(true)
@@ -102,14 +102,13 @@ export default function IncassatePage() {
           <div className="text-sm text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
             <span>
               {numSaldate} fatture saldate{numNC > 0 ? ` · ${numNC} note di credito stornate` : ''} ·{' '}
-              {escludiArt15 ? 'Ricavi netti (escluso Art. 15):' : 'Totale netto incassato:'}{' '}
-              <span className="font-semibold text-green-700">{formatEuro(totaleIncassato)}</span>
+              <span className="text-gray-700 font-medium">Ricavi effettivi:</span>{' '}
+              <span className="font-bold text-green-700 text-base">{formatEuro(totaleRicavi)}</span>
             </span>
-            {totaleArt15 > 0 && (
-              <span className="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md font-mono">
-                {escludiArt15 ? `(Cassa tot: ${formatEuro(totaleIncassatoLordo)} - Art. 15: ${formatEuro(totaleArt15)})` : `(Di cui Spese Art. 15: ${formatEuro(totaleArt15)} non ricavi)`}
-              </span>
-            )}
+            <span className="text-xs text-gray-600 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md font-mono">
+              Totale cassa: {formatEuro(totaleIncassatoLordo)}
+              {totaleArt15 > 0 ? ` (di cui Spese Art. 15: ${formatEuro(totaleArt15)})` : ''}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -158,7 +157,7 @@ export default function IncassatePage() {
                 onChange={(e) => setEscludiArt15(e.target.checked)}
                 className="rounded text-amber-600 focus:ring-amber-500 h-4 w-4"
               />
-              <span>Check Art. 15 (escludi spese da ricavi)</span>
+              <span>Escludi spese anticipate Art. 15 (Standard Aruba - Attivo)</span>
             </label>
           </div>
         </CardContent>
@@ -180,7 +179,8 @@ export default function IncassatePage() {
                   <TableHead>Data emissione</TableHead>
                   <TableHead>Ultimo pagamento</TableHead>
                   <TableHead className="text-right">
-                    {escludiArt15 ? 'Ricavi netti' : 'Totale saldato'}
+                    <div>{escludiArt15 ? 'Ricavo effettivo' : 'Totale saldato'}</div>
+                    {escludiArt15 && <div className="text-[10px] text-gray-400 font-normal">Escluso Art. 15</div>}
                   </TableHead>
                   <TableHead className="text-right">Azioni</TableHead>
                 </TableRow>
@@ -222,7 +222,9 @@ export default function IncassatePage() {
                         </div>
                         {f.hasArt15 && (
                           <div className="text-[10px] text-amber-700 font-normal">
-                            Di cui Art. 15: {formatEuro(f.art15Importo)}
+                            {escludiArt15
+                              ? `+ ${formatEuro(f.art15Importo)} Art. 15 (Tot: ${formatEuro(f.totaleDocumento)})`
+                              : `Di cui Art. 15: ${formatEuro(f.art15Importo)}`}
                           </div>
                         )}
                       </TableCell>
@@ -260,20 +262,25 @@ export default function IncassatePage() {
 
           {/* Totale in fondo */}
           {!loading && fattureFiltrate.length > 0 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50 text-sm font-medium">
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50 text-sm font-medium flex-wrap gap-4">
               <span className="text-gray-500">
-                Conteggio: {fattureFiltrate.length} fatture saldate
+                Conteggio: {fattureFiltrate.length} documenti ({numSaldate} fatture{numNC > 0 ? ` · ${numNC} NC` : ''})
               </span>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap justify-end">
                 {totaleArt15 > 0 && (
-                  <span className="text-xs text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
-                    Spese Art. 15: {formatEuro(totaleArt15)}
+                  <span className="text-xs text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded">
+                    Spese anticipate Art. 15: {formatEuro(totaleArt15)}
                   </span>
                 )}
-                <span className="text-gray-600">
-                  {escludiArt15 ? 'Ricavi netti (escluso Art. 15):' : 'Totale incassato:'}
+                <span className="text-xs text-gray-500">
+                  Incasso cassa lordo: <span className="font-semibold text-gray-700">{formatEuro(totaleIncassatoLordo)}</span>
                 </span>
-                <span className="text-lg font-bold text-green-700">{formatEuro(totaleIncassato)}</span>
+                <div className="flex items-center gap-1.5 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">
+                  <span className="text-green-900 font-semibold text-xs">
+                    {escludiArt15 ? 'Ricavi Effettivi (Allineato Aruba):' : 'Totale Incassato:'}
+                  </span>
+                  <span className="text-lg font-bold text-green-700">{formatEuro(totaleIncassato)}</span>
+                </div>
               </div>
             </div>
           )}

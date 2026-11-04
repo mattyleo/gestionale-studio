@@ -133,8 +133,8 @@ export async function GET(request: Request) {
         aziendaData.emesso -= totale
         aziendaData.incassato -= incassatoFattura
       } else {
-        aziendaData.emesso += totale
-        aziendaData.incassato += incassatoFattura
+        aziendaData.emesso += (totale - art15Fattura)
+        aziendaData.incassato += (incassatoFattura - art15Fattura)
       }
     }
 
@@ -174,10 +174,12 @@ export async function GET(request: Request) {
         valoreNonFatturato: Number(valoreNonFatturato),
         bozzeCount,
         bozzeImporto: Number(bozzeImporto._sum.totaleDocumento ?? 0),
-        daIncassare: totaleEmesso - totaleIncassato,
-        scaduto: totaleScaduto,
-        fatturatoEmesso: totaleEmesso,
-        fatturatoIncassato: totaleIncassato,
+        daIncassare: +(totaleEmesso - totaleIncassato).toFixed(2),
+        scaduto: +totaleScaduto.toFixed(2),
+        fatturatoEmesso: +(totaleEmesso - totaleArt15).toFixed(2),
+        fatturatoEmessoLordo: +totaleEmesso.toFixed(2),
+        fatturatoIncassato: +(totaleIncassato - totaleArt15).toFixed(2),
+        fatturatoIncassatoLordo: +totaleIncassato.toFixed(2),
         speseArt15: +totaleArt15.toFixed(2),
         ricaviCompensi: +(totaleIncassato - totaleArt15).toFixed(2),
       },
