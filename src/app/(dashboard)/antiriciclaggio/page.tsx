@@ -25,6 +25,10 @@ import {
   Trash2,
   ExternalLink,
   Plus,
+  Sparkles,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -74,6 +78,8 @@ export default function AntiriciclaggioPage() {
   // Modal fascicolo
   const [selectedAziendaId, setSelectedAziendaId] = React.useState<string | null>(null)
   const [modalOpen, setModalOpen] = React.useState(false)
+  const [regolarizzando, setRegolarizzando] = React.useState(false)
+  const [mostraGuida, setMostraGuida] = React.useState(false)
 
   const caricaDati = React.useCallback(async () => {
     setLoading(true)
@@ -129,6 +135,28 @@ export default function AntiriciclaggioPage() {
     }
   }
 
+  const scaricaAutovalutazioneStudioPdf = () => {
+    window.open('/api/antiriciclaggio/export/autovalutazione-studio', '_blank')
+  }
+
+  const handleRegolarizzaMassiva = async () => {
+    setRegolarizzando(true)
+    try {
+      const res = await fetch('/api/antiriciclaggio/regolarizza', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast({
+        title: '⚡ Regolarizzazione Studio Completata!',
+        description: data.messaggio,
+      })
+      caricaDati()
+    } catch (err: any) {
+      toast({ title: 'Errore regolarizzazione', description: err.message, variant: 'destructive' })
+    } finally {
+      setRegolarizzando(false)
+    }
+  }
+
   const scaricaRegistroPdf = () => {
     const params = new URLSearchParams()
     if (settore !== 'TUTTI') params.append('settore', settore)
@@ -166,6 +194,27 @@ export default function AntiriciclaggioPage() {
 
         <div className="flex items-center gap-2 flex-wrap">
           <Button
+            size="sm"
+            onClick={handleRegolarizzaMassiva}
+            disabled={regolarizzando}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm"
+            title="Analizza tutte le anagrafiche e le fatture, separa i privati 730/CAF esonerati, numera i fascicoli ARC-2026 e calcola la valutazione del rischio CNDCEC"
+          >
+            <Sparkles className="h-4 w-4 mr-1.5 text-amber-300" />
+            {regolarizzando ? 'Regolarizzazione in corso...' : 'Regolarizza Posizione Studio (CNDCEC 2025)'}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={scaricaAutovalutazioneStudioPdf}
+            className="border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-medium"
+            title="Stampa Modello AV1 CNDCEC — Autovalutazione del Rischio dello Studio Professionale (obbligatorio per verifiche Guardia di Finanza)"
+          >
+            <ShieldCheck className="h-4 w-4 mr-1 text-indigo-600" /> Modello AV1 Studio (PDF)
+          </Button>
+
+          <Button
             variant="outline"
             size="sm"
             onClick={scaricaRegistroPdf}
@@ -185,17 +234,85 @@ export default function AntiriciclaggioPage() {
             <Download className="h-4 w-4 mr-1 text-emerald-600" /> Esporta CSV
           </Button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMostraGuida((v) => !v)}
+            className="border-amber-300 text-amber-800 bg-amber-50/60 hover:bg-amber-100"
+          >
+            <BookOpen className="h-4 w-4 mr-1 text-amber-700" />
+            Guida 6 Discipline &amp; GdF
+            {mostraGuida ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
+          </Button>
+
           <Button variant="outline" size="sm" onClick={caricaDati}>
             <RefreshCw className="h-4 w-4 mr-1" /> Aggiorna
           </Button>
-
-          <Link href="/aziende">
-            <Button variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:bg-slate-50">
-              <Building className="h-4 w-4 mr-1.5 text-slate-500" /> Anagrafica Aziende
-            </Button>
-          </Link>
         </div>
       </div>
+
+      {/* Pannello Vademecum Regolarizzazione Studio (6 Discipline CNDCEC 2025 & Guardia di Finanza) */}
+      {mostraGuida && (
+        <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/50 shadow-sm">
+          <CardContent className="p-5 space-y-4 text-xs text-slate-700">
+            <div className="flex items-start justify-between gap-4 border-b border-indigo-100 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-indigo-950 flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-indigo-600" />
+                  Piano Operativo di Regolarizzazione Antiriciclaggio Studio (Regole Tecniche CNDCEC &amp; CdL 2025)
+                </h3>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Inquadramento automatico delle 6 discipline dello Studio Dott. Antonio Tuzio ai sensi del D.Lgs. 231/2007 (mod. D.Lgs. 90/2017) e prassi ispettiva Guardia di Finanza.
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={scaricaAutovalutazioneStudioPdf} className="shrink-0 bg-white border-indigo-300 text-indigo-700">
+                <Printer className="h-3.5 w-3.5 mr-1.5" /> Scarica Autovalutazione Studio (Mod. AV1)
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
+                <div className="font-bold text-emerald-800 flex items-center justify-between">
+                  <span>Discipline 4 (730 / CAF / INPS)</span>
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">ESONERATE</Badge>
+                </div>
+                <p className="text-[11px] leading-relaxed text-slate-600">
+                  <strong>Mod. 730, Redditi PF, IMU, Maternità, NASpI, Dimissioni online:</strong> ai sensi della <em>Tabella 1 Regola Tecnica n. 2 CNDCEC</em> sono <strong>escluse dagli obblighi di adeguata verifica</strong>. Il programma separa automaticamente i {statistiche.totalePrivatiCaf} clienti privati senza P.IVA per non inquinare il Registro Antiriciclaggio.
+                </p>
+              </div>
+
+              <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
+                <div className="font-bold text-blue-900 flex items-center justify-between">
+                  <span>Discipline 1, 2 e 5 (Paghe &amp; Forfettari)</span>
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-[10px]">VERIFICA SEMPLIFICATA</Badge>
+                </div>
+                <p className="text-[11px] leading-relaxed text-slate-600">
+                  <strong>Elaborazione Buste Paga/LUL, Consulenza Lavoro (art. 17 co. 7) e Regime Forfettario:</strong> rischio inerente <em>Non Significativo (1,00)</em>. Richiedono fascicolo numerato (`ARC-2026-NNN`), documento d&apos;identità valido e revisione ogni <strong>36 mesi</strong>.
+                </p>
+              </div>
+
+              <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
+                <div className="font-bold text-indigo-900 flex items-center justify-between">
+                  <span>Discipline 3 e 6 (Contabilità, SRL, Successioni)</span>
+                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">VERIFICA ORDINARIA</Badge>
+                </div>
+                <p className="text-[11px] leading-relaxed text-slate-600">
+                  <strong>Contabilità Ditte/Società/SRL/Consorzi e Successioni:</strong> richiedono <strong>Modello AV4</strong> (Dichiarazione Cliente + <em>Titolare Effettivo</em> per SRL/Consorzi), <strong>Modello AV2</strong> (Scheda Valutazione Rischio Matrice CNDCEC) e copia Carta d&apos;Identità.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="text-[11px] text-amber-950">
+                <strong>Come regolarizzare i fascicoli pregressi in 3 passi:</strong>{' '}
+                1) Clicca su <strong>&ldquo;Regolarizza Posizione Studio&rdquo;</strong> per numerare i {statistiche.totaleCensiti} fascicoli P.IVA e calcolare il rischio CNDCEC;{' '}
+                2) Stampa il <strong>Modello AV1 Studio</strong> e il <strong>Registro PDF</strong>;{' '}
+                3) Per i clienti con documento mancante ({statistiche.docMancanti}), clicca <strong>Modifica</strong> sulla riga per allegare la Carta d&apos;Identità e stampare il <strong>Kit AV2 + AV4 + Privacy</strong>.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI Cards / Monitoraggio Studio */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -270,11 +387,12 @@ export default function AntiriciclaggioPage() {
                   <SelectValue placeholder="Settore Studio" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TUTTI">Tutti i settori</SelectItem>
-                  <SelectItem value="CONTABILITA">Solo Contabilità</SelectItem>
-                  <SelectItem value="PAGHE">Solo Paghe &amp; Lavoro</SelectItem>
-                  <SelectItem value="CAF">Solo CAF / Dichiarazioni</SelectItem>
-                  <SelectItem value="MISTO">Misto (Contab. + Paghe)</SelectItem>
+                  <SelectItem value="TUTTI">Tutte le 6 Discipline</SelectItem>
+                  <SelectItem value="PAGHE">1-2. Paghe, LUL &amp; Consulenza Lavoro</SelectItem>
+                  <SelectItem value="CONTABILITA">3. Contabilità (Ditte / Società / SRL / Consorzi)</SelectItem>
+                  <SelectItem value="FORFETTARI">5. Redditi Ditte &amp; Regime Forfettario</SelectItem>
+                  <SelectItem value="SUCCESSIONI">6. Dichiarazioni di Successione</SelectItem>
+                  <SelectItem value="CAF">4. CAF / 730 / Pratiche INPS (Esonerati)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -479,9 +597,19 @@ export default function AntiriciclaggioPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                            onClick={() => window.open(`/api/antiriciclaggio/${az.id}/pdf?tipo=valutazione`, '_blank')}
+                            title="Scarica Modello AV2 — Scheda Valutazione Rischio CNDCEC (PDF)"
+                          >
+                            <ShieldCheck className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-8 w-8 text-slate-600 hover:text-blue-600 hover:bg-slate-100"
                             onClick={() => window.open(`/api/antiriciclaggio/${az.id}/pdf?tipo=dichiarazione`, '_blank')}
-                            title="Scarica Dichiarazione Cliente Antiriciclaggio (PDF)"
+                            title="Scarica Modello AV4 — Dichiarazione Cliente e Titolare Effettivo (PDF)"
                           >
                             <FileText className="h-4 w-4" />
                           </Button>

@@ -496,9 +496,11 @@ export function AntiriciclaggioDettaglioModal({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CONTABILITA">Contabilità &amp; Bilancio</SelectItem>
-                      <SelectItem value="PAGHE">Consulenza Lavoro &amp; Paghe</SelectItem>
-                      <SelectItem value="CAF">CAF / Dichiarazioni (Privati)</SelectItem>
+                      <SelectItem value="PAGHE">1-2. Consulenza Lavoro &amp; Buste Paga (LUL)</SelectItem>
+                      <SelectItem value="CONTABILITA">3. Contabilità &amp; Gestione Fiscale (Ditte/Società/SRL/Consorzi)</SelectItem>
+                      <SelectItem value="FORFETTARI">5. Redditi Ditte Individuali &amp; Regime Forfettario</SelectItem>
+                      <SelectItem value="SUCCESSIONI">6. Pratiche Dichiarazione di Successione</SelectItem>
+                      <SelectItem value="CAF">4. CAF / 730 / Pratiche INPS (Privati - Esonerato)</SelectItem>
                       <SelectItem value="MISTO">Misto (Contabilità + Paghe)</SelectItem>
                     </SelectContent>
                   </Select>

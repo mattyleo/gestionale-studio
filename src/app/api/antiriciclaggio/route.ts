@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { eseguiRegolarizzazioneCNDCEC } from '@/lib/antiriciclaggio-engine'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
@@ -19,6 +20,14 @@ export async function GET(request: Request) {
   const soloConPartitaIva = searchParams.get('soloPiva') !== 'false' // default: escludi soggetti senza P.IVA (CAF privati)
 
   try {
+    // Auto-regolarizzazione al primo accesso se nessun cliente è stato ancora classificato
+    const giaClassificati = await prisma.company.count({
+      where: { archiviata: false, antiriciclaggioStato: 'REGOLARE' },
+    })
+    if (giaClassificati === 0) {
+      await eseguiRegolarizzazioneCNDCEC()
+    }
+
     const oggi = new Date()
     const fra60Giorni = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
 
@@ -29,8 +38,8 @@ export async function GET(request: Request) {
 
     if (soloConPartitaIva) {
       where.OR = [
-        { partitaIva: { not: null } },
-        { antiriciclaggioObbligo: true },
+        { AND: [{ partitaIva: { not: null } }, { NOT: { partitaIva: '' } }] },
+        { settoreAttivita: 'SUCCESSIONI' },
       ]
     }
 
@@ -89,12 +98,12 @@ export async function GET(request: Request) {
       },
     })
 
-    // Statistiche generali dello studio (sempre calcolate su tutti i soggetti obbligati)
+    // Statistiche generali dello studio (sempre calcolate su tutti i soggetti obbligati con P.IVA o Successioni)
     const baseObbligatiWhere: any = {
       archiviata: false,
       OR: [
-        { partitaIva: { not: null } },
-        { antiriciclaggioObbligo: true },
+        { AND: [{ partitaIva: { not: null } }, { NOT: { partitaIva: '' } }] },
+        { settoreAttivita: 'SUCCESSIONI' },
       ],
     }
 
@@ -138,8 +147,8 @@ export async function GET(request: Request) {
       prisma.company.count({
         where: {
           archiviata: false,
-          partitaIva: null,
-          antiriciclaggioObbligo: false,
+          OR: [{ partitaIva: null }, { partitaIva: '' }],
+          NOT: { settoreAttivita: 'SUCCESSIONI' },
         },
       }),
     ])

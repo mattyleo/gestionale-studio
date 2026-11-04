@@ -23,8 +23,8 @@ export async function GET(req: Request) {
     const where: any = {
       archiviata: false,
       OR: [
-        { partitaIva: { not: null } },
-        { antiriciclaggioObbligo: true },
+        { AND: [{ partitaIva: { not: null } }, { NOT: { partitaIva: '' } }] },
+        { settoreAttivita: 'SUCCESSIONI' },
       ],
     }
 
