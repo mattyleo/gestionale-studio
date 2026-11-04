@@ -80,6 +80,7 @@ export default function AntiriciclaggioPage() {
   const [modalOpen, setModalOpen] = React.useState(false)
   const [regolarizzando, setRegolarizzando] = React.useState(false)
   const [mostraGuida, setMostraGuida] = React.useState(false)
+  const [mostraMappaMentale, setMostraMappaMentale] = React.useState(false)
 
   const caricaDati = React.useCallback(async () => {
     setLoading(true)
@@ -237,6 +238,17 @@ export default function AntiriciclaggioPage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => setMostraMappaMentale((v) => !v)}
+            className="border-purple-300 text-purple-800 bg-purple-50/70 hover:bg-purple-100 font-medium"
+          >
+            <Sparkles className="h-4 w-4 mr-1 text-purple-600" />
+            Mappa Mentale &amp; Rischi Contabilità/Bilanci
+            {mostraMappaMentale ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setMostraGuida((v) => !v)}
             className="border-amber-300 text-amber-800 bg-amber-50/60 hover:bg-amber-100"
           >
@@ -250,6 +262,93 @@ export default function AntiriciclaggioPage() {
           </Button>
         </div>
       </div>
+
+      {/* Mappa Mentale Interattiva & Copertura Rischi Contabilità e Bilanci */}
+      {mostraMappaMentale && (
+        <Card className="border-purple-200 bg-gradient-to-br from-purple-50/60 via-white to-indigo-50/40 shadow-sm">
+          <CardContent className="p-5 space-y-5 text-xs text-slate-700">
+            <div className="flex items-start justify-between gap-4 border-b border-purple-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-purple-950 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-purple-600" />
+                  Mappa Mentale Completa Antiriciclaggio di Studio (inclusi Tenuta Contabilità e Predisposizione Bilanci)
+                </h3>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Schema sinottico a 5 Pilastri conforme al D.Lgs. 231/2007, Regole Tecniche CNDCEC n. 1-2-3 (2025), Indicatori di Anomalia D.M. 16/08/2023 e Check-list Guardia di Finanza.
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={scaricaAutovalutazioneStudioPdf} className="shrink-0 bg-white border-purple-300 text-purple-800">
+                <Printer className="h-3.5 w-3.5 mr-1.5" /> Stampa Modello AV1 Studio
+              </Button>
+            </div>
+
+            {/* Mappa Mentale Visuale ad Albero (5 Pilastri) */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
+              {/* Pilastro 1 */}
+              <div className="p-3.5 bg-white rounded-xl border-2 border-blue-200 shadow-xs space-y-2">
+                <div className="font-bold text-blue-900 text-xs uppercase tracking-wide border-b border-blue-100 pb-1.5">
+                  1. Presidio di Studio (A Monte)
+                </div>
+                <ul className="space-y-1.5 text-[11px] text-slate-600 list-disc pl-4">
+                  <li><strong>Autovalutazione Rischio Studio (Mod. AV1):</strong> obbligatoria ogni 3 anni (Rischio Inerente 40% + Vulnerabilità 60%).</li>
+                  <li><strong>Organizzazione &amp; Formazione:</strong> attestati formazione continua AML titolare/collaboratori.</li>
+                  <li><strong>Conservazione (Reg. Tecnica 3):</strong> archivio informatico/cartaceo per <strong>10 anni</strong> dalla chiusura del rapporto.</li>
+                </ul>
+              </div>
+
+              {/* Pilastro 2 */}
+              <div className="p-3.5 bg-white rounded-xl border-2 border-emerald-200 shadow-xs space-y-2">
+                <div className="font-bold text-emerald-900 text-xs uppercase tracking-wide border-b border-emerald-100 pb-1.5">
+                  2. Filtro Prestazioni (Esenti vs AVC)
+                </div>
+                <ul className="space-y-1.5 text-[11px] text-slate-600 list-disc pl-4">
+                  <li><strong className="text-emerald-700">ESENTI da Scheda Rischio:</strong> 730/CAF/IMU/INPS (Tab. 1), mera elaborazione <strong>Buste Paga/LUL</strong> (art. 17 co. 7), mera dichiarazione <strong>Forfettari</strong> senza contabilità.</li>
+                  <li><strong className="text-indigo-700">SOGGETTE ad AVC:</strong> <strong>Tenuta Contabilità</strong> (Rischio Inerente = 3), <strong>Bilanci</strong>, <strong>Consulenza continuativa/straordinaria</strong> (es. verbali ITL, societario), <strong>Successioni</strong>.</li>
+                </ul>
+              </div>
+
+              {/* Pilastro 3 */}
+              <div className="p-3.5 bg-white rounded-xl border-2 border-indigo-200 shadow-xs space-y-2">
+                <div className="font-bold text-indigo-900 text-xs uppercase tracking-wide border-b border-indigo-100 pb-1.5">
+                  3. Fascicolo Cliente (Contabilità/SRL)
+                </div>
+                <ul className="space-y-1.5 text-[11px] text-slate-600 list-disc pl-4">
+                  <li><strong>Mandato professionale</strong> + <strong>Privacy GDPR</strong>.</li>
+                  <li><strong>Documento d&apos;identità</strong> valido + <strong>Visura Camerale</strong> (e Statuto per SRL/Consorzi).</li>
+                  <li><strong>Mod. AV4 (Dichiarazione Cliente):</strong> scopo/natura, <strong>Titolare Effettivo</strong> (&gt;25% o controllo) e verifica <strong>PEP</strong>.</li>
+                  <li><strong>Mod. AV2 (Matrice CNDCEC):</strong> 70% Rischio Specifico + 30% Rischio Inerente.</li>
+                </ul>
+              </div>
+
+              {/* Pilastro 4 */}
+              <div className="p-3.5 bg-amber-50/50 rounded-xl border-2 border-amber-300 shadow-xs space-y-2">
+                <div className="font-bold text-amber-950 text-xs uppercase tracking-wide border-b border-amber-200 pb-1.5">
+                  4. Rischi Contabilità &amp; Bilanci
+                </div>
+                <ul className="space-y-1.5 text-[11px] text-slate-700 list-disc pl-4">
+                  <li><strong>Contante ≥ 5.000 € (art. 49/51):</strong> obbligo comunicazione al MEF entro 30 gg.</li>
+                  <li><strong>Cassa Contanti anomala:</strong> cassa negativa o saldo contante gonfiato/irrealistico.</li>
+                  <li><strong>Finanziamenti Soci (SRL):</strong> verificare tracciabilità, verbali e capacità finanziaria del socio.</li>
+                  <li><strong>Fatture false / Cartiere:</strong> descrizioni generiche, importi tondi, crediti d&apos;imposta fittizi.</li>
+                  <li><strong>Bilanci:</strong> perdite coperte in contanti, cambi repentini amministratore (&ldquo;testa di legno&rdquo;).</li>
+                </ul>
+              </div>
+
+              {/* Pilastro 5 */}
+              <div className="p-3.5 bg-white rounded-xl border-2 border-red-200 shadow-xs space-y-2">
+                <div className="font-bold text-red-900 text-xs uppercase tracking-wide border-b border-red-100 pb-1.5">
+                  5. Controllo Costante, SOS &amp; MEF
+                </div>
+                <ul className="space-y-1.5 text-[11px] text-slate-600 list-disc pl-4">
+                  <li><strong>Periodicità Controllo Costante:</strong> ogni <strong>36 mesi</strong> (Rischio Basso/Non signif.), <strong>24 mesi</strong> (Medio), <strong>6-12 mesi</strong> (Alto/PEP).</li>
+                  <li><strong>Obbligo di Astensione (art. 42):</strong> se impossibile identificare cliente o Titolare Effettivo.</li>
+                  <li><strong>SOS all&apos;UIF (art. 35):</strong> segnalazione operazioni sospette (con divieto assoluto di comunicarlo al cliente).</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Pannello Vademecum Regolarizzazione Studio (6 Discipline CNDCEC 2025 & Guardia di Finanza) */}
       {mostraGuida && (
