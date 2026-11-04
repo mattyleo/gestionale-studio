@@ -16,8 +16,9 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const periodo = searchParams.get('periodo') || 'anno'
 
-  // Calcola intervallo date
+  // Calcola intervallo date in base al filtro selezionato
   const oggi = new Date()
+  const annoRif = oggi.getFullYear()
   let dal: Date, al: Date
 
   switch (periodo) {
@@ -35,6 +36,22 @@ export async function GET(request: Request) {
       dal = startOfMonth(subMonths(oggi, 2))
       al = endOfMonth(oggi)
       break
+    case 't1':
+      dal = new Date(annoRif, 0, 1, 0, 0, 0, 0)
+      al = new Date(annoRif, 2, 31, 23, 59, 59, 999)
+      break
+    case 't2':
+      dal = new Date(annoRif, 3, 1, 0, 0, 0, 0)
+      al = new Date(annoRif, 5, 30, 23, 59, 59, 999)
+      break
+    case 't3':
+      dal = new Date(annoRif, 6, 1, 0, 0, 0, 0)
+      al = new Date(annoRif, 8, 30, 23, 59, 59, 999)
+      break
+    case 't4':
+      dal = new Date(annoRif, 9, 1, 0, 0, 0, 0)
+      al = new Date(annoRif, 11, 31, 23, 59, 59, 999)
+      break
     case 'anno':
     default:
       dal = startOfYear(oggi)
@@ -47,7 +64,7 @@ export async function GET(request: Request) {
     const attivitaDaVerificare = await prisma.workEntry.count({
       where: {
         stato: { in: ['DA_CLASSIFICARE', 'DA_VERIFICARE'] },
-        ...(periodo !== 'anno' ? { data: { gte: dal, lte: al } } : {}),
+        data: { gte: dal, lte: al },
       },
     })
 
@@ -55,7 +72,7 @@ export async function GET(request: Request) {
     const attivitaApprovate = await prisma.workEntry.aggregate({
       where: {
         stato: 'APPROVATA',
-        ...(periodo !== 'anno' ? { data: { gte: dal, lte: al } } : {}),
+        data: { gte: dal, lte: al },
       },
       _sum: { importo: true },
     })
@@ -81,28 +98,24 @@ export async function GET(request: Request) {
       orderBy: { dataDocumento: 'asc' },
     })
 
-    // Determina l'anno di riferimento per il grafico 12 mesi (Gen - Dic)
-    const annoCorrente = oggi.getFullYear()
-    const haFattureAnnoCorrente = fattureEmesse.some(f => {
-      const d = f.dataDocumento || f.emessaAl || f.createdAt
-      return d && new Date(d).getFullYear() === annoCorrente
-    })
-    const annoGrafico = haFattureAnnoCorrente
-      ? annoCorrente
-      : (fattureEmesse.length > 0
-          ? new Date(
-              fattureEmesse[fattureEmesse.length - 1].dataDocumento ||
-              fattureEmesse[fattureEmesse.length - 1].emessaAl ||
-              fattureEmesse[fattureEmesse.length - 1].createdAt
-            ).getFullYear()
-          : annoCorrente)
-
-    // Inizializza sempre tutti i 12 mesi da Gennaio a Dicembre
-    const mesi: { label: string; emesso: number; incassato: number }[] = MESI_NOMI.map((nome) => ({
-      label: nome,
-      emesso: 0,
-      incassato: 0,
-    }))
+    // Costruisce i bucket mensili esattamente per l'intervallo [dal, al] selezionato
+    // - Se 'anno': 12 mesi (Gen - Dic)
+    // - Se 'trimestre' / 't1'..'t4': i 3 mesi del trimestre
+    // - Se 'mese-corrente' / 'mese-precedente': il singolo mese selezionato
+    const mesiMap = new Map<string, { label: string; emesso: number; incassato: number }>()
+    const cursor = new Date(dal.getFullYear(), dal.getMonth(), 1)
+    const endCursor = new Date(al.getFullYear(), al.getMonth(), 1)
+    while (cursor <= endCursor) {
+      const y = cursor.getFullYear()
+      const m = cursor.getMonth()
+      const key = `${y}-${String(m + 1).padStart(2, '0')}`
+      mesiMap.set(key, {
+        label: MESI_NOMI[m],
+        emesso: 0,
+        incassato: 0,
+      })
+      cursor.setMonth(cursor.getMonth() + 1)
+    }
 
     let totaleEmesso = 0
     let totaleIncassato = 0
@@ -132,6 +145,10 @@ export async function GET(request: Request) {
         }
       }
 
+      // Verifica se la fattura rientra nel periodo selezionato [dal, al]
+      const nelPeriodo = dataRif >= dal && dataRif <= al
+      if (!nelPeriodo) continue
+
       let art15Fattura = 0
       if (!isNotaCredito && fattura.lines) {
         for (const l of fattura.lines) {
@@ -150,22 +167,13 @@ export async function GET(request: Request) {
         ? -(incassatoFattura > 0 ? incassatoFattura : totale)
         : (incassatoFattura - art15Fattura)
 
-      // Popola il grafico mensile (Gen - Dic dell'anno di riferimento)
-      if (dataRif.getFullYear() === annoGrafico) {
-        const meseIdx = dataRif.getMonth() // 0 = Gen, 11 = Dic
-        if (meseIdx >= 0 && meseIdx < 12) {
-          mesi[meseIdx].emesso = +(mesi[meseIdx].emesso + ricavoNetto).toFixed(2)
-          mesi[meseIdx].incassato = +(mesi[meseIdx].incassato + incassatoNetto).toFixed(2)
-        }
+      // Popola il mese corrispondente nel grafico del periodo selezionato
+      const keyMese = `${dataRif.getFullYear()}-${String(dataRif.getMonth() + 1).padStart(2, '0')}`
+      const bucket = mesiMap.get(keyMese)
+      if (bucket) {
+        bucket.emesso = +(bucket.emesso + ricavoNetto).toFixed(2)
+        bucket.incassato = +(bucket.incassato + incassatoNetto).toFixed(2)
       }
-
-      // Filtra tabella e totali di periodo se l'utente ha scelto mese/trimestre specifico
-      const nelPeriodo =
-        periodo === 'anno'
-          ? dataRif.getFullYear() === annoGrafico
-          : (dataRif >= dal && dataRif <= al)
-
-      if (!nelPeriodo) continue
 
       if (isNotaCredito) {
         const stornoIncassato = incassatoFattura > 0 ? incassatoFattura : totale
@@ -200,8 +208,10 @@ export async function GET(request: Request) {
       }
     }
 
+    const mesi = Array.from(mesiMap.values())
+
     return NextResponse.json({
-      annoGrafico,
+      annoGrafico: annoRif,
       kpi: {
         attivitaDaVerificare,
         valoreNonFatturato: Number(valoreNonFatturato),

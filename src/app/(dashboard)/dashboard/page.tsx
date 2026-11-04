@@ -15,7 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const PERIODI = [
   { value: 'anno', label: 'Anno corrente (Gen - Dic)' },
-  { value: 'trimestre', label: 'Ultimo trimestre' },
+  { value: 'trimestre', label: 'Ultimo trimestre (3 mesi)' },
+  { value: 't1', label: '1° Trimestre (Gen - Mar)' },
+  { value: 't2', label: '2° Trimestre (Apr - Giu)' },
+  { value: 't3', label: '3° Trimestre (Lug - Set)' },
+  { value: 't4', label: '4° Trimestre (Ott - Dic)' },
   { value: 'mese-corrente', label: 'Questo mese' },
   { value: 'mese-precedente', label: 'Mese scorso' },
 ]
@@ -54,7 +58,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <Select value={periodo} onValueChange={setPeriodo}>
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-56">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -150,7 +154,7 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            Andamento mensile {dati?.annoGrafico ? `${dati.annoGrafico} ` : ''}(Gen - Dic)
+            Andamento mensile — {PERIODI.find(p => p.value === periodo)?.label || ''}
           </CardTitle>
         </CardHeader>
         <CardContent>
