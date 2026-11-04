@@ -31,6 +31,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { SelettoreClienteCombobox } from '@/components/aziende/SelettoreClienteCombobox'
 import { formatEuro, formatData, statoWorkEntryLabel } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -69,7 +70,7 @@ export default function AttivitaPage() {
 
       const [resAtt, resAz, resSer] = await Promise.all([
         fetch(`/api/attivita?${params}`),
-        fetch('/api/aziende?perPagina=100&stato=attive'),
+        fetch('/api/aziende?perPagina=500&stato=attive'),
         fetch('/api/servizi?attivi=true'),
       ])
 
@@ -255,19 +256,16 @@ export default function AttivitaPage() {
                 <SelectItem value="ESCLUSA">Escluse</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filtroAzienda} onValueChange={setFiltroAzienda}>
-              <SelectTrigger className="w-56">
-                <SelectValue placeholder="Tutte le aziende" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TUTTE">Tutte le aziende</SelectItem>
-                {aziende.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.ragioneSociale}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="w-full sm:w-64">
+              <SelettoreClienteCombobox
+                value={filtroAzienda}
+                onValueChange={(id) => setFiltroAzienda(id || 'TUTTE')}
+                aziende={aziende}
+                includeAllOption
+                allOptionLabel="Tutte le aziende"
+                placeholder="Filtra per azienda..."
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -407,18 +405,12 @@ export default function AttivitaPage() {
 
             <div className="space-y-1.5">
               <Label htmlFor="azienda">Azienda cliente *</Label>
-              <Select value={formAzienda} onValueChange={setFormAzienda}>
-                <SelectTrigger id="azienda">
-                  <SelectValue placeholder="Seleziona azienda..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {aziende.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.ragioneSociale}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelettoreClienteCombobox
+                value={formAzienda}
+                onValueChange={(id) => setFormAzienda(id)}
+                aziende={aziende}
+                placeholder="Digita il nome dell'azienda o cliente (es. Rossi, Bar, Edil...)"
+              />
             </div>
 
             <div className="space-y-1.5">

@@ -18,6 +18,7 @@ import { formatEuro, formatData, statoInvoiceLabel, statoInvoiceBadgeColor } fro
 import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ImportaArubaModal } from '@/components/aruba/ImportaArubaModal'
+import { SelettoreClienteCombobox } from '@/components/aziende/SelettoreClienteCombobox'
 
 export default function BozzePage() {
   const { toast } = useToast()
@@ -41,7 +42,7 @@ export default function BozzePage() {
     try {
       const [resBozze, resAziende] = await Promise.all([
         fetch('/api/fatture?stato=bozze'),
-        fetch('/api/aziende?stato=attive&perPagina=100'),
+        fetch('/api/aziende?stato=attive&perPagina=500'),
       ])
       const datiBozze = await resBozze.json()
       const datiAziende = await resAziende.json()
@@ -183,16 +184,12 @@ export default function BozzePage() {
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label>Azienda</Label>
-              <Select value={selectedAzienda} onValueChange={setSelectedAzienda}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleziona azienda…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {aziende.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>{a.ragioneSociale}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelettoreClienteCombobox
+                value={selectedAzienda}
+                onValueChange={(id) => setSelectedAzienda(id)}
+                aziende={aziende}
+                placeholder="Digita il nome del cliente o azienda…"
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
