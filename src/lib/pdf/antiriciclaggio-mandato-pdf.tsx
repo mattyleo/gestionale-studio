@@ -591,18 +591,18 @@ function SecondaPaginaPrivacyEF24({
         </View>
       </View>
 
-      {/* SEZIONE DELEGA F24 TELEMATICO ENTRATEL */}
+      {/* SEZIONE DELEGA F24 TELEMATICO ENTRATEL (ALLEGATO A) */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionHeader}>
-          Autorizzazione alla Trasmissione Telematica dei Modelli di Versamento Unificato F24 (Servizio Entratel)
+          Allegato A — Autorizzazione alla Trasmissione Telematica dei Modelli di Versamento Unificato F24 (Servizio Entratel)
         </Text>
         <View style={styles.sectionBody}>
-          <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 4 }}>
+          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3.5 }}>
             Il sottoscritto <Text style={styles.bold}>{rapprNome}</Text>, nato a{' '}
             <Text style={styles.bold}>{luogoNascita}</Text> il <Text style={styles.bold}>{dataNascitaIt}</Text>, C.F.{' '}
-            <Text style={styles.bold}>{cfPersona}</Text>, domiciliato in{' '}
+            <Text style={styles.bold}>{cfPersona}</Text>, residente/domiciliato in{' '}
             <Text style={styles.bold}>
-              {viaSede} — {capSede} {comuneSede} ({provSede})
+              {comuneSede} ({provSede}), {viaSede} ({capSede})
             </Text>
             , in qualità di{' '}
             <Text style={styles.bold}>
@@ -610,40 +610,32 @@ function SecondaPaginaPrivacyEF24({
             </Text>{' '}
             (P.IVA/C.F. <Text style={styles.bold}>{pivaAzienda}</Text>),{' '}
             <Text style={styles.bold}>AUTORIZZA</Text> il <Text style={styles.bold}>Dott. Tuzio Antonio</Text> (C.F.
-            TZUNTN69A16D612E, Dottore Commercialista in Reggio Emilia iscritto al n. 742/A, intermediario abilitato al
-            servizio Entratel) a disporre gli ordini di pagamento delle imposte, contributi, tasse e versamenti vari
-            effettuabili tramite modello F24 sul conto corrente bancario/postale intestato al Cliente:
+            TZUNTN69A16D612E — P.IVA 02689050351, Dottore Commercialista in Reggio Emilia iscritto al n. 742/A,
+            intermediario abilitato al servizio Entratel) a disporre gli ordini di pagamento delle imposte, contributi,
+            tasse e versamenti vari effettuabili tramite modello F24, <Text style={styles.bold}>a valere sul conto corrente bancario o postale intestato allo stesso soggetto che effettua la trasmissione telematica</Text> (previo accredito della provvista), ovvero sul conto corrente intestato al Cliente (<Text style={styles.bold}>IBAN: {ibanCliente}</Text>), relativamente alle deleghe:
           </Text>
 
-          <View style={[styles.calloutBox, { marginBottom: 4 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={[styles.bold, { fontSize: 7.8, color: '#1e3a8a', width: '32%' }]}>
-                COORDINATE IBAN DEL CLIENTE:
-              </Text>
-              <Text style={[styles.bold, { fontSize: 8.5, color: '#0f172a', width: '68%' }]}>
-                {ibanCliente}
-              </Text>
-            </View>
+          <View style={styles.checkRow}>
+            <View style={styles.checkBoxEmpty} />
+            <Text style={{ fontSize: 7.3, flex: 1 }}>
+              <Text style={styles.bold}>del ____/____/________</Text> — estremi del singolo versamento autorizzato: ________________________________________;
+            </Text>
+          </View>
+          <View style={[styles.checkRow, { marginBottom: 3.5 }]}>
+            <Text style={styles.checkBoxChecked}>X</Text>
+            <Text style={{ fontSize: 7.3, flex: 1 }}>
+              <Text style={styles.bold}>dal {oggi} al revoca / cessazione dell&apos;incarico professionale</Text> — periodo di riferimento autorizzato in via continuativa per le scadenze fiscali, previdenziali e assicurative.
+            </Text>
           </View>
 
-          <Text style={{ fontSize: 7.3, textAlign: 'justify', marginBottom: 3 }}>
-            Il professionista si impegna a presentare al cliente le singole elaborazioni periodiche mettendolo al
-            corrente degli obblighi di pagamento e delle scadenze relative. Nell&apos;eventualità in cui il cliente
-            richieda anche verbalmente al professionista di sospendere il pagamento telematico di una o più deleghe F24,
-            il professionista si limiterà ad astenersi dall&apos;invio e sarà esonerato da qualsiasi responsabilità per
-            omesso o ritardato versamento. In caso di richiesta successiva di pagamento con ravvedimento operoso di
-            importi in precedenza sospesi, sarà cura del cliente avvertire per iscritto il professionista all&apos;email{' '}
-            <Text style={styles.bold}>postmaster@studiotuzio.it</Text>.{' '}
-            <Text style={styles.italic}>
-              (Informativa ex art. 13 D.Lgs. 196/2003 e GDPR &ldquo;F24 Telematico Entratel&rdquo;: i dati sono
-              trasmessi in via telematica cifrata all&apos;Agenzia delle Entrate per l&apos;addebito presso la
-              banca/Poste Italiane depositaria del conto indicato).
-            </Text>
+          <Text style={{ fontSize: 7.1, textAlign: 'justify', marginBottom: 3 }}>
+            <Text style={styles.bold}>Informativa ex art. 13 D.Lgs. 196/2003 e GDPR (&ldquo;F24 on line&rdquo; Agenzia delle Entrate): </Text>
+            I dati conferiti tramite questo modello sono raccolti esclusivamente per l&apos;espletamento del servizio &ldquo;F24 on line&rdquo; dagli intermediari abilitati Entratel e trasmessi con sistemi di cifratura all&apos;Agenzia delle Entrate, che li invierà alla banca/Poste Italiane depositaria del conto corrente indicato per richiedere l&apos;addebito delle somme dovute (diritti ex art. 7 D.Lgs. 196/2003 e artt. 15-22 GDPR su www.agenziaentrate.gov.it). In caso di richiesta anche verbale del Cliente di sospendere il pagamento telematico di una o più deleghe F24, il professionista è esonerato da ogni responsabilità per omesso/ritardato versamento (eventuali ravvedimenti vanno richiesti per iscritto a <Text style={styles.bold}>postmaster@studiotuzio.it</Text>).
           </Text>
 
           <View style={styles.signatureRow}>
             <View style={styles.signatureCard}>
-              <Text style={styles.signatureLabelTop}>Autorizzazione Addebito Telematico F24 — Il Cliente</Text>
+              <Text style={styles.signatureLabelTop}>Autorizzazione Addebito Telematico F24 (Allegato A) — Il Cliente</Text>
               <Text style={styles.signaturePartyName}>{rapprNome}</Text>
               <View style={styles.signatureLine} />
               <Text style={styles.signatureSub}>Reggio Emilia, lì {oggi} — Firma del Cliente</Text>

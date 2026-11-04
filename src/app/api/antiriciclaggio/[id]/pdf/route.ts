@@ -9,6 +9,7 @@ import { generaAntiriciclaggioDichiarazionePDF } from '@/lib/pdf/antiriciclaggio
 import { generaAntiriciclaggioPrivacyPDF } from '@/lib/pdf/antiriciclaggio-privacy-pdf'
 import { generaAntiriciclaggioValutazionePDF } from '@/lib/pdf/antiriciclaggio-valutazione-pdf'
 import { generaLetteraIncaricoMandatoPDF } from '@/lib/pdf/antiriciclaggio-mandato-pdf'
+import { generaAutorizzazioneF24PDF } from '@/lib/pdf/antiriciclaggio-f24-pdf'
 
 export async function GET(
   req: Request,
@@ -50,6 +51,9 @@ export async function GET(
     if (tipo === 'mandato') {
       buffer = await generaLetteraIncaricoMandatoPDF(azienda, emittente, variante)
       filename = `Lettera_Incarico_Mandato_${safeRagSoc}.pdf`
+    } else if (tipo === 'f24') {
+      buffer = await generaAutorizzazioneF24PDF(azienda, emittente)
+      filename = `Allegato_A_Autorizzazione_F24_${safeRagSoc}.pdf`
     } else if (tipo === 'privacy') {
       buffer = await generaAntiriciclaggioPrivacyPDF(azienda, emittente)
       filename = `Privacy_GDPR_${safeRagSoc}.pdf`

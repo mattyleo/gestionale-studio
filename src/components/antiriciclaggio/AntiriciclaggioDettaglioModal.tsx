@@ -1253,6 +1253,19 @@ export function AntiriciclaggioDettaglioModal({
                           type="button"
                           variant="outline"
                           size="sm"
+                          onClick={() =>
+                            window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=f24`, '_blank')
+                          }
+                          className="h-7 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-emerald-300 font-bold"
+                          title="Stampa Allegato A — Autorizzazione alla trasmissione telematica dei modelli di versamento unificato F24 (Servizio Entratel) con Informativa ex art. 13 D.Lgs. 196/2003"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1 text-emerald-700" />
+                          Delega F24 (Allegato A)
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=valutazione`, '_blank')}
                           className="h-7 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border-indigo-300 font-semibold"
                         >

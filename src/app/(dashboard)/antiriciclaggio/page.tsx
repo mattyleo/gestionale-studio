@@ -915,6 +915,16 @@ export default function AntiriciclaggioPage() {
                           </Button>
 
                           <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-1.5 text-[10px] font-bold text-emerald-800 border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
+                            onClick={() => window.open(`/api/antiriciclaggio/${az.id}/pdf?tipo=f24`, '_blank')}
+                            title="Stampa Allegato A — Autorizzazione alla trasmissione telematica dei modelli di versamento unificato F24 (Servizio Entratel)"
+                          >
+                            F24
+                          </Button>
+
+                          <Button
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
