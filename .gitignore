@@ -64,4 +64,5 @@ next-env.d.ts
 *.sqlite
 *.sqlite3
 *.db
+*smtp-config*.json
 

@@ -17,6 +17,12 @@ import {
   GitBranch,
   ArrowUpCircle,
   ShieldCheck,
+  Mail,
+  Send,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  Key,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -76,6 +82,45 @@ export default function ImpostazioniPage() {
   const [numerazione, setNumerazione] = React.useState<any>(null)
   const [nuovoUltimoNumero, setNuovoUltimoNumero] = React.useState('')
 
+  // Configurazione Email & SMTP
+  const [smtp, setSmtp] = React.useState({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    user: 'infooizut@gmail.com',
+    pass: '',
+    from: '"Dott. Antonio Tuzio" <infooizut@gmail.com>',
+    hasPassword: false,
+    isConfigured: false,
+  })
+  const [mostraPasswordSmtp, setMostraPasswordSmtp] = React.useState(false)
+  const [salvandoSmtp, setSalvandoSmtp] = React.useState(false)
+  const [testEmail, setTestEmail] = React.useState('infooizut@gmail.com')
+  const [testandoSmtp, setTestandoSmtp] = React.useState(false)
+  const [esitoTestSmtp, setEsitoTestSmtp] = React.useState<{ success?: boolean; message?: string } | null>(null)
+
+  const applicaPresetGmail = () => {
+    setSmtp((prev) => ({
+      ...prev,
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      user: studio.email || prev.user || 'infooizut@gmail.com',
+      from: studio.denominazione ? `"${studio.denominazione}" <${studio.email || prev.user || 'infooizut@gmail.com'}>` : '"Dott. Antonio Tuzio" <infooizut@gmail.com>',
+    }))
+    toast({ title: 'Configurazione Gmail applicata', description: 'Inserisci la password per le app a 16 caratteri e salva.' })
+  }
+
+  const applicaPresetAruba = () => {
+    setSmtp((prev) => ({
+      ...prev,
+      host: 'smtps.aruba.it',
+      port: 465,
+      secure: true,
+    }))
+    toast({ title: 'Configurazione Aruba applicata', description: 'Verifica utente e password della tua casella Aruba.' })
+  }
+
   // Aggiornamenti software
   const [statoAggiornamento, setStatoAggiornamento] = React.useState<any>(null)
   const [verificandoAggiornamenti, setVerificandoAggiornamenti] = React.useState(false)
@@ -130,9 +175,10 @@ export default function ImpostazioniPage() {
   const caricaDati = React.useCallback(async () => {
     setLoading(true)
     try {
-      const [resStudio, resNum] = await Promise.all([
+      const [resStudio, resNum, resSmtp] = await Promise.all([
         fetch('/api/impostazioni/emittente'),
         fetch('/api/impostazioni/numerazione'),
+        fetch('/api/impostazioni/smtp'),
       ])
 
       if (resStudio.ok) {
@@ -152,6 +198,23 @@ export default function ImpostazioniPage() {
           setNuovoUltimoNumero(String(dNum.corrente.ultimoNumero))
         }
       }
+
+      if (resSmtp.ok) {
+        const dSmtp = await resSmtp.json()
+        setSmtp({
+          host: dSmtp.host || 'smtp.gmail.com',
+          port: dSmtp.port || 465,
+          secure: dSmtp.secure !== undefined ? dSmtp.secure : true,
+          user: dSmtp.user || 'infooizut@gmail.com',
+          pass: '',
+          from: dSmtp.from || '"Dott. Antonio Tuzio" <infooizut@gmail.com>',
+          hasPassword: dSmtp.hasPassword,
+          isConfigured: dSmtp.isConfigured,
+        })
+        if (dSmtp.user) {
+          setTestEmail(dSmtp.user)
+        }
+      }
     } catch {
       toast({ title: 'Errore', description: 'Impossibile caricare le impostazioni', variant: 'destructive' })
     } finally {
@@ -162,6 +225,60 @@ export default function ImpostazioniPage() {
   React.useEffect(() => {
     caricaDati()
   }, [caricaDati])
+
+  const handleSalvaSmtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSalvandoSmtp(true)
+    try {
+      const res = await fetch('/api/impostazioni/smtp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(smtp),
+      })
+      const dati = await res.json()
+      if (!res.ok) throw new Error(dati.error)
+      toast({ title: '✅ Impostazioni SMTP salvate con successo' })
+      setSmtp((prev) => ({
+        ...prev,
+        pass: '',
+        hasPassword: dati.hasPassword,
+        isConfigured: dati.isConfigured,
+      }))
+    } catch (e: any) {
+      toast({ title: 'Errore salvataggio SMTP', description: e.message, variant: 'destructive' })
+    } finally {
+      setSalvandoSmtp(false)
+    }
+  }
+
+  const handleTestSmtp = async () => {
+    if (!testEmail || !testEmail.includes('@')) {
+      toast({ title: 'Inserisci un indirizzo email di prova valido', variant: 'destructive' })
+      return
+    }
+
+    setTestandoSmtp(true)
+    setEsitoTestSmtp(null)
+    try {
+      const res = await fetch('/api/impostazioni/smtp/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          testEmail,
+          config: smtp.pass ? smtp : undefined,
+        }),
+      })
+      const dati = await res.json()
+      if (!res.ok) throw new Error(dati.error || 'Errore durante il test')
+      setEsitoTestSmtp({ success: true, message: dati.message })
+      toast({ title: '✅ Test riuscito!', description: 'Controlla la casella di posta specificata.' })
+    } catch (e: any) {
+      setEsitoTestSmtp({ success: false, message: e.message })
+      toast({ title: '❌ Test fallito', description: e.message, variant: 'destructive' })
+    } finally {
+      setTestandoSmtp(false)
+    }
+  }
 
   const handleSalvaStudio = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -231,6 +348,9 @@ export default function ImpostazioniPage() {
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="studio">Studio Emittente</TabsTrigger>
           <TabsTrigger value="numerazione">Numerazione Fatture</TabsTrigger>
+          <TabsTrigger value="email" className="flex items-center gap-1.5">
+            <Mail className="h-4 w-4" /> Email &amp; Posta (SMTP)
+          </TabsTrigger>
           <TabsTrigger value="aruba">Integrazione Aruba</TabsTrigger>
           <TabsTrigger value="calendar">Google Calendar</TabsTrigger>
           <TabsTrigger value="aggiornamenti" className="relative">
@@ -531,6 +651,278 @@ export default function ImpostazioniPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* TAB: Email & Posta (SMTP) */}
+        <TabsContent value="email" className="space-y-6">
+          <Card className={smtp.isConfigured ? 'border-green-200' : 'border-amber-200'}>
+            <CardHeader className={smtp.isConfigured ? 'bg-green-50/50 border-b border-green-100' : 'bg-amber-50/50 border-b border-amber-100'}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className={`h-5 w-5 ${smtp.isConfigured ? 'text-green-600' : 'text-amber-600'}`} />
+                    Configurazione Server di Posta (SMTP)
+                  </CardTitle>
+                  <CardDescription>
+                    Consente di trasmettere direttamente dal programma le fatture elettroniche di cortesia e gli avvisi di parcella ai clienti con il PDF allegato.
+                  </CardDescription>
+                </div>
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${
+                    smtp.isConfigured
+                      ? 'bg-green-100 text-green-800 border-green-300'
+                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                  }`}
+                >
+                  {smtp.isConfigured ? '✅ SMTP Attivo (Invio Diretto con PDF)' : '⚠️ Da Configurare (Attualmente usa mailto)'}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              {/* Presets rapidi */}
+              <div className="flex items-center gap-2 flex-wrap bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <span className="text-xs font-semibold text-slate-700">Impostazione rapida automatica:</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={applicaPresetGmail}
+                  className="text-xs h-8 bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
+                >
+                  ⚡ Gmail (smtp.gmail.com - porta 465 SSL)
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={applicaPresetAruba}
+                  className="text-xs h-8 bg-white text-orange-700 border-orange-200 hover:bg-orange-50"
+                >
+                  ⚡ Aruba Mail (smtps.aruba.it - porta 465 SSL)
+                </Button>
+              </div>
+
+              {/* Form Configurazione */}
+              <form onSubmit={handleSalvaSmtp} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="smtpHost">Server SMTP (Host)</Label>
+                    <Input
+                      id="smtpHost"
+                      value={smtp.host}
+                      onChange={(e) => setSmtp({ ...smtp, host: e.target.value })}
+                      placeholder="smtp.gmail.com"
+                      className="font-mono text-sm"
+                    />
+                    <span className="text-[11px] text-gray-500">Es. smtp.gmail.com o smtps.aruba.it</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="smtpPort">Porta</Label>
+                    <Input
+                      id="smtpPort"
+                      type="number"
+                      value={smtp.port}
+                      onChange={(e) => setSmtp({ ...smtp, port: parseInt(e.target.value) || 465 })}
+                      placeholder="465"
+                      className="font-mono text-sm"
+                    />
+                    <span className="text-[11px] text-gray-500">465 (SSL) oppure 587 (TLS/STARTTLS)</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="smtpSecure">Crittografia SSL / TLS</Label>
+                    <Select
+                      value={smtp.secure ? 'true' : 'false'}
+                      onValueChange={(val) => setSmtp({ ...smtp, secure: val === 'true' })}
+                    >
+                      <SelectTrigger id="smtpSecure">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">SSL / TLS (Consigliato per porta 465)</SelectItem>
+                        <SelectItem value="false">STARTTLS / Non sicura (porta 587 o 25)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="smtpUser">Indirizzo Email / Utente</Label>
+                    <Input
+                      id="smtpUser"
+                      type="email"
+                      value={smtp.user}
+                      onChange={(e) => setSmtp({ ...smtp, user: e.target.value })}
+                      placeholder="infooizut@gmail.com"
+                    />
+                    <span className="text-[11px] text-gray-500">L'indirizzo email della casella dello studio</span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="smtpPass">
+                        Password / Password per le App
+                      </Label>
+                      {smtp.hasPassword && (
+                        <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                          Password già impostata
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="smtpPass"
+                        type={mostraPasswordSmtp ? 'text' : 'password'}
+                        value={smtp.pass}
+                        onChange={(e) => setSmtp({ ...smtp, pass: e.target.value })}
+                        placeholder={smtp.hasPassword ? '•••••••••••••••• (lascia vuoto per non cambiarla)' : 'Inserisci la password di 16 caratteri'}
+                        className="font-mono pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMostraPasswordSmtp(!mostraPasswordSmtp)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {mostraPasswordSmtp ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <span className="text-[11px] text-gray-500">
+                      Per Gmail inserire la "Password per le app" a 16 caratteri (vedi riquadro in basso).
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="smtpFrom">Intestazione e Nome Mittente visualizzato</Label>
+                  <Input
+                    id="smtpFrom"
+                    value={smtp.from}
+                    onChange={(e) => setSmtp({ ...smtp, from: e.target.value })}
+                    placeholder='"Dott. Antonio Tuzio" <infooizut@gmail.com>'
+                  />
+                  <span className="text-[11px] text-gray-500">
+                    Come appare il mittente nella casella di posta dei clienti (es. "Dott. Antonio Tuzio" &lt;infooizut@gmail.com&gt;)
+                  </span>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button type="submit" disabled={salvandoSmtp} className="bg-blue-600 hover:bg-blue-700">
+                    {salvandoSmtp ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvataggio in corso...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" /> Salva Configurazione Email
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Card Test Invio */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Send className="h-4 w-4 text-blue-600" />
+                Test Connessione &amp; Invio Email di Prova
+              </CardTitle>
+              <CardDescription>
+                Verifica che i dati e la password inseriti funzionino correttamente senza dover attendere di emettere una fattura reale.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-end gap-3">
+                <div className="space-y-1.5 flex-1">
+                  <Label htmlFor="testEmailDest">Invia email di prova a:</Label>
+                  <Input
+                    id="testEmailDest"
+                    type="email"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    placeholder="infooizut@gmail.com"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleTestSmtp}
+                  disabled={testandoSmtp}
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                >
+                  {testandoSmtp ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Verifica connessione in corso...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" /> Invia Email di Test
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {esitoTestSmtp && (
+                <div
+                  className={`p-4 rounded-lg border text-sm ${
+                    esitoTestSmtp.success
+                      ? 'bg-green-50 border-green-200 text-green-900'
+                      : 'bg-red-50 border-red-200 text-red-900'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {esitoTestSmtp.success ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <p className="font-semibold">
+                        {esitoTestSmtp.success ? 'Connessione Riuscita!' : 'Errore di connessione'}
+                      </p>
+                      <p className="mt-0.5 text-xs opacity-90">{esitoTestSmtp.message}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card Guida Gmail Password per le app */}
+          <Card className="bg-slate-50 border-slate-200">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800">
+                <Key className="h-4 w-4 text-blue-600" />
+                Guida Rapida: Come creare la "Password per le app" per Gmail ({smtp.user || 'infooizut@gmail.com'})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-slate-700 space-y-2">
+              <p>
+                Google <strong>non consente più</strong> l'accesso SMTP diretto con la solita password della casella email a causa della verifica a due fattori (2FA). È necessario creare un codice di accesso dedicato a 16 caratteri:
+              </p>
+              <ol className="list-decimal list-inside space-y-1.5 pl-1 pt-1 font-sans">
+                <li>
+                  Accedi a <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold inline-flex items-center gap-0.5">Google Sicurezza Account <ExternalLink className="h-3 w-3" /></a> con l'account <code>{smtp.user || 'infooizut@gmail.com'}</code>.
+                </li>
+                <li>
+                  Assicurati che la <strong>Verifica in due passaggi</strong> sia attiva.
+                </li>
+                <li>
+                  Nella barra di ricerca in alto scrivi <strong>"Password per le app"</strong> (oppure cercala dentro la sezione <i>Verifica in due passaggi</i> in fondo alla pagina).
+                </li>
+                <li>
+                  Inserisci come nome <code>Gestionale Studio</code> e clicca su <strong>Crea</strong>.
+                </li>
+                <li>
+                  Google ti mostrerà un codice giallo di 16 lettere (es. <code>abcd efgh ijkl mnop</code>): selezionalo, incollalo nel campo <strong>Password</strong> qui sopra e clicca <strong>Salva Configurazione Email</strong>.
+                </li>
+              </ol>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* TAB: Aruba */}
