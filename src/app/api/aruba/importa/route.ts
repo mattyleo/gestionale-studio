@@ -231,8 +231,11 @@ export async function POST(req: Request) {
           const matchNum = numeroRaw.match(/(\d+)/)
           const numeroProgressivo = matchNum ? parseInt(matchNum[1], 10) : 1
 
+          const tipoDoc = cleanStr(datiGenDoc.TipoDocumento) || 'TD01'
+
           let sezionale = 'FT'
-          if (numeroRaw.toUpperCase().includes('FPR')) sezionale = 'FPR'
+          if (tipoDoc === 'TD04' || numeroRaw.toUpperCase().includes('NC')) sezionale = 'NC'
+          else if (numeroRaw.toUpperCase().includes('FPR')) sezionale = 'FPR'
           else if (numeroRaw.toUpperCase().includes('FPA')) sezionale = 'FPA'
           else if (numeroRaw.includes('/')) {
             const parts = numeroRaw.split('/')
@@ -344,15 +347,21 @@ export async function POST(req: Request) {
             })
           }
 
-          if (segnaComeSaldate && totaleFinale > 0) {
+          const importoPagamentoXml = parseNum(body.DatiPagamento?.DettaglioPagamento?.ImportoPagamento, 0)
+          // Se nel file XML è presente il netto a pagare (es. al netto di ritenuta d'acconto 20%), usiamo quello per l'incasso effettivo Aruba
+          const importoIncassoReale = importoPagamentoXml > 0 ? importoPagamentoXml : totaleFinale
+
+          if (segnaComeSaldate && totaleFinale > 0 && tipoDoc !== 'TD04') {
             await prisma.payment.create({
               data: {
                 invoiceId: inv.id,
-                importo: new Decimal(totaleFinale),
+                importo: new Decimal(importoIncassoReale),
                 dataValuta: dataDoc,
                 dataIncasso: dataDoc,
                 metodo: modalitaPagamento,
-                note: 'Incasso registrato da importazione storico Aruba',
+                note: importoPagamentoXml > 0 && Math.abs(importoPagamentoXml - totaleFinale) > 0.01
+                  ? `Incasso netto registrato da storico Aruba (Lordo ${totaleFinale.toFixed(2)} €, Netto ${importoPagamentoXml.toFixed(2)} €)`
+                  : 'Incasso registrato da importazione storico Aruba',
               },
             })
           }
