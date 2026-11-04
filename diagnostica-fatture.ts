@@ -140,6 +140,86 @@ async function main() {
       totale: Number(f.totaleDocumento),
     }))
   console.table(topFatture)
+
+  // ─────────────────────────────────────────────────────────────────
+  // CONTROLLO NUMERAZIONE PROGRESSIVO, BUCHI E DUPLICATI
+  // ─────────────────────────────────────────────────────────────────
+  console.log('\n=======================================================================')
+  console.log('       CONTROLLO PROGRESSIVO NUMERAZIONI FATTURE (BUCHI / DOPPI)       ')
+  console.log('=======================================================================\n')
+
+  const gruppi: Record<string, typeof fatture> = {}
+  for (const f of fatture) {
+    const anno = f.anno || (f.dataDocumento ? new Date(f.dataDocumento).getFullYear() : 2026)
+    const sez = f.sezionale || 'FT'
+    const key = `${sez} - Anno ${anno}`
+    if (!gruppi[key]) gruppi[key] = []
+    gruppi[key].push(f)
+  }
+
+  for (const [chiave, elenco] of Object.entries(gruppi)) {
+    console.log(`📌 Sezionale ${chiave} (${elenco.length} fatture registrate):`)
+    const ordinate = [...elenco].sort((a, b) => (a.numero || 0) - (b.numero || 0))
+    const numeri = ordinate.map((f) => f.numero).filter((n): n is number => n !== null && n !== undefined)
+
+    if (numeri.length === 0) {
+      console.log('   Nessuna fattura con numero progressivo valido.\n')
+      continue
+    }
+
+    const minNum = Math.min(...numeri)
+    const maxNum = Math.max(...numeri)
+    console.log(`   Intervallo: da n. ${minNum} a n. ${maxNum}`)
+
+    // 1. Controllo buchi
+    const numeriSet = new Set(numeri)
+    const buchi: number[] = []
+    const startFrom = minNum > 1 && minNum <= 5 ? 1 : minNum
+    for (let i = startFrom; i <= maxNum; i++) {
+      if (!numeriSet.has(i)) {
+        buchi.push(i)
+      }
+    }
+
+    if (buchi.length > 0) {
+      console.log(`   ❌ ATTENZIONE: Trovati ${buchi.length} BUCHI di numerazione (mancano nel DB):`)
+      console.log(`      Numeri mancanti: ${buchi.join(', ')}`)
+    } else {
+      console.log(`   ✅ Sequenza progressiva integra: NESSUN BUCO da ${startFrom} a ${maxNum}!`)
+    }
+
+    // 2. Controllo duplicati
+    const visti = new Set<number>()
+    const duplicati = new Set<number>()
+    for (const num of numeri) {
+      if (visti.has(num)) duplicati.add(num)
+      visti.add(num)
+    }
+
+    if (duplicati.size > 0) {
+      console.log(`   ❌ ATTENZIONE: Trovati NUMERI DUPLICATI: ${Array.from(duplicati).join(', ')}`)
+    } else {
+      console.log(`   ✅ Nessun numero duplicato.`)
+    }
+
+    // 3. Controllo ordine cronologico date
+    let inversioniData = 0
+    for (let idx = 1; idx < ordinate.length; idx++) {
+      const prev = ordinate[idx - 1]
+      const curr = ordinate[idx]
+      if (prev.dataDocumento && curr.dataDocumento && prev.numero !== curr.numero) {
+        if (new Date(curr.dataDocumento).getTime() < new Date(prev.dataDocumento).getTime()) {
+          console.log(`   ⚠️ Inversione data: Fattura ${prev.numeroCompleto} (${prev.dataDocumento.toISOString().split('T')[0]}) ha data successiva alla Fattura ${curr.numeroCompleto} (${curr.dataDocumento.toISOString().split('T')[0]})`)
+          inversioniData++
+        }
+      }
+    }
+    if (inversioniData === 0) {
+      console.log(`   ✅ Sequenza cronologica coerente (nessuna inversione temporale).\n`)
+    } else {
+      console.log(`   ⚠️ Rilevate ${inversioniData} inversioni temporali di data.\n`)
+    }
+  }
 }
 
 main()

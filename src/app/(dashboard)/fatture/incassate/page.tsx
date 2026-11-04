@@ -25,6 +25,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ImportaArubaModal } from '@/components/aruba/ImportaArubaModal'
 import { QuadraturaArubaModal } from '@/components/fatture/QuadraturaArubaModal'
+import { ControlloNumerazioneModal } from '@/components/fatture/ControlloNumerazioneModal'
 import { formatEuro, formatData } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
@@ -83,6 +84,7 @@ export default function IncassatePage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <ControlloNumerazioneModal />
           <QuadraturaArubaModal onAggiornato={caricaDati} />
           <ImportaArubaModal onSuccess={caricaDati} />
           <Badge variant="success" className="text-sm px-3 py-1">

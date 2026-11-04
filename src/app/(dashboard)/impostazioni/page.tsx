@@ -33,6 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ImportaArubaModal } from '@/components/aruba/ImportaArubaModal'
+import { ControlloNumerazioneModal } from '@/components/fatture/ControlloNumerazioneModal'
 import {
   Table,
   TableBody,
@@ -444,14 +445,17 @@ export default function ImpostazioniPage() {
         <TabsContent value="numerazione">
           <div className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Hash className="h-5 w-5 text-blue-600" />
-                  Contatore e Sequenza Numerazione Fatture
-                </CardTitle>
-                <CardDescription>
-                  Se prima di iniziare a usare questo gestionale hai già emesso fatture quest'anno con un altro software, puoi impostare qui il contatore di partenza.
-                </CardDescription>
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Hash className="h-5 w-5 text-blue-600" />
+                    Contatore e Sequenza Numerazione Fatture
+                  </CardTitle>
+                  <CardDescription>
+                    Se prima di iniziare a usare questo gestionale hai già emesso fatture quest'anno con un altro software, puoi impostare qui il contatore di partenza.
+                  </CardDescription>
+                </div>
+                <ControlloNumerazioneModal />
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-5 space-y-4">
