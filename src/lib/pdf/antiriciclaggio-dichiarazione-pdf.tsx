@@ -11,6 +11,7 @@ import {
   StyleSheet,
   renderToBuffer,
 } from '@react-pdf/renderer'
+import { arricchisciDatiClienteBot } from '@/lib/antiriciclaggio-engine'
 
 const styles = StyleSheet.create({
   page: {
@@ -218,18 +219,16 @@ export async function generaAntiriciclaggioDichiarazionePDF(
     : 'Via Emilia Ospizio 96 - 42122 Reggio Emilia (RE)'
   const studioPiva = emittente?.partitaIva ? `P.IVA ${emittente.partitaIva} - C.F. ${emittente.codiceFiscale || ''}` : ''
 
+  const botDati = arricchisciDatiClienteBot(azienda)
   const oggi = formatDate(azienda.antiriciclaggioDataVerifica || new Date())
-  const rapprNome = azienda.legaleRappresentante || azienda.referente || (azienda.tipoSoggetto !== 'PERSONA_GIURIDICA' ? azienda.ragioneSociale : '____________________________________')
-  const rapprCf = azienda.cfRappresentante || (azienda.tipoSoggetto !== 'PERSONA_GIURIDICA' ? azienda.codiceFiscale : '________________________')
-  const titolareEff = azienda.antiriciclaggioTitolareEffettivo || rapprNome
+  const rapprNome = botDati.rapprNome || '____________________________________'
+  const rapprCf = botDati.cfPersona || '________________________'
+  const titolareEff = botDati.titolareEffettivo || rapprNome
   const cfTitolareEff = azienda.antiriciclaggioCfTitolareEffettivo || rapprCf
-  const luogoNascita = azienda.luogoNascitaRappr || azienda.comune || '________________________'
-  const dataNascita = formatDate(azienda.dataNascitaRappr)
-
-  const ragSocUp = (azienda.ragioneSociale || '').toUpperCase()
-  const isSocieta =
-    azienda.tipoSoggetto === 'PERSONA_GIURIDICA' ||
-    /\b(SRL|S\.R\.L|SPA|S\.P\.A|SNC|S\.N\.C|SAS|S\.A\.S|COOP|CONSORZIO|SOCIETA)\b/.test(ragSocUp)
+  const luogoNascita = botDati.luogoNascita || azienda.comune || '________________________'
+  const dataNascita = botDati.dataNascitaIt || formatDate(azienda.dataNascitaRappr)
+  const pivaNorm = botDati.pivaNorm || azienda.partitaIva
+  const isSocieta = botDati.isSocieta
 
   const prestazioneTesto =
     azienda.antiriciclaggioPrestazione ||
@@ -333,11 +332,11 @@ export async function generaAntiriciclaggioDichiarazionePDF(
             </View>
             <View style={styles.col}>
               <Text style={styles.label}>Partita IVA</Text>
-              <Text style={styles.value}>{azienda.partitaIva || 'Non applicabile (Privato)'}</Text>
+              <Text style={styles.value}>{pivaNorm || 'Non applicabile (Privato)'}</Text>
             </View>
             <View style={styles.col}>
               <Text style={styles.label}>Codice Fiscale</Text>
-              <Text style={styles.value}>{azienda.codiceFiscale || azienda.partitaIva || '________________'}</Text>
+              <Text style={styles.value}>{azienda.codiceFiscale || pivaNorm || '________________'}</Text>
             </View>
           </View>
           <View style={styles.row}>

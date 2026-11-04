@@ -25,6 +25,175 @@
 
 import { prisma } from '@/lib/prisma'
 
+const MAPPA_MESI_CF: Record<string, number> = {
+  A: 0, B: 1, C: 2, D: 3, E: 4, H: 5, L: 6, M: 7, P: 8, R: 9, S: 10, T: 11,
+}
+
+const MAPPA_COMUNI_CATASTALI: Record<string, string> = {
+  A023: 'Abbasanta (OR)',
+  A783: 'Bagnolo in Piano (RE)',
+  A788: 'Bagno di Romagna (FC)',
+  A944: 'Bologna (BO)',
+  B328: 'Cadelbosco di Sopra (RE)',
+  B354: 'Cagliari (CA)',
+  B429: 'Caltagirone (CT)',
+  B819: 'Carpi (MO)',
+  B963: 'Caserta (CE)',
+  C349: 'Castellarano (RE)',
+  C351: 'Catania (CT)',
+  C352: 'Catanzaro (CZ)',
+  C361: 'Cattolica (RN)',
+  C398: 'Cavriago (RE)',
+  C405: 'Cefalù (PA)',
+  C814: 'Cinquefrondi (RC)',
+  C967: 'Corigliano Calabro (CS)',
+  D037: 'Correggio (RE)',
+  D122: 'Crotone (KR)',
+  D442: 'Erice (TP)',
+  D488: 'Faenza (RA)',
+  D612: 'Firenze (FI)',
+  D643: 'Foggia (FG)',
+  D662: 'Fondi (LT)',
+  D704: 'Forlì (FC)',
+  D862: 'Galatina (LE)',
+  D969: 'Genova (GE)',
+  E253: 'Guastalla (RE)',
+  E541: 'Lercara Friddi (PA)',
+  F104: 'Melito di Porto Salvo (RC)',
+  F158: 'Messina (ME)',
+  F205: 'Milano (MI)',
+  F257: 'Modena (MO)',
+  F463: 'Montecchio Emilia (RE)',
+  F704: 'Monza (MB)',
+  F839: 'Napoli (NA)',
+  F912: 'Nocera Inferiore (SA)',
+  F966: 'Novellara (RE)',
+  G273: 'Palermo (PA)',
+  G315: 'Paola (CS)',
+  G337: 'Parma (PR)',
+  G535: 'Pisticci (MT)',
+  G702: 'Pisa (PI)',
+  G786: 'Policoro (MT)',
+  H223: "Reggio nell'Emilia (RE)",
+  H225: 'Reggiolo (RE)',
+  H501: 'Roma (RM)',
+  H620: 'Rovigo (RO)',
+  I342: 'Sant\'Ilario d\'Enza (RE)',
+  I462: 'Sassuolo (MO)',
+  I496: 'Scandiano (RE)',
+  I590: 'Serra San Bruno (VV)',
+  I630: 'Siderno (RC)',
+  I754: 'Siracusa (SR)',
+  L063: ' Taurianova (RC)',
+  L112: 'Termoli (CB)',
+  L219: 'Torino (TO)',
+  L259: 'Torre Annunziata (NA)',
+  L781: 'Verona (VR)',
+  Z100: 'Albania (EE)',
+  Z114: 'Bulgaria (EE)',
+  Z129: 'Romania (EE)',
+  Z133: 'Svizzera (EE)',
+  Z135: 'Ucraina (EE)',
+  Z138: 'Moldavia (EE)',
+  Z160: 'Kosovo (EE)',
+  Z306: 'Costa d\'Avorio (EE)',
+  Z336: 'Egitto (EE)',
+  Z602: 'Brasile (EE)',
+}
+
+export function decodificaCodiceFiscale(cfRaw?: string | null): {
+  dataNascitaDate: Date | null
+  dataNascitaIt: string | null
+  luogoNascita: string | null
+  sesso: 'M' | 'F' | null
+} {
+  const cf = String(cfRaw || '').trim().toUpperCase()
+  if (!/^[A-Z]{6}\d{2}[A-EHLMPRST]\d{2}[A-Z]\d{3}[A-Z]$/.test(cf)) {
+    return { dataNascitaDate: null, dataNascitaIt: null, luogoNascita: null, sesso: null }
+  }
+  const yy = parseInt(cf.slice(6, 8), 10)
+  const meseChar = cf[8]
+  const ddRaw = parseInt(cf.slice(9, 11), 10)
+  const catCode = cf.slice(11, 15)
+
+  const mese = MAPPA_MESI_CF[meseChar]
+  if (mese === undefined || isNaN(yy) || isNaN(ddRaw)) {
+    return { dataNascitaDate: null, dataNascitaIt: null, luogoNascita: null, sesso: null }
+  }
+
+  const sesso: 'M' | 'F' = ddRaw > 40 ? 'F' : 'M'
+  const giorno = ddRaw > 40 ? ddRaw - 40 : ddRaw
+  const anno = yy > 26 ? 1900 + yy : 2000 + yy
+  const dataNascitaDate = new Date(Date.UTC(anno, mese, giorno, 12, 0, 0))
+  const ggStr = String(giorno).padStart(2, '0')
+  const mmStr = String(mese + 1).padStart(2, '0')
+  const dataNascitaIt = `${ggStr}/${mmStr}/${anno}`
+  const luogoNascita = MAPPA_COMUNI_CATASTALI[catCode] || `Cod. Catastale ${catCode}`
+
+  return { dataNascitaDate, dataNascitaIt, luogoNascita, sesso }
+}
+
+export function arricchisciDatiClienteBot(az: any) {
+  const ragSoc = String(az.ragioneSociale || '').trim()
+  const ragSocUp = ragSoc.toUpperCase()
+  const isSocieta =
+    az.tipoSoggetto === 'PERSONA_GIURIDICA' ||
+    /\b(SRL|S\.R\.L|SPA|S\.P\.A|SNC|S\.N\.C|SAS|S\.A\.S|COOP|CONSORZIO|SOCIETA)\b/.test(ragSocUp)
+
+  // Normalizza P.IVA a 11 cifre se ha perso lo 0 iniziale nell'importazione
+  let pivaNorm = az.partitaIva ? String(az.partitaIva).trim() : null
+  if (pivaNorm && /^\d{10}$/.test(pivaNorm)) {
+    pivaNorm = '0' + pivaNorm
+  }
+
+  let cfNorm = az.codiceFiscale ? String(az.codiceFiscale).trim().toUpperCase() : null
+  if (cfNorm && /^\d{10}$/.test(cfNorm)) {
+    cfNorm = '0' + cfNorm
+  }
+
+  // Estrai il nome del titolare se la ditta individuale contiene " DI " (es. "BAR GLAMOUR DI ARIOLI DONIRCA" -> "ARIOLI DONIRCA")
+  let titolareEstratto = az.legaleRappresentante || az.referente || null
+  if (!isSocieta && (!titolareEstratto || titolareEstratto.toUpperCase() === ragSocUp)) {
+    const matchDi = ragSoc.match(/\bDI\s+([A-ZÀ-Úa-zà-ú'\s]{4,})$/i)
+    if (matchDi && matchDi[1]) {
+      titolareEstratto = matchDi[1].trim()
+    } else {
+      titolareEstratto = ragSoc
+    }
+  }
+
+  const cfPersona =
+    (az.cfRappresentante && String(az.cfRappresentante).trim().length === 16
+      ? String(az.cfRappresentante).trim().toUpperCase()
+      : null) ||
+    (cfNorm && cfNorm.length === 16 ? cfNorm : null)
+
+  const decodifica = decodificaCodiceFiscale(cfPersona)
+
+  const dataNascitaDate = az.dataNascitaRappr ? new Date(az.dataNascitaRappr) : decodifica.dataNascitaDate
+  const dataNascitaIt = az.dataNascitaRappr
+    ? new Date(az.dataNascitaRappr).toLocaleDateString('it-IT')
+    : decodifica.dataNascitaIt
+  const luogoNascita = az.luogoNascitaRappr || decodifica.luogoNascita || az.comune || "Reggio nell'Emilia (RE)"
+
+  return {
+    ragSoc,
+    isSocieta,
+    pivaNorm,
+    cfNorm,
+    rapprNome: titolareEstratto || (isSocieta ? `Amministratore Unico / Legale Rappr. di ${ragSoc}` : ragSoc),
+    cfPersona,
+    dataNascitaDate,
+    dataNascitaIt: dataNascitaIt || 'Da acquisire da C.I.',
+    luogoNascita,
+    titolareEffettivo:
+      az.antiriciclaggioTitolareEffettivo &&
+      az.antiriciclaggioTitolareEffettivo.toUpperCase() !== ragSocUp
+        ? az.antiriciclaggioTitolareEffettivo
+        : titolareEstratto || (isSocieta ? `Socio/Amministratore di ${ragSoc}` : ragSoc),
+  }
+}
+
 export interface ValutazioneBotZona {
   zona: 'ZONA_1' | 'ZONA_2' | 'ZONA_3'
   zonaLabel: string
@@ -217,6 +386,7 @@ export async function eseguiRegolarizzazioneCNDCEC() {
     const { az, haPiva, isSuccessione, isSrlSocieta, isEntePaCaf, lineeTesto, primaFatturaData } = item
 
     // ZONA 1: Privato senza P.IVA (730, Redditi PF, IMU, Libretto Famiglia INPS, NASpI, Maternità, Dimissioni)
+    const datiAuto = arricchisciDatiClienteBot(az)
     if (!haPiva && !isSuccessione) {
       await prisma.company.update({
         where: { id: az.id },
@@ -227,8 +397,10 @@ export async function eseguiRegolarizzazioneCNDCEC() {
           antiriciclaggioStato: 'REGOLARE',
           antiriciclaggioRischio: 'BASSO',
           antiriciclaggioPunteggio: 1,
-          legaleRappresentante: az.legaleRappresentante || az.ragioneSociale,
-          cfRappresentante: az.cfRappresentante || az.codiceFiscale || null,
+          legaleRappresentante: datiAuto.rapprNome,
+          cfRappresentante: datiAuto.cfPersona,
+          dataNascitaRappr: datiAuto.dataNascitaDate,
+          luogoNascitaRappr: datiAuto.luogoNascita,
           antiriciclaggioPrestazione:
             lineeTesto.includes('imu')
               ? '[ZONA 1 - ESENTE] Elaborazione conteggi IMU e assistenza tributaria locale (Persona Fisica)'
@@ -340,17 +512,14 @@ export async function eseguiRegolarizzazioneCNDCEC() {
         'BOT ZONA 3 / GRUPPO B (SOGGETTA AD AVC Grado 3 - Regola Tecnica n. 2 CNDCEC): Obbligatoria AVC completa (Mod. AV.1, AV.4) e fascicolo 10 anni. Applicata Semplificazione Contabile/Societaria (Somma Tabella A / 4): Rischio Effettivo Poco Significativo (1,60 - 1,78 su 4,00) -> Controllo Costante (Mod. AV.7) ogni 36 mesi.'
     }
 
-    const titolareDefault = !isSrlSocieta
-      ? (az.legaleRappresentante || az.ragioneSociale)
-      : (az.antiriciclaggioTitolareEffettivo || az.legaleRappresentante || `Legale Rappresentante di ${az.ragioneSociale}`)
-
-    const cfTitolareDefault = !isSrlSocieta
-      ? (az.cfRappresentante || az.codiceFiscale || null)
-      : (az.antiriciclaggioCfTitolareEffettivo || az.cfRappresentante || null)
+    const titolareDefault = datiAuto.titolareEffettivo
+    const cfTitolareDefault = datiAuto.cfPersona
 
     await prisma.company.update({
       where: { id: az.id },
       data: {
+        partitaIva: datiAuto.pivaNorm || az.partitaIva,
+        codiceFiscale: datiAuto.cfNorm || az.codiceFiscale,
         tipoSoggetto: tipoSogg,
         settoreAttivita: settore,
         antiriciclaggioObbligo: true,
@@ -362,8 +531,10 @@ export async function eseguiRegolarizzazioneCNDCEC() {
         antiriciclaggioPrestazione: prestazione,
         antiriciclaggioTitolareEffettivo: titolareDefault,
         antiriciclaggioCfTitolareEffettivo: cfTitolareDefault,
-        legaleRappresentante: az.legaleRappresentante || (!isSrlSocieta ? az.ragioneSociale : null),
-        cfRappresentante: az.cfRappresentante || (!isSrlSocieta ? az.codiceFiscale : null),
+        legaleRappresentante: datiAuto.rapprNome,
+        cfRappresentante: datiAuto.cfPersona,
+        dataNascitaRappr: datiAuto.dataNascitaDate,
+        luogoNascitaRappr: datiAuto.luogoNascita,
         antiriciclaggioStato: 'REGOLARE',
         antiriciclaggioNote: motivazione,
       },
