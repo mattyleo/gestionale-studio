@@ -1209,16 +1209,45 @@ export function AntiriciclaggioDettaglioModal({
                           variant="outline"
                           size="sm"
                           onClick={() =>
+                            window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato&variante=PAGHE`, '_blank')
+                          }
+                          className="h-7 text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 font-bold"
+                          title="Stampa Lettera d'Incarico Amministrazione del Personale Dipendente (Paghe, Delega LUL, Privacy, Delega F24 e Tariffario Paghe)"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1 text-amber-700" />
+                          Mandato Paghe
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
                             window.open(
-                              `/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato&variante=${form.settoreAttivita || 'PAGHE'}`,
+                              `/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato&variante=CONTABILITA`,
                               '_blank'
                             )
                           }
-                          className="h-7 text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 font-bold"
-                          title="Stampa Lettera d'Incarico autocompilata (Mandato + Delega LUL/Cassetto + Policy Privacy + Delega F24 + Tariffario + Clausola Antiriciclaggio)"
+                          className="h-7 text-xs bg-blue-50 hover:bg-blue-100 text-blue-900 border-blue-300 font-bold"
+                          title="Stampa Lettera di Incarico Professionale per Tenuta Contabilità Ordinaria e Bilancio (€ 873,60 x 3 = € 2.620,80 + LLOYD'S + Privacy + Delega F24)"
                         >
-                          <Printer className="h-3.5 w-3.5 mr-1 text-amber-700" />
-                          Stampa Lettera d&apos;Incarico
+                          <Printer className="h-3.5 w-3.5 mr-1 text-blue-700" />
+                          Mandato Contabilità
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            window.open(
+                              `/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato&variante=FORFETTARI`,
+                              '_blank'
+                            )
+                          }
+                          className="h-7 text-xs bg-purple-50 hover:bg-purple-100 text-purple-900 border-purple-300 font-bold"
+                          title="Stampa Lettera di Incarico Professionale per Dichiarazioni e Consulenza in Regime Forfetario (€ 90 apertura P.IVA, € 420 annuale + Privacy + Delega F24 Entratel)"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1 text-purple-700" />
+                          Mandato Forfetario
                         </Button>
                         <Button
                           type="button"
@@ -1228,17 +1257,7 @@ export function AntiriciclaggioDettaglioModal({
                           className="h-7 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border-indigo-300 font-semibold"
                         >
                           <ShieldCheck className="h-3.5 w-3.5 mr-1 text-indigo-600" />
-                          Stampa AV.1-AV.7
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank')}
-                          className="h-7 text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 border-teal-300 font-semibold"
-                        >
-                          <Printer className="h-3.5 w-3.5 mr-1 text-teal-600" />
-                          Solo Privacy
+                          Scheda AV.1-AV.7
                         </Button>
                         {docPrivacy && (
                           <>
