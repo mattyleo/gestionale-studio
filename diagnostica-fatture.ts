@@ -173,19 +173,41 @@ async function main() {
 
     // 1. Controllo buchi
     const numeriSet = new Set(numeri)
-    const buchi: number[] = []
+    const buchiGrezzi: number[] = []
     const startFrom = minNum > 1 && minNum <= 5 ? 1 : minNum
-    for (let i = startFrom; i <= maxNum; i++) {
-      if (!numeriSet.has(i)) {
-        buchi.push(i)
+    const isNC = chiave.toUpperCase().startsWith('NC')
+
+    if (!isNC) {
+      for (let i = startFrom; i <= maxNum; i++) {
+        if (!numeriSet.has(i)) {
+          buchiGrezzi.push(i)
+        }
       }
     }
 
+    const buchi: number[] = []
+    const buchiSpiegati: string[] = []
+    for (const b of buchiGrezzi) {
+      const ncCorrispondente = fatture.find(
+        f => f.numero === b && (f.sezionale?.toUpperCase() === 'NC' || f.numeroCompleto?.includes('NC'))
+      )
+      if (ncCorrispondente) {
+        buchiSpiegati.push(`n. ${b} (Nota di Credito ${ncCorrispondente.numeroCompleto} - ${ncCorrispondente.company?.ragioneSociale})`)
+      } else {
+        buchi.push(b)
+      }
+    }
+
+    if (buchiSpiegati.length > 0) {
+      console.log(`   ℹ️ Numeri utilizzati da Note di Credito nella stessa sequenza progressiva (${buchiSpiegati.length}):`)
+      console.log(`      ${buchiSpiegati.join(', ')}`)
+    }
+
     if (buchi.length > 0) {
-      console.log(`   ❌ ATTENZIONE: Trovati ${buchi.length} BUCHI di numerazione (mancano nel DB):`)
+      console.log(`   ❌ ATTENZIONE: Trovati ${buchi.length} BUCHI di numerazione reali (mancano nel DB):`)
       console.log(`      Numeri mancanti: ${buchi.join(', ')}`)
     } else {
-      console.log(`   ✅ Sequenza progressiva integra: NESSUN BUCO da ${startFrom} a ${maxNum}!`)
+      console.log(`   ✅ Sequenza progressiva integra: NESSUN BUCO REALE da ${startFrom} a ${maxNum}!`)
     }
 
     // 2. Controllo duplicati

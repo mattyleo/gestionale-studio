@@ -348,8 +348,16 @@ export async function POST(req: Request) {
           }
 
           const importoPagamentoXml = parseNum(body.DatiPagamento?.DettaglioPagamento?.ImportoPagamento, 0)
-          // Se nel file XML è presente il netto a pagare (es. al netto di ritenuta d'acconto 20%), usiamo quello per l'incasso effettivo Aruba
-          const importoIncassoReale = importoPagamentoXml > 0 ? importoPagamentoXml : totaleFinale
+          // Se nel file XML è presente il netto a pagare (es. al netto di ritenuta d'acconto 20%), usiamo quello per l'incasso effettivo Aruba.
+          // Se la differenza con totaleFinale è <= 0.05 €, è un mero arrotondamento centesimi: consideriamo il saldo pari al totale documento.
+          let importoIncassoReale = totaleFinale
+          if (importoPagamentoXml > 0) {
+            if (Math.abs(importoPagamentoXml - totaleFinale) <= 0.05) {
+              importoIncassoReale = totaleFinale
+            } else {
+              importoIncassoReale = importoPagamentoXml
+            }
+          }
 
           if (segnaComeSaldate && totaleFinale > 0 && tipoDoc !== 'TD04') {
             await prisma.payment.create({
@@ -359,7 +367,7 @@ export async function POST(req: Request) {
                 dataValuta: dataDoc,
                 dataIncasso: dataDoc,
                 metodo: modalitaPagamento,
-                note: importoPagamentoXml > 0 && Math.abs(importoPagamentoXml - totaleFinale) > 0.01
+                note: importoPagamentoXml > 0 && Math.abs(importoPagamentoXml - totaleFinale) > 0.05
                   ? `Incasso netto registrato da storico Aruba (Lordo ${totaleFinale.toFixed(2)} €, Netto ${importoPagamentoXml.toFixed(2)} €)`
                   : 'Incasso registrato da importazione storico Aruba',
               },

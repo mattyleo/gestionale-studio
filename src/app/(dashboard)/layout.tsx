@@ -30,15 +30,24 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
         where: { stato: 'EMESSA' },
         select: {
           totaleDocumento: true,
+          sezionale: true,
+          numeroCompleto: true,
+          note: true,
           payments: { select: { importo: true } },
         },
       }),
     ]);
     bozzeCount = bozze;
     daIncassareCount = fattureEmesse.filter((f) => {
+      const isNC = f.sezionale?.toUpperCase() === 'NC' ||
+                   f.numeroCompleto?.toUpperCase().includes('NC') ||
+                   f.note?.toLowerCase().includes('credito') ||
+                   f.note?.toLowerCase().includes('storno');
+      if (isNC) return false;
+
       const tot = Number(f.totaleDocumento);
       const inc = f.payments.reduce((s, p) => s + Number(p.importo), 0);
-      return tot - inc > 0.005;
+      return tot - inc > 0.05;
     }).length;
   } catch {
     // Fallback se DB non ancora connesso

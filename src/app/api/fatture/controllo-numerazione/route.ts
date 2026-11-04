@@ -55,12 +55,35 @@ export async function GET(request: Request) {
 
       // 1. Controllo buchi (numeri mancanti)
       const numeriPresenti = new Set(numeriValidi)
-      const buchi: number[] = []
+      const buchiGrezzi: number[] = []
       // Verifica dal numero 1 (o dal minimo se parte da più in alto) fino al massimo
+      const isNCSez = sezionale === 'NC'
       const startFrom = minNumero > 1 && minNumero <= 5 ? 1 : minNumero
-      for (let i = startFrom; i <= maxNumero; i++) {
-        if (!numeriPresenti.has(i)) {
-          buchi.push(i)
+      
+      // Se è il sezionale NC e i numeri derivano dalla sequenza generale (es. 22 e 96), non è una sequenza 1..N a sé
+      if (!isNCSez) {
+        for (let i = startFrom; i <= maxNumero; i++) {
+          if (!numeriPresenti.has(i)) {
+            buchiGrezzi.push(i)
+          }
+        }
+      }
+
+      // Verifica se i buchi corrispondono a Note di Credito dello stesso anno (numerazione unificata fatture/note di credito)
+      const buchiSpiegati: { numero: number; nota: string }[] = []
+      const buchi: number[] = []
+
+      for (const b of buchiGrezzi) {
+        const docNC = fatture.find(
+          f => f.anno === anno && f.numero === b && (f.sezionale?.toUpperCase() === 'NC' || f.numeroCompleto?.includes('NC'))
+        )
+        if (docNC) {
+          buchiSpiegati.push({
+            numero: b,
+            nota: `Assegnato alla Nota di Credito ${docNC.numeroCompleto} (${docNC.company?.ragioneSociale || 'Cliente'}) - Sequenza unificata`,
+          })
+        } else {
+          buchi.push(b)
         }
       }
 
@@ -124,6 +147,7 @@ export async function GET(request: Request) {
         ultimoNumeroContatore,
         contatoreAllineato,
         buchi,
+        buchiSpiegati,
         duplicati,
         inversioniData,
         tuttoRegolare,

@@ -16,6 +16,13 @@ const generaBozzaSchema = z.object({
   noteInterne: z.string().optional(),
 })
 
+function isNotaCredito(f: { sezionale?: string | null, numeroCompleto?: string | null, note?: string | null }) {
+  return f.sezionale?.toUpperCase() === 'NC' ||
+         f.numeroCompleto?.toUpperCase().includes('NC') ||
+         f.note?.toLowerCase().includes('credito') ||
+         f.note?.toLowerCase().includes('storno')
+}
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
@@ -29,12 +36,80 @@ export async function GET(request: Request) {
   const perPagina = parseInt(searchParams.get('perPagina') || '25')
 
   try {
+    // Gestione specifica per stati basati sul saldo incasso ("da-incassare" e "incassate")
+    if (stato === 'da-incassare' || stato === 'incassate') {
+      const where: any = { stato: 'EMESSA' }
+      if (companyId) where.companyId = companyId
+      if (dal || al) {
+        where.dataDocumento = {
+          ...(dal && { gte: new Date(dal) }),
+          ...(al && { lte: new Date(al) }),
+        }
+      }
+
+      const tutte = await prisma.invoice.findMany({
+        where,
+        orderBy: [{ dataDocumento: 'desc' }, { createdAt: 'desc' }],
+        include: {
+          company: { select: { ragioneSociale: true } },
+          payments: { select: { importo: true, dataIncasso: true } },
+          _count: { select: { lines: true } },
+        },
+      })
+
+      const elaborate = tutte.map(f => {
+        const isNC = isNotaCredito(f)
+        const totaleDocumento = Number(f.totaleDocumento)
+        const incassato = f.payments.reduce((sum, p) => sum + Number(p.importo), 0)
+        const residuo = isNC ? 0 : Math.max(0, totaleDocumento - incassato)
+        const ultimoPagamento = f.payments.length > 0
+          ? f.payments.sort((a, b) => new Date(b.dataIncasso).getTime() - new Date(a.dataIncasso).getTime())[0].dataIncasso
+          : null
+
+        return {
+          ...f,
+          incassato,
+          residuo,
+          ultimoPagamento,
+          isNC,
+          isScaduta: !isNC && f.dataScadenza ? f.dataScadenza < new Date() && residuo > 0.05 : false,
+          giorniRitardo: !isNC && f.dataScadenza && residuo > 0.05
+            ? Math.floor((new Date().getTime() - new Date(f.dataScadenza).getTime()) / (1000 * 60 * 60 * 24))
+            : 0,
+        }
+      })
+
+      let filtrate = elaborate
+      if (stato === 'da-incassare') {
+        // Escludi Note di Credito e fatture con residuo <= 0.05 (arrotondamento centesimi)
+        filtrate = elaborate.filter(f => !f.isNC && f.residuo > 0.05)
+      } else if (stato === 'incassate') {
+        // Include sia fatture saldate sia Note di Credito (storni)
+        filtrate = elaborate.filter(f => f.isNC || f.residuo <= 0.05)
+      }
+
+      const totaleFiltrate = filtrate.length
+      const paginated = (perPagina >= 100 && pagina === 1)
+        ? filtrate
+        : filtrate.slice((pagina - 1) * perPagina, pagina * perPagina)
+
+      return NextResponse.json({
+        fatture: paginated,
+        paginazione: {
+          totale: totaleFiltrate,
+          pagina,
+          perPagina,
+          totalePagine: Math.ceil(totaleFiltrate / perPagina) || 1,
+        },
+      })
+    }
+
     const where: any = {}
 
     if (stato) {
       if (stato === 'bozze') {
         where.stato = { in: ['BOZZA', 'DA_APPROVARE', 'PRONTA_EMISSIONE'] }
-      } else if (stato === 'da-incassare' || stato === 'incassate' || stato === 'emesse') {
+      } else if (stato === 'emesse') {
         where.stato = 'EMESSA'
       } else {
         where.stato = stato
@@ -66,10 +141,11 @@ export async function GET(request: Request) {
     ])
 
     // Calcola residuo per ogni fattura
-    let fattureConResiduo = fatture.map(f => {
+    const fattureConResiduo = fatture.map(f => {
+      const isNC = isNotaCredito(f)
       const totaleDocumento = Number(f.totaleDocumento)
       const incassato = f.payments.reduce((sum, p) => sum + Number(p.importo), 0)
-      const residuo = Math.max(0, totaleDocumento - incassato)
+      const residuo = isNC ? 0 : Math.max(0, totaleDocumento - incassato)
       const ultimoPagamento = f.payments.length > 0
         ? f.payments.sort((a, b) => new Date(b.dataIncasso).getTime() - new Date(a.dataIncasso).getTime())[0].dataIncasso
         : null
@@ -79,18 +155,13 @@ export async function GET(request: Request) {
         incassato,
         residuo,
         ultimoPagamento,
-        isScaduta: f.dataScadenza ? f.dataScadenza < new Date() && residuo > 0.005 : false,
-        giorniRitardo: f.dataScadenza && residuo > 0.005
+        isNC,
+        isScaduta: !isNC && f.dataScadenza ? f.dataScadenza < new Date() && residuo > 0.05 : false,
+        giorniRitardo: !isNC && f.dataScadenza && residuo > 0.05
           ? Math.floor((new Date().getTime() - new Date(f.dataScadenza).getTime()) / (1000 * 60 * 60 * 24))
           : 0,
       }
     })
-
-    if (stato === 'incassate') {
-      fattureConResiduo = fattureConResiduo.filter(f => f.residuo <= 0.005)
-    } else if (stato === 'da-incassare') {
-      fattureConResiduo = fattureConResiduo.filter(f => f.residuo > 0.005)
-    }
 
     return NextResponse.json({
       fatture: fattureConResiduo,

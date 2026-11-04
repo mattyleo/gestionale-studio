@@ -83,8 +83,8 @@ export default function DaIncassarePage() {
     }
   }
 
-  // Solo le fatture con residuo > 0
-  const fattureAperte = fatture.filter(f => (f.residuo ?? 0) > 0.005)
+  // Solo le fatture con residuo aperto (> 5 centesimi per tolleranza arrotondamenti)
+  const fattureAperte = fatture.filter(f => (f.residuo ?? 0) > 0.05)
   const totaleResiduo = fattureAperte.reduce((s, f) => s + (f.residuo ?? 0), 0)
   const scadute = fattureAperte.filter(f => f.isScaduta)
 

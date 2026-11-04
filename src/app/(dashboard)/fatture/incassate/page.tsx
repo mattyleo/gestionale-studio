@@ -82,6 +82,9 @@ export default function IncassatePage() {
     return isNotaCredito(f) ? sum - importo : sum + importo
   }, 0)
 
+  const numNC = fattureFiltrate.filter(isNotaCredito).length
+  const numSaldate = fattureFiltrate.length - numNC
+
   return (
     <div className="space-y-6 p-6">
       {/* Intestazione */}
@@ -89,7 +92,7 @@ export default function IncassatePage() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Fatture Incassate</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            {fattureFiltrate.length} fatture saldate · Totale:{' '}
+            {numSaldate} fatture saldate{numNC > 0 ? ` · ${numNC} note di credito stornate` : ''} · Totale netto:{' '}
             <span className="font-semibold text-green-700">{formatEuro(totaleIncassato)}</span>
           </p>
         </div>

@@ -175,6 +175,23 @@ export function ControlloNumerazioneModal() {
                         </div>
                       )}
 
+                      {/* Numeri usati da Note di Credito nella stessa sequenza */}
+                      {sez.buchiSpiegati && sez.buchiSpiegati.length > 0 && (
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-950 space-y-1">
+                          <div className="font-bold flex items-center gap-1.5 text-blue-800">
+                            <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                            Numeri progressivi assegnati a Note di Credito ({sez.buchiSpiegati.length}):
+                          </div>
+                          <ul className="list-disc list-inside space-y-0.5 text-[11px] text-blue-900">
+                            {sez.buchiSpiegati.map((bs: any) => (
+                              <li key={bs.numero}>
+                                <strong className="font-mono">n. {bs.numero}</strong>: {bs.nota}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
                       {/* Numeri Duplicati */}
                       {sez.duplicati && sez.duplicati.length > 0 && (
                         <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-xs text-purple-900 space-y-1">
