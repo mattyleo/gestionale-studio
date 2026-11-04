@@ -40,10 +40,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# ── SICUREZZA, PRIVACY & DATI CONTABILI / FATTURE REALI ──
-# Nessun file XML, P7M, PDF fattura, dump database o archivio deve mai finire su Git
+# ── SICUREZZA, PRIVACY & DATI CONTABILI / FATTURE / LETTERE STUDIO ──
+# Nessun file XML, P7M, PDF, DOCX, lettera d'incarico, documento cliente o dump database deve mai finire su Git
 *.xml
 *.p7m
+*.pdf
+*.docx
+*.doc
 *.zip
 *.tar.gz
 *.tgz
@@ -58,6 +61,10 @@ next-env.d.ts
 /backups/
 /db_backups/
 /uploads/
+/storage/
+/normative/
+/lettere/
+/documenti/
 /exports/
 /temp/
 /tmp/
@@ -65,4 +72,11 @@ next-env.d.ts
 *.sqlite3
 *.db
 *smtp-config*.json
+*incarico*.pdf
+*incarico*.docx
+*incarico*.doc
+*mandato*.pdf
+*mandato*.docx
+*mandato*.doc
+GUIDA_GESTIONALE_DOTT_TUZIO.*
 

@@ -313,11 +313,13 @@ export async function generaAutorizzazioneF24PDF(
 ): Promise<Buffer> {
   const botDati = arricchisciDatiClienteBot(azienda)
 
-  const studioDenominazione = emittente?.denominazione || 'STUDIO COMMERCIALE DOTT. ANTONIO TUZIO'
-  const studioIndirizzo = 'Via Umberto Poli n. 9/B — 42124 Reggio Emilia (RE)'
-  const studioCf = emittente?.codiceFiscale || 'TZUNTN69A16D612E'
-  const studioPiva = emittente?.partitaIva || '02689050351'
-  const studioIban = emittente?.iban || 'IT 89E 03032 12804 0100 00063104'
+  const studioDenominazione = emittente?.denominazione || 'STUDIO PROFESSIONALE COMMERCIALE'
+  const studioIndirizzo = emittente?.indirizzo
+    ? `${emittente.indirizzo} — ${emittente.cap || '42123'} ${emittente.comune || 'Reggio Emilia'} (${emittente.provincia || 'RE'})`
+    : 'Sede Studio Professionale — Reggio Emilia (RE)'
+  const studioCf = emittente?.codiceFiscale || 'N/D'
+  const studioPiva = emittente?.partitaIva || 'N/D'
+  const studioIban = emittente?.iban || 'IBAN Studio come da profilo emittente'
 
   const oggi = formatDate(azienda.mandatoData || azienda.antiriciclaggioDataVerifica || new Date())
   const fascicolo = azienda.antiriciclaggioFascicolo || `ARC-${new Date().getFullYear()}`
@@ -344,7 +346,7 @@ export async function generaAutorizzazioneF24PDF(
           <View>
             <Text style={styles.studioTitle}>{studioDenominazione}</Text>
             <Text style={styles.studioSub}>
-              Dott. Antonio Tuzio — Dottore Commercialista e Revisore Legale (Iscr. ODCEC Reggio Emilia n. 742/A)
+              Dottore Commercialista e Revisore Legale (Iscr. ODCEC Reggio Emilia n. 742/A)
             </Text>
             <Text style={styles.studioSub}>
               {studioIndirizzo} • C.F. {studioCf} • P.IVA {studioPiva}
@@ -439,7 +441,7 @@ export async function generaAutorizzazioneF24PDF(
           </View>
           <View style={styles.sectionBody}>
             <Text style={styles.paragraph}>
-              il <Text style={styles.bold}>Dott. ANTONIO TUZIO — {studioDenominazione}</Text> (C.F. <Text style={styles.bold}>{studioCf}</Text> — P.IVA <Text style={styles.bold}>{studioPiva}</Text>, con studio in {studioIndirizzo}, iscritto all&apos;Albo ODCEC di Reggio Emilia al n. 742/A), <Text style={styles.bold}>intermediario abilitato al servizio telematico Entratel</Text>, a disporre gli ordini di pagamento delle imposte, contributi, tasse, premi e versamenti vari effettuabili tramite <Text style={styles.bold}>modello di versamento unificato F24</Text>, secondo la seguente modalità di addebito concordata:
+              lo Studio <Text style={styles.bold}>{studioDenominazione}</Text> (C.F. <Text style={styles.bold}>{studioCf}</Text> — P.IVA <Text style={styles.bold}>{studioPiva}</Text>, con studio in {studioIndirizzo}, iscritto all&apos;Albo ODCEC di Reggio Emilia al n. 742/A), <Text style={styles.bold}>intermediario abilitato al servizio telematico Entratel</Text>, a disporre gli ordini di pagamento delle imposte, contributi, tasse, premi e versamenti vari effettuabili tramite <Text style={styles.bold}>modello di versamento unificato F24</Text>, secondo la seguente modalità di addebito concordata:
             </Text>
 
             {/* Modalità A: Conto Intermediario (come da fac-simile Allegato A) */}

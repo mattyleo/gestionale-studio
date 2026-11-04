@@ -1,5 +1,5 @@
 // src/lib/pdf/antiriciclaggio-mandato-pdf.tsx
-// LETTERE D'INCARICO PROFESSIONALI DELLO STUDIO DOTT. ANTONIO TUZIO — LAYOUT ESECUTIVO MODERNO & AUTOCOMPILATO DAL BOT
+// LETTERE D'INCARICO PROFESSIONALI DI STUDIO — LAYOUT ESECUTIVO MODERNO & AUTOCOMPILATO DAL BOT
 // Supporta i 3 Modelli Ufficiali dello Studio:
 // 1. PAGHE:       "LETTERA D'INCARICO PER AMMINISTRAZIONE DEL PERSONALE E CONSULENZA DEL LAVORO"
 // 2. CONTABILITA: "LETTERA D'INCARICO PROFESSIONALE PER TENUTA CONTABILITÀ ORDINARIA E BILANCIO"
@@ -300,26 +300,39 @@ const styles = StyleSheet.create({
   },
 })
 
+interface StudioInfo {
+  denominazione: string
+  cf: string
+  piva: string
+  indirizzo: string
+  telefono: string
+  email: string
+  pec: string
+  iban: string
+}
+
 function CorporateHeader({
   fascicolo,
   zonaLabel,
   dataOggi,
+  studio,
 }: {
   fascicolo: string
   zonaLabel: string
   dataOggi: string
+  studio: StudioInfo
 }) {
   return (
     <View style={styles.headerBanner}>
       <View>
         <Text style={styles.studioName}>
-          STUDIO COMMERCIALE DOTT. ANTONIO TUZIO
+          {studio.denominazione.toUpperCase()}
         </Text>
         <Text style={styles.studioSub}>
-          Dottore Commercialista · Albo ODCEC di Reggio Emilia n. 742/A · C.F. TZUNTN69A16D612E
+          Dottore Commercialista · Albo ODCEC di Reggio Emilia n. 742/A · C.F. {studio.cf}
         </Text>
         <Text style={styles.studioSub}>
-          Via Umberto Poli 9/B — 42123 Reggio Emilia (RE) · Tel. 0522 331628 · Cell. 328 6781837 · PEC: studiotuzio@legalmail.it
+          {studio.indirizzo} · Tel. {studio.telefono} · PEC: {studio.pec}
         </Text>
       </View>
       <View style={styles.badgeBox}>
@@ -331,11 +344,11 @@ function CorporateHeader({
   )
 }
 
-function CorporateFooter({ pagina }: { pagina: string }) {
+function CorporateFooter({ pagina, studio }: { pagina: string; studio: StudioInfo }) {
   return (
     <View style={styles.footer} fixed>
       <Text>
-        <Text style={styles.bold}>Tuzio Antonio — Dottore Commercialista</Text> · Via Umberto Poli 9/B, 42123 Reggio Emilia (RE) · info@studiotuzio.it · postmaster@studiotuzio.it
+        <Text style={styles.bold}>{studio.denominazione} — Dottore Commercialista</Text> · {studio.indirizzo} · {studio.email} · {studio.pec}
       </Text>
       <Text style={styles.bold}>{pagina}</Text>
     </View>
@@ -357,7 +370,7 @@ function PartiesCards({
   luogoNascita,
   dataNascitaIt,
   docInfo,
-  ibanStudio,
+  studio,
 }: {
   ragSoc: string
   isSocieta: boolean
@@ -373,7 +386,7 @@ function PartiesCards({
   luogoNascita: string
   dataNascitaIt: string
   docInfo: string
-  ibanStudio: string
+  studio: StudioInfo
 }) {
   return (
     <View style={styles.partiesRow}>
@@ -436,11 +449,11 @@ function PartiesCards({
         <View style={styles.partyCardBody}>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Professionista:</Text>
-            <Text style={styles.dataVal}>Dott. Antonio Tuzio</Text>
+            <Text style={styles.dataVal}>{studio.denominazione}</Text>
           </View>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Codice Fiscale:</Text>
-            <Text style={styles.dataVal}>TZUNTN69A16D612E</Text>
+            <Text style={styles.dataVal}>{studio.cf}</Text>
           </View>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Iscrizione Albo:</Text>
@@ -448,15 +461,15 @@ function PartiesCards({
           </View>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Sede Studio:</Text>
-            <Text style={styles.dataVal}>Via Umberto Poli 9/B — 42123 Reggio Emilia (RE)</Text>
+            <Text style={styles.dataVal}>{studio.indirizzo}</Text>
           </View>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Recapiti Telefonici:</Text>
-            <Text style={styles.dataVal}>Tel. 0522 331628 · Cell. 328 6781837</Text>
+            <Text style={styles.dataVal}>Tel. {studio.telefono}</Text>
           </View>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Email / PEC Studio:</Text>
-            <Text style={styles.dataVal}>postmaster@studiotuzio.it · studiotuzio@legalmail.it</Text>
+            <Text style={styles.dataVal}>{studio.email} · {studio.pec}</Text>
           </View>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Polizza RC Prof.:</Text>
@@ -468,7 +481,7 @@ function PartiesCards({
           </View>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>IBAN Tracciabile:</Text>
-            <Text style={[styles.dataVal, { color: '#1e3a8a' }]}>{ibanStudio}</Text>
+            <Text style={[styles.dataVal, { color: '#1e3a8a' }]}>{studio.iban}</Text>
           </View>
         </View>
       </View>
@@ -494,6 +507,7 @@ function SecondaPaginaPrivacyEF24({
   ibanCliente,
   botMotivo,
   titolareEffettivo,
+  studio,
 }: {
   fascicolo: string
   zonaLabel: string
@@ -512,10 +526,11 @@ function SecondaPaginaPrivacyEF24({
   ibanCliente: string
   botMotivo: string
   titolareEffettivo: string
+  studio: StudioInfo
 }) {
   return (
     <Page size="A4" style={styles.page}>
-      <CorporateHeader fascicolo={fascicolo} zonaLabel={zonaLabel} dataOggi={oggi} />
+      <CorporateHeader fascicolo={fascicolo} zonaLabel={zonaLabel} dataOggi={oggi} studio={studio} />
 
       {/* SEZIONE PRIVACY GDPR */}
       <View style={styles.sectionCard}>
@@ -527,11 +542,10 @@ function SecondaPaginaPrivacyEF24({
             <Text style={styles.bold}>1. Principi generali e Titolare del Trattamento: </Text>
             Tutti i dati personali sono trattati in modo lecito, corretto e trasparente nel rispetto dell&apos;Art. 5
             del GDPR, con misure di sicurezza idonee a prevenire perdita, usi illeciti o accessi non autorizzati. Il
-            Titolare del Trattamento è lo scrivente Studio <Text style={styles.bold}>Dott. Tuzio Antonio</Text> – Via
-            Umberto Poli 9/B – 42123 Reggio Emilia (RE) – Tel: 0522 331628 – Email: studiotuzio@gmail.com /
-            postmaster@studiotuzio.it – PEC: studiotuzio@legalmail.it, presso il quale l&apos;interessato può esercitare
-            i diritti previsti dagli artt. 15-21 del GDPR (accesso, rettifica, cancellazione, limitazione, portabilità,
-            opposizione, reclamo al Garante).
+            Titolare del Trattamento è lo scrivente Studio <Text style={styles.bold}>{studio.denominazione}</Text> –{' '}
+            {studio.indirizzo} – Tel: {studio.telefono} – Email: {studio.email} – PEC: {studio.pec}, presso il quale
+            l&apos;interessato può esercitare i diritti previsti dagli artt. 15-21 del GDPR (accesso, rettifica,
+            cancellazione, limitazione, portabilità, opposizione, reclamo al Garante).
           </Text>
           <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3 }}>
             <Text style={styles.bold}>2. Oggetto, Finalità e Base Giuridica (Art. 6, co. 1, lett. b, c, f GDPR): </Text>
@@ -583,7 +597,7 @@ function SecondaPaginaPrivacyEF24({
             </View>
             <View style={styles.signatureCard}>
               <Text style={styles.signatureLabelTop}>Il Titolare del Trattamento — Lo Studio</Text>
-              <Text style={styles.signaturePartyName}>Dott. Antonio Tuzio</Text>
+              <Text style={styles.signaturePartyName}>{studio.denominazione}</Text>
               <View style={styles.signatureLine} />
               <Text style={styles.signatureSub}>Timbro e Firma del Professionista</Text>
             </View>
@@ -609,8 +623,8 @@ function SecondaPaginaPrivacyEF24({
               {isSocieta ? `Rappresentante Legale di ${ragSoc}` : `Titolare di ${ragSoc}`}
             </Text>{' '}
             (P.IVA/C.F. <Text style={styles.bold}>{pivaAzienda}</Text>),{' '}
-            <Text style={styles.bold}>AUTORIZZA</Text> il <Text style={styles.bold}>Dott. Tuzio Antonio</Text> (C.F.
-            TZUNTN69A16D612E — P.IVA 02689050351, Dottore Commercialista in Reggio Emilia iscritto al n. 742/A,
+            <Text style={styles.bold}>AUTORIZZA</Text> lo Studio <Text style={styles.bold}>{studio.denominazione}</Text> (C.F.{' '}
+            {studio.cf} — P.IVA {studio.piva}, Dottore Commercialista in Reggio Emilia iscritto al n. 742/A,
             intermediario abilitato al servizio Entratel) a disporre gli ordini di pagamento delle imposte, contributi,
             tasse e versamenti vari effettuabili tramite modello F24, <Text style={styles.bold}>a valere sul conto corrente bancario o postale intestato allo stesso soggetto che effettua la trasmissione telematica</Text> (previo accredito della provvista), ovvero sul conto corrente intestato al Cliente (<Text style={styles.bold}>IBAN: {ibanCliente}</Text>), relativamente alle deleghe:
           </Text>
@@ -630,7 +644,7 @@ function SecondaPaginaPrivacyEF24({
 
           <Text style={{ fontSize: 7.1, textAlign: 'justify', marginBottom: 3 }}>
             <Text style={styles.bold}>Informativa ex art. 13 D.Lgs. 196/2003 e GDPR (&ldquo;F24 on line&rdquo; Agenzia delle Entrate): </Text>
-            I dati conferiti tramite questo modello sono raccolti esclusivamente per l&apos;espletamento del servizio &ldquo;F24 on line&rdquo; dagli intermediari abilitati Entratel e trasmessi con sistemi di cifratura all&apos;Agenzia delle Entrate, che li invierà alla banca/Poste Italiane depositaria del conto corrente indicato per richiedere l&apos;addebito delle somme dovute (diritti ex art. 7 D.Lgs. 196/2003 e artt. 15-22 GDPR su www.agenziaentrate.gov.it). In caso di richiesta anche verbale del Cliente di sospendere il pagamento telematico di una o più deleghe F24, il professionista è esonerato da ogni responsabilità per omesso/ritardato versamento (eventuali ravvedimenti vanno richiesti per iscritto a <Text style={styles.bold}>postmaster@studiotuzio.it</Text>).
+            I dati conferiti tramite questo modello sono raccolti esclusivamente per l&apos;espletamento del servizio &ldquo;F24 on line&rdquo; dagli intermediari abilitati Entratel e trasmessi con sistemi di cifratura all&apos;Agenzia delle Entrate, che li invierà alla banca/Poste Italiane depositaria del conto corrente indicato per richiedere l&apos;addebito delle somme dovute (diritti ex art. 7 D.Lgs. 196/2003 e artt. 15-22 GDPR su www.agenziaentrate.gov.it). In caso di richiesta anche verbale del Cliente di sospendere il pagamento telematico di una o più deleghe F24, il professionista è esonerato da ogni responsabilità per omesso/ritardato versamento (eventuali ravvedimenti vanno richiesti per iscritto a <Text style={styles.bold}>{studio.email}</Text>).
           </Text>
 
           <View style={styles.signatureRow}>
@@ -642,7 +656,7 @@ function SecondaPaginaPrivacyEF24({
             </View>
             <View style={styles.signatureCard}>
               <Text style={styles.signatureLabelTop}>Intermediario Entratel Abilitato — Lo Studio</Text>
-              <Text style={styles.signaturePartyName}>Dott. Antonio Tuzio</Text>
+              <Text style={styles.signaturePartyName}>{studio.denominazione}</Text>
               <View style={styles.signatureLine} />
               <Text style={styles.signatureSub}>Timbro e Firma del Professionista</Text>
             </View>
@@ -661,7 +675,7 @@ function SecondaPaginaPrivacyEF24({
         </Text>
       </View>
 
-      <CorporateFooter pagina="Pagina 2 di 2" />
+      <CorporateFooter pagina="Pagina 2 di 2" studio={studio} />
     </Page>
   )
 }
@@ -691,7 +705,20 @@ export async function generaLetteraIncaricoMandatoPDF(
   const pivaAzienda = auto.pivaNorm || cfAzienda
   const pecAzienda = azienda.pec || azienda.emailAmministrativa || 'Come da registro INI-PEC'
   const ibanCliente = azienda.iban || 'IT __ _ _____ _____ ________________________ (da comunicare per F24)'
-  const ibanStudio = emittente?.iban || 'IT 89E 03032 12804 0100 00063104'
+  const ibanStudio = emittente?.iban || 'IBAN Studio come da profilo emittente'
+
+  const studio: StudioInfo = {
+    denominazione: emittente?.denominazione || 'Studio Professionale Commerciale',
+    cf: emittente?.codiceFiscale || 'N/D',
+    piva: emittente?.partitaIva || 'N/D',
+    indirizzo: emittente?.indirizzo
+      ? `${emittente.indirizzo} — ${emittente.cap || '42123'} ${emittente.comune || 'Reggio Emilia'} (${emittente.provincia || 'RE'})`
+      : 'Sede Studio Professionale — Reggio Emilia (RE)',
+    telefono: emittente?.telefono || 'N/D',
+    email: emittente?.email || 'info@studio.it',
+    pec: emittente?.pec || 'pec@legalmail.it',
+    iban: ibanStudio,
+  }
 
   const docInfo = azienda.documentoNumero
     ? `${azienda.documentoTipo === 'passaporto' ? 'Passaporto' : azienda.documentoTipo === 'patente' ? 'Patente' : "Carta d'Identità"} n. ${azienda.documentoNumero}${
@@ -750,7 +777,7 @@ export async function generaLetteraIncaricoMandatoPDF(
     <Document title={`Lettera_Incarico_${modello}_${ragSoc}`}>
       {/* ==================== PAGINA 1: PARTI CONTRAENTI, OGGETTO, TARIFFARIO E CLAUSOLE ==================== */}
       <Page size="A4" style={styles.page}>
-        <CorporateHeader fascicolo={fascicolo} zonaLabel={bot.zonaLabel} dataOggi={oggi} />
+        <CorporateHeader fascicolo={fascicolo} zonaLabel={bot.zonaLabel} dataOggi={oggi} studio={studio} />
 
         <View style={styles.titleBox}>
           <Text style={styles.titleText}>{titolo}</Text>
@@ -772,7 +799,7 @@ export async function generaLetteraIncaricoMandatoPDF(
           luogoNascita={luogoNascita}
           dataNascitaIt={dataNascitaIt}
           docInfo={docInfo}
-          ibanStudio={ibanStudio}
+          studio={studio}
         />
 
         {/* ART. 1 — OGGETTO DELL'INCARICO */}
@@ -1022,7 +1049,7 @@ export async function generaLetteraIncaricoMandatoPDF(
             <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 2.5 }}>
               • <Text style={styles.bold}>Art. 3 (Durata, Recesso e Risoluzione):</Text> L&apos;incarico decorre dalla
               sottoscrizione con durata annuale e rinnovo tacito automatico per eguale periodo, salvo disdetta tramite
-              PEC (<Text style={styles.bold}>studiotuzio@legalmail.it</Text>) o raccomandata A/R{' '}
+              PEC (<Text style={styles.bold}>{studio.pec}</Text>) o raccomandata A/R{' '}
               {modello === 'FORFETTARI' ? 'entro il 31 ottobre di ogni anno solare' : 'almeno 3 mesi (90 gg) prima della scadenza'}.
               {modello === 'OCCASIONALI'
                 ? " In caso di recesso del Cliente senza il rispetto dei termini ex art. 2237 c.c., è dovuta una penale pari agli onorari maturandi fino a scadenza naturale calcolati sulla media dei 6 mesi precedenti. Il mancato pagamento costituisce giusta causa di risoluzione e facoltà di rinuncia immediata al mandato."
@@ -1051,7 +1078,7 @@ export async function generaLetteraIncaricoMandatoPDF(
               </View>
               <View style={styles.signatureCard}>
                 <Text style={styles.signatureLabelTop}>Per Accettazione Incarico — Il Professionista</Text>
-                <Text style={styles.signaturePartyName}>Dott. Antonio Tuzio</Text>
+                <Text style={styles.signaturePartyName}>{studio.denominazione}</Text>
                 <View style={styles.signatureLine} />
                 <Text style={styles.signatureSub}>Timbro e Firma del Professionista</Text>
               </View>
@@ -1059,7 +1086,7 @@ export async function generaLetteraIncaricoMandatoPDF(
           </View>
         </View>
 
-        <CorporateFooter pagina="Pagina 1 di 2" />
+        <CorporateFooter pagina="Pagina 1 di 2" studio={studio} />
       </Page>
 
       {/* ==================== PAGINA 2: POLICY PRIVACY GDPR + DELEGA F24 ENTRATEL + INQUADRAMENTO AML ==================== */}
@@ -1081,6 +1108,7 @@ export async function generaLetteraIncaricoMandatoPDF(
         ibanCliente={ibanCliente}
         botMotivo={bot.motivoBot}
         titolareEffettivo={auto.titolareEffettivo}
+        studio={studio}
       />
     </Document>
   )
