@@ -672,8 +672,35 @@ model Supplier {
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
+  invoices             PurchaseInvoice[]
+
   @@index([ragioneSociale])
   @@index([partitaIva])
   @@index([codiceFiscale])
   @@map("suppliers")
+}
+
+model PurchaseInvoice {
+  id              String       @id @default(cuid())
+  supplierId      String
+  numero          String
+  dataDocumento   DateTime     @db.Date
+  dataRicezione   DateTime?    @db.Date
+  imponibile      Decimal      @db.Decimal(12, 2)
+  totaleIva       Decimal      @db.Decimal(12, 2)
+  totaleDocumento Decimal      @db.Decimal(12, 2)
+  tipoDocumento   String       @default("TD01")
+  categoria       String?      @default("Generale")
+  note            String?
+  saldata         Boolean      @default(false)
+  dataPagamento   DateTime?    @db.Date
+  nomeFileXml     String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  supplier        Supplier     @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId])
+  @@index([dataDocumento])
+  @@map("purchase_invoices")
 }

@@ -61,6 +61,14 @@ async function main() {
   const deletedCompanies = await prisma.company.deleteMany({})
   console.log(`✅ Aziende clienti eliminate: ${deletedCompanies.count}`)
 
+  // 11b. Fatture acquisto e fornitori
+  try {
+    const deletedPurchases = await (prisma as any).purchaseInvoice.deleteMany({})
+    console.log(`✅ Fatture d'acquisto eliminate: ${deletedPurchases.count}`)
+    const deletedSuppliers = await prisma.supplier.deleteMany({})
+    console.log(`✅ Fornitori eliminati: ${deletedSuppliers.count}`)
+  } catch {}
+
   // 12. Reset contatori numerazione fatture
   const deletedSequences = await prisma.documentSequence.deleteMany({})
   console.log(`✅ Numeratori sequenze azzerati: ${deletedSequences.count}`)
