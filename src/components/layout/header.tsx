@@ -4,6 +4,7 @@ import * as React from 'react';
 import { signOut } from 'next-auth/react';
 import { Bell, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RicercaClienteRapida } from '@/components/aziende/RicercaClienteRapida';
 
 interface HeaderProps {
   titoloPagina: string;
@@ -17,16 +18,24 @@ export function Header({ titoloPagina, nomeUtente, emailUtente }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm gap-4">
       {/* Titolo pagina */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 shrink-0">
         {/* Spazio per hamburger su mobile */}
         <div className="w-8 lg:w-0 lg:hidden" />
-        <h1 className="text-lg font-semibold text-gray-900">{titoloPagina}</h1>
+        <h1 className="text-lg font-semibold text-gray-900 hidden sm:block">{titoloPagina}</h1>
+      </div>
+
+      {/* Ricerca Rapida Globale Clienti / Aziende */}
+      <div className="flex-1 max-w-md mx-2">
+        <RicercaClienteRapida
+          variant="header"
+          placeholder="Cerca e vai al cliente... (Ctrl+K)"
+        />
       </div>
 
       {/* Azioni utente */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         {/* Notifiche (futuro) */}
         <Button variant="ghost" size="icon" aria-label="Notifiche" title="Notifiche (presto disponibile)">
           <Bell className="h-5 w-5 text-gray-500" />

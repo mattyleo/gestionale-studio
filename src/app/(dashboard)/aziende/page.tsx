@@ -45,6 +45,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { validaCodiceFiscale, validaPartitaIva, validaCodiceSdi } from '@/lib/fiscal-validators'
 import { User, Building, Landmark, CheckCircle2, AlertCircle } from 'lucide-react'
+import { RicercaClienteRapida } from '@/components/aziende/RicercaClienteRapida'
 
 export default function AziendePage() {
   const { toast } = useToast()
@@ -208,20 +209,18 @@ export default function AziendePage() {
         </div>
       </div>
 
-      {/* Barra di ricerca e filtri */}
-      <Card>
+      {/* Barra di ricerca rapida con apertura diretta e filtri */}
+      <Card className="border-indigo-100 bg-gradient-to-r from-white to-indigo-50/20">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Cerca per ragione sociale, P.IVA, CF, comune..."
-                value={cerca}
-                onChange={(e) => {
-                  setCerca(e.target.value)
+          <div className="flex flex-col sm:flex-row gap-3 items-center">
+            <div className="flex-1 w-full">
+              <RicercaClienteRapida
+                variant="page"
+                placeholder="Scrivi il nome dell'azienda o cliente e premi Invio per andare direttamente alla scheda..."
+                onCercaChange={(val) => {
+                  setCerca(val)
                   setPagina(1)
                 }}
-                className="pl-9"
               />
             </div>
             <Select
@@ -231,7 +230,7 @@ export default function AziendePage() {
                 setPagina(1)
               }}
             >
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-full sm:w-44 h-12 bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
