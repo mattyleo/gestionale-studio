@@ -4,7 +4,8 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, Plus, Eye, Send, Ban, RefreshCw, CheckCircle2, Clock, FileText, Sparkles } from 'lucide-react'
+import { AlertTriangle, Plus, Eye, Send, Ban, RefreshCw, CheckCircle2, Clock, FileText, Sparkles, Mail } from 'lucide-react'
+import { InviaEmailModal } from '@/components/fatture/InviaEmailModal'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -313,8 +314,16 @@ export default function BozzePage() {
                   <TableCell className="text-sm text-gray-500">{formatData(b.createdAt)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
+                      <InviaEmailModal
+                        fatturaId={b.id}
+                        trigger={
+                          <Button variant="ghost" size="sm" title="Invia Avviso di Parcella via Email">
+                            <Mail className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        }
+                      />
                       <Link href={`/fatture/${b.id}`}>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" title="Apri e gestisci bozza">
                           <Eye className="h-4 w-4" />
                         </Button>
                       </Link>

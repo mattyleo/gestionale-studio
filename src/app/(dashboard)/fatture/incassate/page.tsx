@@ -3,7 +3,8 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Search, RefreshCw, CheckCircle, FileText, Printer, Eye } from 'lucide-react'
+import { Search, RefreshCw, CheckCircle, FileText, Printer, Eye, Mail } from 'lucide-react'
+import { InviaEmailModal } from '@/components/fatture/InviaEmailModal'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -230,6 +231,14 @@ export default function IncassatePage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <InviaEmailModal
+                            fatturaId={f.id}
+                            trigger={
+                              <Button variant="ghost" size="sm" title="Invia Fattura via Email">
+                                <Mail className="h-4 w-4 text-blue-600" />
+                              </Button>
+                            }
+                          />
                           <Link href={`/fatture/${f.id}`}>
                             <Button variant="ghost" size="sm" title="Vedi dettaglio">
                               <Eye className="h-4 w-4" />

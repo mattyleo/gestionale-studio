@@ -3,7 +3,8 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Clock, CreditCard, RefreshCw } from 'lucide-react'
+import { Clock, CreditCard, RefreshCw, Mail } from 'lucide-react'
+import { InviaEmailModal } from '@/components/fatture/InviaEmailModal'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -173,9 +174,19 @@ export default function DaIncassarePage() {
                   <TableCell className="text-right text-green-600">{formatEuro(f.incassato ?? 0)}</TableCell>
                   <TableCell className="text-right font-bold text-red-600">{formatEuro(f.residuo)}</TableCell>
                   <TableCell className="text-right">
-                    <Button size="sm" onClick={() => apriPagamento(f)}>
-                      <CreditCard className="h-4 w-4 mr-1" /> Pagamento
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <InviaEmailModal
+                        fatturaId={f.id}
+                        trigger={
+                          <Button variant="outline" size="sm" title="Invia Fattura / Sollecito via Email">
+                            <Mail className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        }
+                      />
+                      <Button size="sm" onClick={() => apriPagamento(f)}>
+                        <CreditCard className="h-4 w-4 mr-1" /> Pagamento
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
