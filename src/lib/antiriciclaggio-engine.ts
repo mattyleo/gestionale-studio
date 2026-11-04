@@ -1,11 +1,20 @@
 // src/lib/antiriciclaggio-engine.ts
 // Motore Normativo Antiriciclaggio CNDCEC 2025 / Consulenti del Lavoro / Verifiche Guardia di Finanza
-// Classifica automaticamente i soggetti dello Studio nelle 6 discipline:
-// 1-2. PAGHE (Elaborazione buste paga, LUL, consulenza lavoro, assunzioni UNILAV, INAIL, Mod. 770)
-// 3. CONTABILITA (Gestione fiscale, civilistica, societaria e contabile Ditte, SNC/SAS, SRL, Consorzi)
-// 4. CAF (Mod. 730, Redditi PF, IMU, maternità, NASpI, dimissioni online — Esonerati ex Regola Tecnica n. 2 Tab. 1)
-// 5. FORFETTARI (Dichiarazione redditi ditte individuali e professionisti regime forfettario L. 190/2014)
-// 6. SUCCESSIONI (Pratiche dichiarazione di successione)
+// Applica esattamente la distinzione delle Fonti Ufficiali (D.Lgs. 231/2007 art. 17 co. 7, Regole Tecniche CNDCEC e CdL 2025):
+//
+// A) PRESTAZIONI SOGGETTE AD ADEGUATA VERIFICA (AVC - Obbligo Scheda Rischio Cliente AV2 + Titolare Effettivo AV4):
+//    - Gestione fiscale, contabile e civilistica continuativa (tenuta contabilità Ditte, Società di persone, S.r.l., Consorzi)
+//    - Consulenza continuativa o straordinaria fiscale, societaria, contrattuale o giuslavoristica NON strettamente limitata
+//      all'elaborazione paghe (es. assistenza su verbale ispettivo ITL, contenzioso, riorganizzazioni, contrattazione 2° livello)
+//
+// B) PRESTAZIONI CON P.IVA ESENTI DA SCHEDA DI RISCHIO CLIENTE (Art. 17 co. 7 D.Lgs. 231/2007 e Tab. 1 Regola Tecnica n. 2):
+//    - Mera elaborazione buste paga / cedolini / LUL / UNILAV / autoliquidazione INAIL / Mod. 770
+//    - Mera redazione dichiarazione dei redditi Ditte Individuali e Professionisti in Regime Forfettario senza contabilità
+//    -> NOTA DI ATTENZIONE: Non occorre comporre la scheda di rischio cliente, ma resta sempre fermo l'obbligo di
+//       Segnalazione di Operazioni Sospette (SOS) e l'AVC torna obbligatoria in caso di sospetto o dubbi sull'identità.
+//
+// C) PRESTAZIONI PRIVATI ESCLUSE (Tab. 1 Regola Tecnica n. 2 CNDCEC):
+//    - Mod. 730, Redditi PF, IMU, pratiche CAF, maternità, NASpI, dimissioni online.
 
 import { prisma } from '@/lib/prisma'
 
@@ -23,6 +32,8 @@ export async function eseguiRegolarizzazioneCNDCEC() {
   })
 
   let aggiornateObbligate = 0
+  let soggetteAvcPiena = 0
+  let esentiConPresidioSos = 0
   let esonerateCaf = 0
   let contatoreFascicolo = 1
   const annoCorrente = new Date().getFullYear()
@@ -71,7 +82,7 @@ export async function eseguiRegolarizzazioneCNDCEC() {
   for (const item of classificate) {
     const { az, haPiva, isSuccessione, isSrlSocieta, isEntePaCaf, lineeTesto, primaFatturaData } = item
 
-    // CASO 1: Privato senza P.IVA (730, Redditi PF, IMU, Libretto Famiglia INPS, NASpI, Maternità, Dimissioni)
+    // CASO C: Privato senza P.IVA (730, Redditi PF, IMU, Libretto Famiglia INPS, NASpI, Maternità, Dimissioni)
     if (!haPiva && !isSuccessione) {
       await prisma.company.update({
         where: { id: az.id },
@@ -91,14 +102,14 @@ export async function eseguiRegolarizzazioneCNDCEC() {
               ? 'Pratiche previdenziali INPS / Libretto di Famiglia / Dimissioni / NASpI'
               : 'Elaborazione e trasmissione Modello 730 / Modello Redditi PF e assistenza fiscale CAF',
           antiriciclaggioNote:
-            'Soggetto privato senza P.IVA: prestazione esclusa dagli obblighi di adeguata verifica antiriciclaggio ai sensi della Regola Tecnica n. 2 CNDCEC (Tabella 1 - Redazione e trasmissione dichiarazioni derivanti da obblighi fiscali / pratiche CAF e previdenziali) e art. 17 D.Lgs. 231/2007.',
+            'PRESTAZIONE ESENTE DA AVC (Tab. 1 Regola Tecnica n. 2 CNDCEC): Non occorre comporre la scheda di rischio cliente. Resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e l\'attivazione dell\'adeguata verifica qualora emergano sospetti di riciclaggio o dubbi sull\'identità.',
         },
       })
       esonerateCaf++
       continue
     }
 
-    // CASO 2: Soggetti con P.IVA o Pratiche di Successione
+    // Soggetti con P.IVA o Pratiche di Successione
     const numFascicolo = `ARC-${primaFatturaData.getFullYear()}-${String(contatoreFascicolo).padStart(3, '0')}`
     contatoreFascicolo++
 
@@ -108,23 +119,33 @@ export async function eseguiRegolarizzazioneCNDCEC() {
       primaFatturaData.getDate()
     )
 
+    // Rileva se c'è consulenza straordinaria/continuativa non strettamente limitata alle paghe o tenuta contabilità
+    const haConsulenzaOStraordinaria =
+      lineeTesto.includes('consulenza') ||
+      lineeTesto.includes('verbale ispettivo') ||
+      lineeTesto.includes('itl') ||
+      lineeTesto.includes('contabilit') ||
+      lineeTesto.includes('bilancio') ||
+      lineeTesto.includes('costituzione') ||
+      lineeTesto.includes('riorganizzazion') ||
+      lineeTesto.includes('secondo livello')
+
     const isForfettario =
       lineeTesto.includes('forfet') ||
-      lineeTesto.includes('unico pf') ||
-      lineeTesto.includes('inizio attivita') ||
-      lineeTesto.includes('attribuzione p.iva')
+      lineeTesto.includes('unico pf')
 
-    const isPaghe =
-      lineeTesto.includes('cedolin') ||
-      lineeTesto.includes('buste paga') ||
-      lineeTesto.includes('unilav') ||
-      lineeTesto.includes('inail') ||
-      lineeTesto.includes('personale') ||
-      lineeTesto.includes('770') ||
-      lineeTesto.includes('durc')
+    const isMeraPaghe =
+      !haConsulenzaOStraordinaria &&
+      (lineeTesto.includes('cedolin') ||
+        lineeTesto.includes('buste paga') ||
+        lineeTesto.includes('unilav') ||
+        lineeTesto.includes('inail') ||
+        lineeTesto.includes('personale') ||
+        lineeTesto.includes('770') ||
+        lineeTesto.includes('durc'))
 
     let settore = 'CONTABILITA'
-    let prestazione = 'Tenuta della contabilità, gestione fiscale civilistica e dichiarazioni periodiche'
+    let prestazione = ''
     let motivazione = ''
     let punteggio = 1
     let tipoSogg = az.tipoSoggetto
@@ -132,42 +153,62 @@ export async function eseguiRegolarizzazioneCNDCEC() {
     if (isSuccessione) {
       settore = 'SUCCESSIONI'
       tipoSogg = 'PERSONA_FISICA'
-      prestazione = 'Predisposizione e trasmissione pratica di Dichiarazione di Successione e volture catastali'
+      prestazione = '[SOGGETTA AVC] Pratica di Dichiarazione di Successione e volture catastali'
       punteggio = 1
+      soggetteAvcPiena++
       motivazione =
-        'Valutazione condotta ai sensi della Regola Tecnica n. 2 CNDCEC e D.Lgs. 231/2007 per pratica di successione ereditaria. Identificazione degli eredi/dichiaranti de visu con documento d\'identità valido e verifica consistenza asse ereditario. Rischio effettivo Basso (Non Significativo).'
-    } else if (isEntePaCaf) {
-      settore = 'CONTABILITA'
-      tipoSogg = 'PERSONA_GIURIDICA'
-      prestazione = 'Convenzione assistenza fiscale CAF Nazionale e trasmissione telematica dichiarazioni'
-      punteggio = 1
+        'PRESTAZIONE SOGGETTA AD ADEGUATA VERIFICA (AVC): Pratica di successione ereditaria. Identificazione degli eredi/dichiaranti de visu con documento d\'identità valido e verifica consistenza asse ereditario. Rischio effettivo Basso (Non Significativo).'
+    } else if (haConsulenzaOStraordinaria) {
+      // Caso A: SOGGETTA AD ADEGUATA VERIFICA (Consulenza continuativa/straordinaria es. Verbale Ispettivo ITL, Consulenza fiscale/societaria, Contabilità)
+      settore = lineeTesto.includes('verbale ispettivo') || lineeTesto.includes('cedolin') ? 'PAGHE' : 'CONTABILITA'
+      tipoSogg = isSrlSocieta ? 'PERSONA_GIURIDICA' : 'DITTA_INDIVIDUALE'
+      prestazione =
+        lineeTesto.includes('verbale ispettivo') || lineeTesto.includes('itl')
+          ? '[SOGGETTA AVC] Consulenza giuslavoristica straordinaria (Assistenza su verbale ispettivo ITL) e gestione personale'
+          : '[SOGGETTA AVC] Consulenza fiscale, contabile e civilistica continuativa'
+      punteggio = 2
+      soggetteAvcPiena++
       motivazione =
-        'Controparte istituzionale / CAF Nazionale vigilato (art. 23 D.Lgs. 231/2007 - Obblighi semplificati di adeguata verifica). Rischio Non Significativo (Basso).'
-    } else if (isPaghe) {
+        'PRESTAZIONE SOGGETTA AD ADEGUATA VERIFICA (AVC - Regola Tecnica n. 2 CNDCEC / Regole CdL): Consulenza continuativa o straordinaria non strettamente limitata alla mera elaborazione paghe / Tenuta contabilità. Composta Scheda di Valutazione del Rischio Cliente (Matrice CNDCEC: Rischio Inerente 30% = 2,00; Rischio Specifico 70% = 1,25 -> Rischio Effettivo = 1,48/4,00 BASSO). Acquisito Titolare Effettivo e documento d\'identità con rinnovo a 36 mesi.'
+    } else if (isMeraPaghe) {
+      // Caso B1: Mera elaborazione buste paga / LUL / adempimenti lavoro (Art. 17 co. 7 D.Lgs. 231/2007)
       settore = 'PAGHE'
       tipoSogg = isSrlSocieta ? 'PERSONA_GIURIDICA' : 'DITTA_INDIVIDUALE'
       prestazione =
-        'Consulenza del lavoro, elaborazione buste paga (LUL), pratiche assunzione UNILAV, autoliquidazione INAIL e Mod. 770'
+        '[ESENTE SCHEDA RISCHIO ex art. 17 co. 7] Elaborazione buste paga (LUL), pratiche assunzione UNILAV, autoliquidazione INAIL e Mod. 770'
       punteggio = 1
+      esentiConPresidioSos++
       motivazione =
-        'Valutazione condotta ai sensi dell\'art. 17, co. 7 D.Lgs. 231/2007 e delle Regole Tecniche CNDCEC / Consulenti del Lavoro (2025). Prestazione continuativa di elaborazione buste paga/LUL e adempimenti giuslavoristici e previdenziali. Rischio Inerente (30%): 1,00 (Non significativo). Rischio Specifico Cliente (70%): 1,25 (Operatività locale trasparente, mezzi di pagamento tracciati, assenza PEP). Rischio Effettivo Complessivo: 1,18/4,00 (BASSO). Adeguata verifica ordinaria/semplificata con revisione a 36 mesi.'
+        'PRESTAZIONE ESENTE DA SCHEDA DI RISCHIO CLIENTE (Art. 17 co. 7 D.Lgs. 231/2007 e Regole Tecniche CdL/CNDCEC): Attività strettamente limitata all\'elaborazione buste paga/LUL e adempimenti previdenziali. NOTA DI ATTENZIONE: Non occorre comporre la scheda di rischio cliente, ma il fascicolo è mantenuto a presidio dell\'identità del cliente/Titolare Effettivo; resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e l\'AVC torna obbligatoria qualora emergano dubbi sull\'identità o consulenze straordinarie.'
     } else if (isForfettario && !isSrlSocieta) {
+      // Caso B2: Dichiarazione redditi ditte individuali e professionisti regime forfettario senza contabilità
       settore = 'FORFETTARI'
       tipoSogg = 'DITTA_INDIVIDUALE'
       prestazione =
-        'Gestione fiscale annuale e Dichiarazione dei Redditi (Mod. Redditi PF) per Ditta Individuale / Professionista in Regime Forfettario (L. 190/2014)'
+        '[ESENTE / SEMPLIFICATA Tab. 1 CNDCEC] Dichiarazione dei Redditi (Mod. Redditi PF) per Ditta Individuale / Professionista in Regime Forfettario'
       punteggio = 1
+      esentiConPresidioSos++
       motivazione =
-        'Valutazione condotta ai sensi della Regola Tecnica n. 2 CNDCEC (Tabella 1 e 2). Contribuente in regime forfettario (L. 190/2014) senza obbligo di tenuta scritture contabili ordinarie. Rischio Inerente (30%): 1,00 (Non significativo). Rischio Specifico (70%): 1,00 (Ditta individuale/professionista locale, flussi fatturati elettronicamente via SdI, assenza PEP). Rischio Effettivo Complessivo: 1,00/4,00 (BASSO). Revisione programmata a 36 mesi.'
+        'PRESTAZIONE ESENTE / RISCHIO NON SIGNIFICATIVO (Tabella 1 Regola Tecnica n. 2 CNDCEC): Redazione e trasmissione dichiarazione fiscale per contribuente in regime forfettario (L. 190/2014) senza tenuta di scritture contabili. Conservata anagrafica, incarico e documento d\'identità; resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e attivazione AVC in caso di operazioni straordinarie o sospetto di riciclaggio.'
+    } else if (isEntePaCaf) {
+      settore = 'CONTABILITA'
+      tipoSogg = 'PERSONA_GIURIDICA'
+      prestazione = '[VERIFICA SEMPLIFICATA art. 23] Convenzione assistenza fiscale CAF Nazionale vigilato'
+      punteggio = 1
+      esentiConPresidioSos++
+      motivazione =
+        'Controparte istituzionale / CAF Nazionale (art. 23 D.Lgs. 231/2007 - Obblighi semplificati). Rischio Non Significativo (Basso).'
     } else {
+      // Caso A2: Gestione fiscale, civilistica e societaria continuativa (SRL, Consorzi, Ditte con pratiche Registro Imprese / inizio attività)
       settore = 'CONTABILITA'
       tipoSogg = isSrlSocieta ? 'PERSONA_GIURIDICA' : 'DITTA_INDIVIDUALE'
       prestazione = isSrlSocieta
-        ? 'Gestione fiscale, civilistica, societaria e giuslavoristica continuativa (Società / S.r.l. / Consorzio)'
-        : 'Gestione fiscale, contabile e dichiarativa per Ditta Individuale / Lavoratore Autonomo'
+        ? '[SOGGETTA AVC] Gestione fiscale, contabile e civilistica continuativa (Società / S.r.l. / Consorzio)'
+        : '[SOGGETTA AVC] Pratiche Registro Imprese / Agenzia Entrate e gestione fiscale continuativa Ditta Individuale'
       punteggio = 2
+      soggetteAvcPiena++
       motivazione =
-        'Valutazione condotta secondo la Matrice CNDCEC (Regola Tecnica n. 2). Rischio Inerente (30%): 2,00. Rischio Specifico Cliente (70%): 1,25 (Sede in Italia, assetto proprietario e Titolare Effettivo identificati, pagamenti tracciati via bonifico bancario, assenza indicatori di anomalia ex D.M. Giustizia 16/08/2023). Rischio Effettivo Complessivo: 1,48/4,00 (BASSO / POCO SIGNIFICATIVO). Adeguata verifica ordinaria con controllo costante e rinnovo a 36 mesi.'
+        'PRESTAZIONE SOGGETTA AD ADEGUATA VERIFICA (AVC - Regola Tecnica n. 2 CNDCEC): Gestione fiscale, contabile e societaria continuativa / Pratiche Registro Imprese. Composta Scheda di Valutazione del Rischio Cliente (Matrice CNDCEC: Rischio Effettivo 1,48/4,00 BASSO). Identificato Titolare Effettivo e programmato controllo costante a 36 mesi.'
     }
 
     const titolareDefault = !isSrlSocieta
@@ -205,6 +246,8 @@ export async function eseguiRegolarizzazioneCNDCEC() {
   return {
     totaleAnalizzate: aziende.length,
     aggiornateObbligate,
+    soggetteAvcPiena,
+    esentiConPresidioSos,
     esonerateCaf,
   }
 }

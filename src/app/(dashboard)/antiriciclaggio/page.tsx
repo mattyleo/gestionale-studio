@@ -302,12 +302,10 @@ export default function AntiriciclaggioPage() {
               </div>
             </div>
 
-            <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-lg space-y-1.5">
               <div className="text-[11px] text-amber-950">
-                <strong>Come regolarizzare i fascicoli pregressi in 3 passi:</strong>{' '}
-                1) Clicca su <strong>&ldquo;Regolarizza Posizione Studio&rdquo;</strong> per numerare i {statistiche.totaleCensiti} fascicoli P.IVA e calcolare il rischio CNDCEC;{' '}
-                2) Stampa il <strong>Modello AV1 Studio</strong> e il <strong>Registro PDF</strong>;{' '}
-                3) Per i clienti con documento mancante ({statistiche.docMancanti}), clicca <strong>Modifica</strong> sulla riga per allegare la Carta d&apos;Identità e stampare il <strong>Kit AV2 + AV4 + Privacy</strong>.
+                <strong>Nota di attenzione (Obbligo SOS &amp; Riattrazione in AVC):</strong>{' '}
+                <em>Per le prestazioni esenti non occorre comporre la scheda di rischio cliente, ma <strong>resta sempre fermo l&apos;obbligo di Segnalazione di Operazioni Sospette (SOS)</strong>. Inoltre, l&apos;Adeguata Verifica (AVC) torna obbligatoria anche per i clienti paghe/forfettari qualora vi sia una <strong>consulenza continuativa o straordinaria</strong> (es. assistenza su verbale ispettivo ITL, riorganizzazioni aziendali, contrattazione di 2° livello), un sospetto di riciclaggio o dubbi sull&apos;identità.</em>
               </div>
             </div>
           </CardContent>
@@ -517,9 +515,20 @@ export default function AntiriciclaggioPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-xs bg-slate-50">
-                          {az.settoreAttivita || 'CONTABILITA'}
-                        </Badge>
+                        <div className="space-y-1">
+                          <Badge variant="outline" className="text-xs bg-slate-50">
+                            {az.settoreAttivita || 'CONTABILITA'}
+                          </Badge>
+                          {az.antiriciclaggioPrestazione?.includes('[SOGGETTA AVC]') ? (
+                            <span className="block text-[10px] font-semibold text-indigo-700">
+                              ● Soggetta AVC (Scheda Rischio)
+                            </span>
+                          ) : az.antiriciclaggioPrestazione?.includes('[ESENTE') ? (
+                            <span className="block text-[10px] font-medium text-emerald-700" title="Esente da scheda di rischio cliente ex art. 17 co. 7 / Tab. 1 CNDCEC, fermo obbligo SOS">
+                              ○ Esente Scheda (Solo SOS/ID)
+                            </span>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs text-slate-700">
                         {az.legaleRappresentante || az.referente || '—'}
