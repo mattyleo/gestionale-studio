@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { formatEuro, formatData, statoInvoiceLabel, statoInvoiceBadgeColor } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ImportaArubaModal } from '@/components/aruba/ImportaArubaModal'
 
 export default function BozzePage() {
   const { toast } = useToast()
@@ -92,7 +93,8 @@ export default function BozzePage() {
           <h2 className="text-2xl font-bold text-gray-900">Bozze fatture</h2>
           <p className="text-sm text-gray-500 mt-0.5">Fatture in preparazione, non ancora emesse</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ImportaArubaModal onSuccess={caricaDati} />
           <Button variant="outline" size="sm" onClick={caricaDati}>
             <RefreshCw className="h-4 w-4 mr-1" /> Aggiorna
           </Button>

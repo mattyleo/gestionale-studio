@@ -10,37 +10,38 @@ echo          AVVIO GESTIONALE STUDIO - DOTT. ANTONIO TUZIO
 echo =======================================================================
 echo.
 
-echo [1/2] Verifica e avvio database PostgreSQL...
+echo [1/3] Verifica e avvio database PostgreSQL su Docker...
 docker compose up -d postgres >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo [ATTENZIONE] Docker Desktop non sembra avviato.
-    echo Avvia prima Docker Desktop e riprova.
+    echo [ATTENZIONE] Docker Desktop non e' ancora in esecuzione.
+    echo.
+    echo 1. Apri l'applicazione "Docker Desktop" dal menu Start di Windows.
+    echo 2. Attendi 15-20 secondi che Docker si avvii completamente.
+    echo 3. Rilancia questo file avvia-windows.bat.
+    echo.
     pause
     exit /b 1
 )
 echo [OK] Database attivo su porta 5432.
 
 echo.
-echo [2/2] Apertura del browser su http://localhost:3000...
+echo [2/3] Allineamento schema database...
+call npx prisma db push --skip-generate >nul 2>&1
+
+echo.
+echo [3/3] Apertura del browser su http://localhost:3000...
 start "" "http://localhost:3000"
 
 echo.
 echo =======================================================================
 echo   Il gestionale e' in funzione!
-echo   Indirizzo Locale:  http://localhost:3000
+echo   Indirizzo:  http://localhost:3000
 echo.
-echo   Per accedere dagli altri PC o Mac dello studio collegati alla stessa
-echo   rete Wi-Fi/LAN, apri il browser e digita:
-echo   http://[IP-DI-QUESTO-PC]:3000
+echo   Login:  infooizut@gmail.com
 echo.
 echo   Per terminare il programma chiudi questa finestra.
 echo =======================================================================
 echo.
 
-npm run start
-if %ERRORLEVEL% NEQ 0 (
-    echo Tentativo di avvio in modalita' standard (npm run dev)...
-    npm run dev
-)
-
+npm run dev
 pause
