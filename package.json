@@ -12,6 +12,7 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:clean": "tsx pulisci-db.ts",
+    "db:quadratura": "tsx diagnostica-fatture.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset"
   },

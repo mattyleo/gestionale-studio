@@ -24,6 +24,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ImportaArubaModal } from '@/components/aruba/ImportaArubaModal'
+import { QuadraturaArubaModal } from '@/components/fatture/QuadraturaArubaModal'
 import { formatEuro, formatData } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 
@@ -81,7 +82,8 @@ export default function IncassatePage() {
             <span className="font-semibold text-green-700">{formatEuro(totaleIncassato)}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <QuadraturaArubaModal onAggiornato={caricaDati} />
           <ImportaArubaModal onSuccess={caricaDati} />
           <Badge variant="success" className="text-sm px-3 py-1">
             <CheckCircle className="h-4 w-4 mr-1.5 inline" /> Saldo completo
