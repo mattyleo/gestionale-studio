@@ -3,6 +3,7 @@
 // Modal per consultare e aggiornare il fascicolo Antiriciclaggio & Privacy del cliente
 
 import * as React from 'react'
+import Link from 'next/link'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,9 @@ import {
   Building,
   Loader2,
   Sparkles,
+  Trash2,
+  ExternalLink,
+  Pencil,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
@@ -58,6 +62,21 @@ export function AntiriciclaggioDettaglioModal({
 
   // Form stato
   const [form, setForm] = React.useState({
+    // Anagrafica aziendale
+    ragioneSociale: '',
+    tipoSoggetto: 'PERSONA_GIURIDICA',
+    codiceFiscale: '',
+    partitaIva: '',
+    indirizzo: '',
+    cap: '',
+    comune: '',
+    provincia: '',
+    telefono: '',
+    emailAmministrativa: '',
+    pec: '',
+    codiceDestinatarioSdi: '0000000',
+
+    // Antiriciclaggio & Privacy
     settoreAttivita: 'CONTABILITA',
     legaleRappresentante: '',
     cfRappresentante: '',
@@ -100,6 +119,21 @@ export function AntiriciclaggioDettaglioModal({
       setAzienda(az)
 
       setForm({
+        // Anagrafica
+        ragioneSociale: az.ragioneSociale || '',
+        tipoSoggetto: az.tipoSoggetto || (az.partitaIva ? 'PERSONA_GIURIDICA' : 'PERSONA_FISICA'),
+        codiceFiscale: az.codiceFiscale || '',
+        partitaIva: az.partitaIva || '',
+        indirizzo: az.indirizzo || '',
+        cap: az.cap || '',
+        comune: az.comune || '',
+        provincia: az.provincia || '',
+        telefono: az.telefono || '',
+        emailAmministrativa: az.emailAmministrativa || '',
+        pec: az.pec || '',
+        codiceDestinatarioSdi: az.codiceDestinatarioSdi || '0000000',
+
+        // Antiriciclaggio & Privacy
         settoreAttivita: az.settoreAttivita || (az.partitaIva ? 'CONTABILITA' : 'CAF'),
         legaleRappresentante: az.legaleRappresentante || az.referente || '',
         cfRappresentante: az.cfRappresentante || '',
@@ -210,11 +244,37 @@ export function AntiriciclaggioDettaglioModal({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
-      toast({ title: '✅ Fascicolo Antiriciclaggio aggiornato con successo' })
+      toast({ title: '✅ Dati anagrafici e fascicolo aggiornati con successo' })
       if (onSuccess) onSuccess()
       onOpenChange(false)
     } catch (err: any) {
       toast({ title: 'Errore salvataggio', description: err.message, variant: 'destructive' })
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  const handleElimina = async () => {
+    if (!aziendaId || !azienda) return
+    const confermato = confirm(
+      `Sei sicuro di voler eliminare o archiviare il cliente "${azienda.ragioneSociale}"?\n\n` +
+      `Se il cliente ha fatture o prestazioni collegate verrà archiviato per motivi di conservazione fiscale, altrimenti verrà rimosso definitivamente.`
+    )
+    if (!confermato) return
+
+    setSalvando(true)
+    try {
+      const res = await fetch(`/api/antiriciclaggio/${aziendaId}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast({
+        title: data.archiviato ? 'ℹ️ Cliente archiviato' : '✅ Cliente eliminato',
+        description: data.messaggio,
+      })
+      if (onSuccess) onSuccess()
+      onOpenChange(false)
+    } catch (err: any) {
+      toast({ title: 'Errore eliminazione', description: err.message, variant: 'destructive' })
     } finally {
       setSalvando(false)
     }
@@ -280,6 +340,121 @@ export function AntiriciclaggioDettaglioModal({
           </div>
         ) : (
           <div className="space-y-6 py-2">
+            {/* Sezione Dati Anagrafici & Aziendali Modificabili */}
+            <div className="p-4 bg-slate-50/80 border border-slate-200 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                  <Building className="h-4 w-4 text-blue-600" />
+                  Dati Anagrafici Cliente / Azienda
+                </h4>
+                <Link
+                  href={`/aziende/${aziendaId}`}
+                  target="_blank"
+                  className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-medium"
+                >
+                  <span>Apri scheda anagrafica completa</span>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="sm:col-span-2">
+                  <Label>Ragione Sociale / Nome e Cognome *</Label>
+                  <Input
+                    value={form.ragioneSociale}
+                    onChange={(e) => setForm({ ...form, ragioneSociale: e.target.value })}
+                    className="bg-white font-medium"
+                    placeholder="es. Mario Rossi / Rossi S.r.l."
+                  />
+                </div>
+                <div>
+                  <Label>Codice Fiscale</Label>
+                  <Input
+                    value={form.codiceFiscale}
+                    onChange={(e) => setForm({ ...form, codiceFiscale: e.target.value.toUpperCase() })}
+                    className="bg-white font-mono"
+                    maxLength={16}
+                    placeholder="Codice Fiscale"
+                  />
+                </div>
+                <div>
+                  <Label>Partita IVA</Label>
+                  <Input
+                    value={form.partitaIva}
+                    onChange={(e) => setForm({ ...form, partitaIva: e.target.value })}
+                    className="bg-white font-mono"
+                    maxLength={11}
+                    placeholder="Partita IVA"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Indirizzo (Via/Piazza e N°)</Label>
+                  <Input
+                    value={form.indirizzo}
+                    onChange={(e) => setForm({ ...form, indirizzo: e.target.value })}
+                    className="bg-white"
+                    placeholder="es. Via Roma 1"
+                  />
+                </div>
+                <div>
+                  <Label>Comune e Provincia</Label>
+                  <div className="flex gap-1.5">
+                    <Input
+                      placeholder="Comune"
+                      value={form.comune}
+                      onChange={(e) => setForm({ ...form, comune: e.target.value })}
+                      className="bg-white flex-1"
+                    />
+                    <Input
+                      placeholder="PR"
+                      value={form.provincia}
+                      onChange={(e) => setForm({ ...form, provincia: e.target.value.toUpperCase() })}
+                      className="bg-white w-14 font-mono text-center"
+                      maxLength={2}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>CAP</Label>
+                  <Input
+                    placeholder="es. 42121"
+                    value={form.cap}
+                    onChange={(e) => setForm({ ...form, cap: e.target.value })}
+                    className="bg-white font-mono"
+                    maxLength={5}
+                  />
+                </div>
+                <div>
+                  <Label>Telefono</Label>
+                  <Input
+                    value={form.telefono}
+                    onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                    className="bg-white"
+                    placeholder="es. 0522 123456"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>Email / PEC</Label>
+                  <Input
+                    value={form.emailAmministrativa}
+                    onChange={(e) => setForm({ ...form, emailAmministrativa: e.target.value })}
+                    className="bg-white"
+                    placeholder="amministrazione@dominio.it"
+                  />
+                </div>
+                <div>
+                  <Label>Codice Destinatario SDI</Label>
+                  <Input
+                    value={form.codiceDestinatarioSdi}
+                    onChange={(e) => setForm({ ...form, codiceDestinatarioSdi: e.target.value.toUpperCase() })}
+                    className="bg-white font-mono"
+                    maxLength={7}
+                    placeholder="0000000"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Banner Valutazione Automatica Normativa CNDCEC (Zero NotebookLM) */}
             <div className="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl p-3.5 flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2.5">
@@ -721,19 +896,32 @@ export function AntiriciclaggioDettaglioModal({
           </div>
         )}
 
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={salvando}>
-            Annulla
+        <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleElimina}
+            disabled={salvando}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 w-full sm:w-auto justify-start"
+          >
+            <Trash2 className="h-4 w-4 mr-1.5" />
+            Elimina / Archivia Cliente
           </Button>
-          <Button onClick={handleSalva} disabled={salvando} className="bg-blue-600 hover:bg-blue-700 text-white">
-            {salvando ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvataggio...
-              </>
-            ) : (
-              'Salva Modifiche Fascicolo'
-            )}
-          </Button>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={salvando}>
+              Annulla
+            </Button>
+            <Button onClick={handleSalva} disabled={salvando} className="bg-blue-600 hover:bg-blue-700 text-white">
+              {salvando ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvataggio...
+                </>
+              ) : (
+                'Salva Modifiche'
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

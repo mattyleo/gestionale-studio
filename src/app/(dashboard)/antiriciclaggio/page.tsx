@@ -3,6 +3,7 @@
 // Registro Antiriciclaggio & Privacy per Studio Professionale (D.Lgs. 231/2007 & GDPR)
 
 import * as React from 'react'
+import Link from 'next/link'
 import {
   ShieldCheck,
   Search,
@@ -21,6 +22,9 @@ import {
   Calendar,
   AlertCircle,
   FileCheck,
+  Trash2,
+  ExternalLink,
+  Plus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -104,6 +108,27 @@ export default function AntiriciclaggioPage() {
     setModalOpen(true)
   }
 
+  const handleEliminaCliente = async (az: any) => {
+    const confermato = confirm(
+      `Sei sicuro di voler eliminare o archiviare il cliente "${az.ragioneSociale}"?\n\n` +
+      `Se il cliente possiede fatture o prestazioni collegate verrà archiviato per conservare i registri contabili e fiscali, altrimenti verrà rimosso definitivamente dal database.`
+    )
+    if (!confermato) return
+
+    try {
+      const res = await fetch(`/api/antiriciclaggio/${az.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast({
+        title: data.archiviato ? 'ℹ️ Cliente archiviato' : '✅ Cliente eliminato',
+        description: data.messaggio,
+      })
+      caricaDati()
+    } catch (err: any) {
+      toast({ title: 'Errore eliminazione', description: err.message, variant: 'destructive' })
+    }
+  }
+
   const scaricaRegistroPdf = () => {
     const params = new URLSearchParams()
     if (settore !== 'TUTTI') params.append('settore', settore)
@@ -163,6 +188,12 @@ export default function AntiriciclaggioPage() {
           <Button variant="outline" size="sm" onClick={caricaDati}>
             <RefreshCw className="h-4 w-4 mr-1" /> Aggiorna
           </Button>
+
+          <Link href="/aziende">
+            <Button variant="outline" size="sm" className="border-slate-300 text-slate-700 hover:bg-slate-50">
+              <Building className="h-4 w-4 mr-1.5 text-slate-500" /> Anagrafica Aziende
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -354,7 +385,14 @@ export default function AntiriciclaggioPage() {
                         {fascicolo}
                       </TableCell>
                       <TableCell>
-                        <div className="font-semibold text-gray-900">{az.ragioneSociale}</div>
+                        <Link
+                          href={`/aziende/${az.id}`}
+                          className="font-semibold text-gray-900 hover:text-blue-600 hover:underline inline-flex items-center gap-1 group"
+                          title="Apri scheda anagrafica cliente"
+                        >
+                          <span>{az.ragioneSociale}</span>
+                          <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-blue-500" />
+                        </Link>
                         <div className="text-xs text-gray-500 font-mono">
                           {az.partitaIva ? `P.I. ${az.partitaIva}` : ''}
                           {az.codiceFiscale ? ` · CF ${az.codiceFiscale}` : ''}
@@ -423,19 +461,39 @@ export default function AntiriciclaggioPage() {
                             size="sm"
                             onClick={() => apriFascicolo(az.id)}
                             className="h-8 px-2.5 text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
-                            title="Apri fascicolo antiriciclaggio e privacy del cliente"
+                            title="Modifica anagrafica e fascicolo antiriciclaggio"
                           >
-                            <Pencil className="h-3.5 w-3.5 mr-1" /> Fascicolo
+                            <Pencil className="h-3.5 w-3.5 mr-1" /> Modifica
+                          </Button>
+
+                          <Link href={`/aziende/${az.id}`} title="Scheda anagrafica completa cliente">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-slate-600 hover:text-blue-600 hover:bg-slate-100"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </Link>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-slate-600 hover:text-blue-600 hover:bg-slate-100"
+                            onClick={() => window.open(`/api/antiriciclaggio/${az.id}/pdf?tipo=dichiarazione`, '_blank')}
+                            title="Scarica Dichiarazione Cliente Antiriciclaggio (PDF)"
+                          >
+                            <FileText className="h-4 w-4" />
                           </Button>
 
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-slate-600 hover:text-blue-600"
-                            onClick={() => window.open(`/api/antiriciclaggio/${az.id}/pdf?tipo=dichiarazione`, '_blank')}
-                            title="Scarica Dichiarazione Cliente Antiriciclaggio (PDF)"
+                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleEliminaCliente(az)}
+                            title="Elimina o archivia cliente dal gestionale"
                           >
-                            <FileText className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
