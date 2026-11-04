@@ -80,14 +80,25 @@ export async function GET(request: Request) {
     const aziendaMap = new Map<string, { ragioneSociale: string; emesso: number; incassato: number; ultimoPagamento: Date | null }>()
 
     for (const fattura of fattureEmesse) {
+      const isNotaCredito =
+        fattura.sezionale?.toUpperCase() === 'NC' ||
+        fattura.numeroCompleto?.toUpperCase().includes('NC') ||
+        fattura.note?.toLowerCase().includes('credito') ||
+        fattura.note?.toLowerCase().includes('storno')
+
       const totale = Number(fattura.totaleDocumento)
       const incassatoFattura = fattura.payments.reduce((sum, p) => sum + Number(p.importo), 0)
       const residuo = totale - incassatoFattura
 
-      totaleEmesso += totale
-      totaleIncassato += incassatoFattura
+      if (isNotaCredito) {
+        totaleEmesso -= totale
+        totaleIncassato -= incassatoFattura
+      } else {
+        totaleEmesso += totale
+        totaleIncassato += incassatoFattura
+      }
 
-      if (residuo > 0 && fattura.dataScadenza && fattura.dataScadenza < oggi) {
+      if (!isNotaCredito && residuo > 0 && fattura.dataScadenza && fattura.dataScadenza < oggi) {
         totaleScaduto += residuo
       }
 
@@ -102,8 +113,13 @@ export async function GET(request: Request) {
         })
       }
       const aziendaData = aziendaMap.get(aziendaId)!
-      aziendaData.emesso += totale
-      aziendaData.incassato += incassatoFattura
+      if (isNotaCredito) {
+        aziendaData.emesso -= totale
+        aziendaData.incassato -= incassatoFattura
+      } else {
+        aziendaData.emesso += totale
+        aziendaData.incassato += incassatoFattura
+      }
     }
 
     // 5. Grafico andamento mensile ultimi 6 mesi

@@ -59,6 +59,12 @@ export default function IncassatePage() {
     caricaDati()
   }, [caricaDati])
 
+  const isNotaCredito = (f: any) =>
+    f.sezionale?.toUpperCase() === 'NC' ||
+    f.numeroCompleto?.toUpperCase().includes('NC') ||
+    f.note?.toLowerCase().includes('credito') ||
+    f.note?.toLowerCase().includes('storno')
+
   const fattureFiltrate = fatture.filter((f) => {
     const nomeAzienda = f.company?.ragioneSociale || ''
     const matchRicerca =
@@ -70,7 +76,11 @@ export default function IncassatePage() {
     return matchRicerca && matchAzienda
   })
 
-  const totaleIncassato = fattureFiltrate.reduce((sum, f) => sum + Number(f.totaleDocumento || 0), 0)
+  // Le Note di Credito vengono sottratte dal totale incassato per riflettere lo storno reale
+  const totaleIncassato = fattureFiltrate.reduce((sum, f) => {
+    const importo = Number(f.totaleDocumento || 0)
+    return isNotaCredito(f) ? sum - importo : sum + importo
+  }, 0)
 
   return (
     <div className="space-y-6 p-6">
@@ -153,12 +163,21 @@ export default function IncassatePage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  fattureFiltrate.map((f) => (
+                  fattureFiltrate.map((f) => {
+                    const isNC = isNotaCredito(f)
+                    return (
                     <TableRow key={f.id} className="hover:bg-gray-50">
                       <TableCell className="font-mono text-sm font-semibold">
-                        <Link href={`/fatture/${f.id}`} className="text-blue-600 hover:underline">
-                          {f.numeroCompleto || `FT ${f.numero}/${f.anno}`}
-                        </Link>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Link href={`/fatture/${f.id}`} className="text-blue-600 hover:underline">
+                            {f.numeroCompleto || `FT ${f.numero}/${f.anno}`}
+                          </Link>
+                          {isNC && (
+                            <Badge variant="outline" className="text-[10px] bg-purple-50 text-purple-700 border-purple-200">
+                              Nota di Credito
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium">{f.company?.ragioneSociale}</TableCell>
                       <TableCell>{formatData(f.dataDocumento)}</TableCell>
@@ -167,8 +186,8 @@ export default function IncassatePage() {
                           {f.ultimoPagamento ? formatData(f.ultimoPagamento) : formatData(f.dataDocumento)}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right font-bold text-green-700">
-                        {formatEuro(f.totaleDocumento)}
+                      <TableCell className={`text-right font-bold ${isNC ? 'text-purple-700 font-mono' : 'text-green-700 font-mono'}`}>
+                        {isNC ? `- ${formatEuro(f.totaleDocumento)}` : formatEuro(f.totaleDocumento)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -196,7 +215,7 @@ export default function IncassatePage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                  )})
                 )}
               </TableBody>
             </Table>

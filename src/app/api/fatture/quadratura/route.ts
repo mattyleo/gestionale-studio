@@ -28,12 +28,23 @@ export async function GET(req: Request) {
     let totaleResiduo = 0
 
     const listaFatture = fatture.map((f) => {
+      const isNC =
+        f.sezionale?.toUpperCase() === 'NC' ||
+        f.numeroCompleto?.toUpperCase().includes('NC') ||
+        f.note?.toLowerCase().includes('credito') ||
+        f.note?.toLowerCase().includes('storno')
+
       const totDoc = Number(f.totaleDocumento)
       const inc = f.payments.reduce((acc, p) => acc + Number(p.importo), 0)
       const res = Math.max(0, +(totDoc - inc).toFixed(2))
 
-      totaleEmesse += totDoc
-      totaleIncassate += inc
+      if (isNC) {
+        totaleEmesse -= totDoc
+        totaleIncassate -= inc
+      } else {
+        totaleEmesse += totDoc
+        totaleIncassate += inc
+      }
       totaleResiduo += res
 
       return {
@@ -41,15 +52,20 @@ export async function GET(req: Request) {
         numero: f.numeroCompleto,
         data: f.dataDocumento,
         cliente: f.company?.ragioneSociale || 'Sconosciuto',
-        totaleDocumento: totDoc,
-        incassato: inc,
+        totaleDocumento: isNC ? -totaleDocumentoNetto(totDoc) : totDoc,
+        incassato: isNC ? -inc : inc,
         residuo: res,
         saldata: res <= 0.005 && inc > 0,
+        isNotaCredito: isNC,
         note: f.note,
         sezionale: f.sezionale,
         haPagamenti: f.payments.length > 0,
       }
     })
+
+    function totaleDocumentoNetto(val: number) {
+      return val
+    }
 
     const delta = +(totaleIncassate - targetAruba).toFixed(2)
 
