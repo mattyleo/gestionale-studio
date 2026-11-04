@@ -1,4 +1,4 @@
-﻿// src/app/api/attivita/[id]/route.ts
+// src/app/api/attivita/[id]/route.ts
 // GET, PUT, DELETE singola attività
 
 import { NextResponse } from 'next/server'
@@ -73,22 +73,29 @@ export async function PUT(request: Request, { params: _params }: { params: Promi
     const dati = aggiornaAttivitaSchema.parse(body)
 
     // Ricalcola importo se cambiano quantità o prezzo
-    let importo = attivita.importo
+    let importo: Decimal | null = attivita.importo
     if (dati.quantita !== undefined || dati.prezzoUnitario !== undefined) {
-      const q = dati.quantita ?? (attivita.quantita ? Number(attivita.quantita) : null)
-      const p = dati.prezzoUnitario ?? (attivita.prezzoUnitario ? Number(attivita.prezzoUnitario) : null)
-      if (q && p) {
+      const q = dati.quantita !== undefined ? dati.quantita : (attivita.quantita ? Number(attivita.quantita) : 1)
+      const p = dati.prezzoUnitario !== undefined ? dati.prezzoUnitario : (attivita.prezzoUnitario ? Number(attivita.prezzoUnitario) : null)
+      if (q != null && p != null) {
         importo = new Decimal(q).mul(new Decimal(p))
+      } else {
+        importo = null
       }
     }
+
+    const companyId = dati.companyId === '' ? null : dati.companyId
+    const serviceId = dati.serviceId === '' ? null : dati.serviceId
 
     const aggiornata = await prisma.workEntry.update({
       where: { id: params.id },
       data: {
         ...dati,
+        ...(companyId !== undefined && { companyId }),
+        ...(serviceId !== undefined && { serviceId }),
         importo,
-        quantita: dati.quantita !== undefined ? (dati.quantita ? new Decimal(dati.quantita) : null) : undefined,
-        prezzoUnitario: dati.prezzoUnitario !== undefined ? (dati.prezzoUnitario ? new Decimal(dati.prezzoUnitario) : null) : undefined,
+        quantita: dati.quantita !== undefined ? (dati.quantita != null ? new Decimal(dati.quantita) : null) : undefined,
+        prezzoUnitario: dati.prezzoUnitario !== undefined ? (dati.prezzoUnitario != null ? new Decimal(dati.prezzoUnitario) : null) : undefined,
       },
     })
 
@@ -121,23 +128,34 @@ export async function DELETE(request: Request, { params: _params }: { params: Pr
     const attivita = await prisma.workEntry.findUnique({ where: { id: params.id } })
     if (!attivita) return NextResponse.json({ error: 'Attività non trovata' }, { status: 404 })
 
-    if (['FATTURATA', 'IN_BOZZA_FATTURA'].includes(attivita.stato)) {
+    if (['FATTURATA', 'IN_BOZZA_FATTURA'].includes(attivita.stato) || attivita.invoiceLineId) {
       return NextResponse.json(
-        { error: 'Non è possibile eliminare attività fatturate o incluse in bozze' },
+        { error: 'Non è possibile eliminare attività già fatturate o incluse in bozze di fattura' },
         { status: 400 }
       )
     }
 
-    // Soft delete → ESCLUSA
-    await prisma.workEntry.update({
-      where: { id: params.id },
+    await prisma.auditEvent.create({
       data: {
-        stato: 'ESCLUSA',
-        motivazioneEsclusa: 'Eliminata manualmente',
+        userId: (session.user as any).id,
+        entityType: 'WorkEntry',
+        entityId: params.id,
+        azione: 'DELETED',
+        dettagli: {
+          companyId: attivita.companyId,
+          serviceId: attivita.serviceId,
+          importo: attivita.importo ? Number(attivita.importo) : null,
+          descrizione: attivita.descrizione,
+        },
       },
     })
 
-    return NextResponse.json({ messaggio: 'Attività esclusa' })
+    // Elimina fisicamente l'attività dal database
+    await prisma.workEntry.delete({
+      where: { id: params.id },
+    })
+
+    return NextResponse.json({ messaggio: 'Attività eliminata con successo' })
   } catch (error) {
     console.error('Errore eliminazione attività:', error)
     return NextResponse.json({ error: 'Errore interno del server' }, { status: 500 })
