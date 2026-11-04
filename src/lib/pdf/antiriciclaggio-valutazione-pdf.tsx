@@ -228,10 +228,18 @@ export async function generaAntiriciclaggioValutazionePDF(
   azienda: any,
   emittente: any
 ): Promise<Buffer> {
-  const studioDenominazione = emittente?.denominazione || 'STUDIO COMMERCIALE DOTT. ANTONIO TUZIO'
-  const studioIndirizzo = emittente
-    ? `${emittente.indirizzo || ''} - ${emittente.cap || ''} ${emittente.comune || ''} (${emittente.provincia || ''})`
-    : 'Via Emilia Ospizio 96 - 42122 Reggio Emilia (RE)'
+  const rawDenom = (emittente?.denominazione || 'Dott. Antonio Tuzio')
+    .replace(/^STUDIO\s+COMMERCIALE\s+/i, '')
+    .trim()
+  const studioDenominazione = rawDenom || 'Dott. Antonio Tuzio'
+  const studioPec = emittente?.pec || 'studiotuzio@legalmail.it'
+  const studioEmail =
+    emittente?.email && !emittente.email.includes('postmaster') && !emittente.email.includes('infooizut')
+      ? emittente.email
+      : 'antoniotuzio@cafcgnrostanuova.it'
+  const studioIndirizzo = `${emittente?.indirizzo || 'Via Umberto Poli 9/B'} - ${emittente?.cap || '42123'} ${
+    emittente?.comune || 'Reggio Emilia'
+  } (${emittente?.provincia || 'RE'}) · PEC: ${studioPec} · Email: ${studioEmail}`
 
   const bot = calcolaZonaERischioBot(azienda)
   const mesiRinnovo = bot.periodicitaMesi || 36
@@ -450,47 +458,47 @@ export async function generaAntiriciclaggioValutazionePDF(
           </View>
         </View>
 
-        {/* MODELLO AV.2 CNDCEC: DOCUMENTO RIEPILOGATIVO DOCUMENTI ACQUISITI */}
-        <View style={styles.section}>
+        {/* MODELLO AV.2 CNDCEC: DOCUMENTO RIEPILOGATIVO DOCUMENTI ACQUISITI (Caselle vuote da spuntare dal Dottore) */}
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>
             AV.2 — Documento Riepilogativo di Dati, Informazioni e Documenti Acquisiti nel Fascicolo Cliente
           </Text>
           <View style={styles.checkGrid}>
             <View style={styles.checkItem}>
-              <Text style={styles.checkbox}>{hasDocIdentita ? 'X' : ' '}</Text>
+              <Text style={styles.checkbox}> </Text>
               <Text style={{ fontSize: 7.4, flex: 1 }}>
                 1. Copia Documento d&apos;Identità ({azienda.documentoNumero || 'Da acquisire'}){' '}
                 {docIdFile ? `[File: ${docIdFile.nomeFile.slice(0, 22)}]` : ''}
               </Text>
             </View>
             <View style={styles.checkItem}>
-              <Text style={styles.checkbox}>{docVisuraFile || isSocieta ? 'X' : ' '}</Text>
+              <Text style={styles.checkbox}> </Text>
               <Text style={{ fontSize: 7.4, flex: 1 }}>
                 2. Visura Camerale / Atto Costitutivo / Statuto{' '}
                 {docVisuraFile ? `[File: ${docVisuraFile.nomeFile.slice(0, 20)}]` : isSocieta ? '[In Fascicolo]' : '[Non richiesto PF]'}
               </Text>
             </View>
             <View style={styles.checkItem}>
-              <Text style={styles.checkbox}>{azienda.partitaIva || azienda.codiceFiscale ? 'X' : ' '}</Text>
+              <Text style={styles.checkbox}> </Text>
               <Text style={{ fontSize: 7.4, flex: 1 }}>
                 3. Attribuzione Codice Fiscale / Partita IVA ({azienda.partitaIva || azienda.codiceFiscale || 'N/D'})
               </Text>
             </View>
             <View style={styles.checkItem}>
-              <Text style={styles.checkbox}>X</Text>
+              <Text style={styles.checkbox}> </Text>
               <Text style={{ fontSize: 7.4, flex: 1 }}>
                 4. Dichiarazione del Cliente ex art. 22 D.Lgs. 231/07 (AV.4){' '}
                 {docAv4File ? `[Firmata: ${docAv4File.nomeFile.slice(0, 18)}]` : '[Predisposta]'}
               </Text>
             </View>
             <View style={styles.checkItem}>
-              <Text style={styles.checkbox}>X</Text>
+              <Text style={styles.checkbox}> </Text>
               <Text style={{ fontSize: 7.4, flex: 1 }}>
                 5. Scheda Determinazione Rischio Effettivo (Modello AV.1) e Istruttoria (AV.3)
               </Text>
             </View>
             <View style={styles.checkItem}>
-              <Text style={styles.checkbox}>{azienda.privacyFirmata || docPrivacyFile ? 'X' : ' '}</Text>
+              <Text style={styles.checkbox}> </Text>
               <Text style={{ fontSize: 7.4, flex: 1 }}>
                 6. Informativa Privacy GDPR e Mandato Professionale{' '}
                 {docPrivacyFile ? `[Firmato: ${docPrivacyFile.nomeFile.slice(0, 18)}]` : azienda.privacyFirmata ? '[Sottoscritta]' : '[In firma]'}

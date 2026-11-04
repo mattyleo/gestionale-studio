@@ -115,9 +115,17 @@ export function AntiriciclaggioRegistroDocument({
   aziende: any[]
   emittente: any
 }) {
-  const studioNome = emittente?.denominazione || 'Dott. Antonio Tuzio'
+  const rawDenom = (emittente?.denominazione || 'Dott. Antonio Tuzio')
+    .replace(/^STUDIO\s+COMMERCIALE\s+/i, '')
+    .trim()
+  const studioNome = rawDenom || 'Dott. Antonio Tuzio'
   const studioPIVA = emittente?.partitaIva || '05389400481'
-  const studioComune = emittente?.comune || "Reggio nell'Emilia"
+  const studioComune = emittente?.comune || 'Reggio Emilia'
+  const studioPec = emittente?.pec || 'studiotuzio@legalmail.it'
+  const studioEmail =
+    emittente?.email && !emittente.email.includes('postmaster') && !emittente.email.includes('infooizut')
+      ? emittente.email
+      : 'antoniotuzio@cafcgnrostanuova.it'
 
   return (
     <Document>
@@ -125,10 +133,10 @@ export function AntiriciclaggioRegistroDocument({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.studioTitle}>{studioNome} · Studio Professionale</Text>
+            <Text style={styles.studioTitle}>{studioNome} · Dottore Commercialista</Text>
             <Text style={styles.docTitle}>REGISTRO DELLA CLIENTELA — ANTIRICICLAGGIO</Text>
             <Text style={styles.metaText}>
-              Adempimento obbligatorio D.Lgs. 21 novembre 2007, n. 231 e Regole Tecniche CNDCEC · Sede: {studioComune} · P.IVA: {studioPIVA}
+              Adempimento obbligatorio D.Lgs. 21 novembre 2007, n. 231 e Regole Tecniche CNDCEC · Sede: {studioComune} · P.IVA: {studioPIVA} · PEC: {studioPec} · Email: {studioEmail}
             </Text>
           </View>
           <View style={styles.headerRight}>

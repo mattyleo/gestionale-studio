@@ -213,11 +213,19 @@ export async function generaAntiriciclaggioDichiarazionePDF(
   azienda: any,
   emittente: any
 ): Promise<Buffer> {
-  const studioDenominazione = emittente?.denominazione || 'STUDIO COMMERCIALE DOTT. ANTONIO TUZIO'
-  const studioIndirizzo = emittente
-    ? `${emittente.indirizzo || ''} - ${emittente.cap || ''} ${emittente.comune || ''} (${emittente.provincia || ''})`
-    : 'Via Emilia Ospizio 96 - 42122 Reggio Emilia (RE)'
-  const studioPiva = emittente?.partitaIva ? `P.IVA ${emittente.partitaIva} - C.F. ${emittente.codiceFiscale || ''}` : ''
+  const rawDenom = (emittente?.denominazione || 'Dott. Antonio Tuzio')
+    .replace(/^STUDIO\s+COMMERCIALE\s+/i, '')
+    .trim()
+  const studioDenominazione = rawDenom || 'Dott. Antonio Tuzio'
+  const studioIndirizzo = emittente?.indirizzo
+    ? `${emittente.indirizzo} - ${emittente.cap || '42123'} ${emittente.comune || 'Reggio Emilia'} (${emittente.provincia || 'RE'})`
+    : 'Via Umberto Poli 9/B - 42123 Reggio Emilia (RE)'
+  const studioPec = emittente?.pec || 'studiotuzio@legalmail.it'
+  const studioEmail =
+    emittente?.email && !emittente.email.includes('postmaster') && !emittente.email.includes('infooizut')
+      ? emittente.email
+      : 'antoniotuzio@cafcgnrostanuova.it'
+  const studioPiva = `P.IVA ${emittente?.partitaIva || 'N/D'} - C.F. ${emittente?.codiceFiscale || 'N/D'} · PEC: ${studioPec} · Email: ${studioEmail}`
 
   const botDati = arricchisciDatiClienteBot(azienda)
   const oggi = formatDate(azienda.antiriciclaggioDataVerifica || new Date())
@@ -380,19 +388,19 @@ export async function generaAntiriciclaggioDichiarazionePDF(
           </View>
         </View>
 
-        {/* Sezione 4: Titolare Effettivo (4 opzioni ufficiali CNDCEC AV.4) */}
-        <View style={styles.section}>
+        {/* Sezione 4: Titolare Effettivo (4 opzioni ufficiali CNDCEC AV.4 — Caselle vuote da spuntare) */}
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>
             4. Dichiarazione sul Titolare Effettivo (Art. 20 e Art. 22 D.Lgs. 231/2007 — Nota 4)
           </Text>
           <View style={styles.checkboxRow}>
-            <Text style={styles.checkbox}>{!isSocieta ? 'X' : ' '}</Text>
+            <Text style={styles.checkbox}> </Text>
             <Text style={{ fontSize: 7.8, flex: 1 }}>
               <Text style={styles.bold}>Opzione A (Persona Fisica / Ditta Individuale):</Text> di agire in proprio e per conto proprio e di essere l&apos;unico Titolare Effettivo della prestazione professionale richiesta.
             </Text>
           </View>
           <View style={styles.checkboxRow}>
-            <Text style={styles.checkbox}>{isSocieta ? 'X' : ' '}</Text>
+            <Text style={styles.checkbox}> </Text>
             <Text style={{ fontSize: 7.8, flex: 1 }}>
               <Text style={styles.bold}>Opzione B (Società / Ente):</Text> che il/i Titolare/i Effettivo/i della società/ente sopra indicato, individuato/i secondo i criteri di cui all&apos;art. 20 D.Lgs. 231/2007 (proprietà diretta/indiretta &gt; 25%, controllo o rappresentanza legale residuale), è/sono:
             </Text>
@@ -413,19 +421,19 @@ export async function generaAntiriciclaggioDichiarazionePDF(
           </View>
         </View>
 
-        {/* Sezione 5: Status di Persona Politicamente Esposta (PPE) */}
-        <View style={styles.section}>
+        {/* Sezione 5: Status di Persona Politicamente Esposta (PPE — Caselle vuote da spuntare) */}
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>
             5. Dichiarazione su Persone Politicamente Esposte — PPE (Art. 1, co. 2, lett. dd, D.Lgs. 231/2007 — Nota 3)
           </Text>
           <View style={styles.checkboxRow}>
-            <Text style={styles.checkbox}>{!azienda.antiriciclaggioPep ? 'X' : ' '}</Text>
+            <Text style={styles.checkbox}> </Text>
             <Text style={{ fontSize: 7.8, flex: 1 }}>
               Il sottoscritto (e il Titolare Effettivo indicato) dichiara di <Text style={styles.bold}>NON rivestire</Text> lo status di Persona Politicamente Esposta (PPE), né di essere familiare o soggetto con stretti legami con una PPE.
             </Text>
           </View>
           <View style={styles.checkboxRow}>
-            <Text style={styles.checkbox}>{azienda.antiriciclaggioPep ? 'X' : ' '}</Text>
+            <Text style={styles.checkbox}> </Text>
             <Text style={{ fontSize: 7.8, flex: 1 }}>
               Il sottoscritto (o il Titolare Effettivo) dichiara di <Text style={styles.bold}>RIVESTIRE</Text> la qualifica di Persona Politicamente Esposta (PPE), familiare o soggetto con stretti legami (specificare carica e origine fondi): _________________________________________________
             </Text>

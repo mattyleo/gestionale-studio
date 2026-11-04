@@ -272,16 +272,19 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
   const totaleIva = Number(fattura.totaleIva) || 0
   const totaleDocumento = Number(fattura.totaleDocumento) > 0 ? Number(fattura.totaleDocumento) : (imponibilePlusCassa + totaleIva + bollo)
 
-  const studioNome = emittente.denominazione || 'Dott. Antonio Tuzio'
-  const studioIndirizzo = emittente.indirizzo || 'Viale Risorgimento 70'
+  const rawNome = emittente.denominazione || 'Dott. Antonio Tuzio'
+  const studioNome = rawNome.replace(/Studio Commerciale\s*[-–—]?\s*/i, '').trim() || 'Dott. Antonio Tuzio'
+  const studioIndirizzo = emittente.indirizzo || 'Via Umberto Poli 9/B'
   const studioCap = emittente.cap || '42123'
-  const studioComune = emittente.comune || "Reggio nell'Emilia"
+  const studioComune = emittente.comune || 'Reggio Emilia'
   const studioProv = emittente.provincia || 'RE'
   const studioPaese = emittente.paese || 'IT'
   const studioCF = emittente.codiceFiscale || 'TZUNTN69A16D612E'
   const studioPIVA = emittente.partitaIva || '05389400481'
-  const studioTel = emittente.telefono || '0522331628'
-  const studioEmail = emittente.email || 'infooizut@gmail.com'
+  const studioTel = emittente.telefono || '0522 331628 - Cell. 328 6781837'
+  const rawEmail = emittente.email || 'antoniotuzio@cafcgnrostanuova.it'
+  const studioEmail = rawEmail.includes('postmaster') || rawEmail.includes('infooizut') ? 'antoniotuzio@cafcgnrostanuova.it' : rawEmail
+  const studioPec = emittente.pec || 'studiotuzio@legalmail.it'
   const studioIban = emittente.iban || 'IT89E0303212804010000063104'
 
   return (
@@ -301,6 +304,9 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
             </Text>
             <Text style={styles.metaRow}>
               Tel: {studioTel} · Email: {studioEmail}
+            </Text>
+            <Text style={[styles.metaRow, styles.bold, { color: '#1e3a8a' }]}>
+              PEC: {studioPec}
             </Text>
           </View>
 
@@ -347,6 +353,7 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
             <Text style={styles.partyText}>{studioCap} - {studioComune} ({studioProv}) - {studioPaese}</Text>
             <Text style={styles.partyText}>Telefono: {studioTel}</Text>
             <Text style={styles.partyText}>Email: {studioEmail}</Text>
+            <Text style={[styles.partyText, styles.bold, { color: '#1e3a8a' }]}>PEC: {studioPec}</Text>
           </View>
 
           {/* Box Cliente */}

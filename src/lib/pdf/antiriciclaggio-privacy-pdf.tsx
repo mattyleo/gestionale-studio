@@ -138,12 +138,19 @@ export function AntiriciclaggioPrivacyDocument({
   azienda: any
   emittente: any
 }) {
-  const studioNome = emittente?.denominazione || 'Dott. Antonio Tuzio'
+  const rawDenom = (emittente?.denominazione || 'Dott. Antonio Tuzio')
+    .replace(/^STUDIO\s+COMMERCIALE\s+/i, '')
+    .trim()
+  const studioNome = rawDenom || 'Dott. Antonio Tuzio'
   const studioPIVA = emittente?.partitaIva || '05389400481'
   const studioCF = emittente?.codiceFiscale || 'TZUNTN69A16D612E'
-  const studioIndirizzo = emittente?.indirizzo || 'Viale Risorgimento 70'
-  const studioComune = emittente?.comune || "Reggio nell'Emilia"
-  const studioEmail = emittente?.email || 'infooizut@gmail.com'
+  const studioIndirizzo = emittente?.indirizzo || 'Via Umberto Poli 9/B'
+  const studioComune = emittente?.comune || 'Reggio Emilia'
+  const studioPec = emittente?.pec || 'studiotuzio@legalmail.it'
+  const studioEmail =
+    emittente?.email && !emittente.email.includes('postmaster') && !emittente.email.includes('infooizut')
+      ? emittente.email
+      : 'antoniotuzio@cafcgnrostanuova.it'
 
   return (
     <Document>
@@ -156,7 +163,7 @@ export function AntiriciclaggioPrivacyDocument({
               Titolare del Trattamento Dati · C.F.: {studioCF} · P.IVA: {studioPIVA}
             </Text>
             <Text style={styles.headerSub}>
-              {studioIndirizzo} · {studioComune} (RE)
+              {studioIndirizzo} · {studioComune} (RE) · PEC: {studioPec} · Email: {studioEmail}
             </Text>
           </View>
           <View style={{ textAlign: 'right' }}>
@@ -194,7 +201,7 @@ export function AntiriciclaggioPrivacyDocument({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>1. Titolare del Trattamento</Text>
           <Text style={styles.textParagraph}>
-            Il Titolare del trattamento è lo studio professionale <Text style={styles.bold}>{studioNome}</Text>, con sede in {studioIndirizzo}, {studioComune} (RE), C.F. {studioCF}, Email: {studioEmail}.
+            Il Titolare del trattamento è <Text style={styles.bold}>{studioNome}</Text>, con sede in {studioIndirizzo}, {studioComune} (RE), C.F. {studioCF}, PEC: <Text style={styles.bold}>{studioPec}</Text>, Email: <Text style={styles.bold}>{studioEmail}</Text>.
           </Text>
         </View>
 
@@ -231,14 +238,17 @@ export function AntiriciclaggioPrivacyDocument({
           </Text>
         </View>
 
-        {/* Riquadro Consenso */}
-        <View style={styles.consentBox}>
-          <Text style={[styles.sectionTitle, { color: '#0f766e' }]}>Dichiarazione di Consenso al Trattamento</Text>
+        {/* Riquadro Consenso (Caselle vuote da spuntare) */}
+        <View style={styles.consentBox} wrap={false}>
+          <Text style={[styles.sectionTitle, { color: '#0f766e' }]}>Dichiarazione di Consenso al Trattamento (da barrare)</Text>
           <Text style={styles.textParagraph}>
-            Il sottoscritto, acquisite le informazioni fornite dal titolare del trattamento ai sensi dell'art. 13 del Reg. UE 2016/679:
+            Il sottoscritto, acquisite le informazioni fornite dal titolare del trattamento ai sensi dell&apos;art. 13 del Reg. UE 2016/679:
+          </Text>
+          <Text style={[styles.textParagraph, styles.bold, { color: '#0f172a', marginTop: 2 }]}>
+            [   ] AUTORIZZO     [   ] NON AUTORIZZO   il trattamento dei propri dati personali, inclusi i documenti di riconoscimento allegati, per le finalità legate all&apos;incarico professionale e agli obblighi normativi antiriciclaggio.
           </Text>
           <Text style={[styles.textParagraph, styles.bold, { color: '#0f172a' }]}>
-            [ X ] DICHIARA di aver ricevuto e letto la presente informativa e PRESTA IL CONSENSO al trattamento dei propri dati personali, inclusi i documenti di riconoscimento allegati, per le finalità legate all'incarico professionale e agli obblighi normativi antiriciclaggio.
+            [   ] AUTORIZZO     [   ] NON AUTORIZZO   la comunicazione dei dati limitatamente agli ambiti ed organi (Agenzia Entrate, INPS, INAIL, CCIAA, Cassa Edile) specificati nell&apos;informativa.
           </Text>
         </View>
 

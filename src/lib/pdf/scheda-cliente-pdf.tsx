@@ -229,12 +229,17 @@ export function SchedaClienteDocument({ data }: { data: DatiSchedaCliente }) {
         {/* Intestazione */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.studioTitle}>{emittente.denominazione}</Text>
+            <Text style={styles.studioTitle}>
+              {(emittente.denominazione || 'Dott. Antonio Tuzio').replace(/Studio Commerciale\s*[-–—]?\s*/i, '').trim()}
+            </Text>
             <Text style={styles.studioSub}>
               {emittente.indirizzo} - {emittente.cap} {emittente.comune} ({emittente.provincia})
             </Text>
             <Text style={styles.studioSub}>
               P.IVA: {emittente.partitaIva} - C.F.: {emittente.codiceFiscale}
+            </Text>
+            <Text style={[styles.studioSub, { fontFamily: 'Helvetica-Bold', color: '#1e3a8a' }]}>
+              PEC: studiotuzio@legalmail.it · Email: antoniotuzio@cafcgnrostanuova.it
             </Text>
           </View>
           <View style={styles.headerRight}>

@@ -1,9 +1,7 @@
 // src/lib/pdf/antiriciclaggio-mandato-pdf.tsx
-// LETTERE D'INCARICO PROFESSIONALI DI STUDIO — LAYOUT ESECUTIVO MODERNO & AUTOCOMPILATO DAL BOT
-// Supporta i 3 Modelli Ufficiali dello Studio:
-// 1. PAGHE:       "LETTERA D'INCARICO PER AMMINISTRAZIONE DEL PERSONALE E CONSULENZA DEL LAVORO"
-// 2. CONTABILITA: "LETTERA D'INCARICO PROFESSIONALE PER TENUTA CONTABILITÀ ORDINARIA E BILANCIO"
-// 3. FORFETTARI:  "LETTERA D'INCARICO PROFESSIONALE PER DICHIARAZIONI E CONSULENZA IN REGIME FORFETARIO"
+// LETTERE D'INCARICO PROFESSIONALI — DOTT. ANTONIO TUZIO
+// 4 Modelli: PAGHE | CONTABILITA | FORFETTARI | OCCASIONALI
+// Layout Esecutivo su 2 Pagine A4 calibrate, Autocompilazione Anagrafica Cliente, Senza Tariffario Fisso, Caselle [ ] vuote da spuntare
 
 import React from 'react'
 import {
@@ -25,9 +23,10 @@ const styles = StyleSheet.create({
     fontSize: 8.2,
     color: '#1e293b',
     paddingTop: 24,
-    paddingBottom: 46,
+    paddingBottom: 38,
     paddingHorizontal: 30,
-    lineHeight: 1.34,
+    lineHeight: 1.35,
+    backgroundColor: '#ffffff',
   },
   bold: {
     fontFamily: 'Helvetica-Bold',
@@ -35,85 +34,79 @@ const styles = StyleSheet.create({
   italic: {
     fontFamily: 'Helvetica-Oblique',
   },
-  // Top Banner Studio
+
+  // HEADER BANNER
   headerBanner: {
+    backgroundColor: '#1e3a8a',
+    borderRadius: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: '#1e3a8a',
-    paddingBottom: 7,
-    marginBottom: 8,
   },
   studioName: {
+    fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    fontSize: 11.5,
-    color: '#1e3a8a',
+    color: '#ffffff',
     letterSpacing: 0.3,
   },
   studioSub: {
-    fontSize: 7.3,
-    color: '#475569',
+    fontSize: 7.4,
+    color: '#dbeafe',
+    marginTop: 1.5,
+  },
+  studioPecHighlight: {
+    fontSize: 7.6,
+    fontFamily: 'Helvetica-Bold',
+    color: '#fde047',
     marginTop: 1.5,
   },
   badgeBox: {
-    backgroundColor: '#eff6ff',
-    borderWidth: 1,
-    borderColor: '#93c5fd',
+    backgroundColor: '#ffffff',
     borderRadius: 4,
-    paddingHorizontal: 8,
     paddingVertical: 4,
+    paddingHorizontal: 8,
     alignItems: 'flex-end',
   },
   badgeTitle: {
-    fontFamily: 'Helvetica-Bold',
     fontSize: 7.8,
+    fontFamily: 'Helvetica-Bold',
     color: '#1e3a8a',
   },
   badgeSub: {
     fontSize: 6.8,
-    color: '#3b82f6',
+    color: '#334155',
     marginTop: 1,
   },
-  // Main Document Title
+
+  // DOCUMENT TITLE
   titleBox: {
-    backgroundColor: '#1e3a8a',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#93c5fd',
     borderRadius: 4,
-    paddingVertical: 6,
+    paddingVertical: 5,
     paddingHorizontal: 10,
     marginBottom: 7,
+    alignItems: 'center',
   },
   titleText: {
+    fontSize: 9.6,
     fontFamily: 'Helvetica-Bold',
-    fontSize: 9.8,
-    color: '#ffffff',
+    color: '#1e3a8a',
     textAlign: 'center',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   subtitleText: {
-    fontSize: 7.3,
-    color: '#dbeafe',
+    fontSize: 7.2,
+    color: '#475569',
     textAlign: 'center',
     marginTop: 1.5,
   },
-  // Callout Box (Stile Guida Operativa)
-  calloutBox: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#1e3a8a',
-    backgroundColor: '#f8fafc',
-    borderTopWidth: 0.5,
-    borderRightWidth: 0.5,
-    borderBottomWidth: 0.5,
-    borderTopColor: '#e2e8f0',
-    borderRightColor: '#e2e8f0',
-    borderBottomColor: '#e2e8f0',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    marginBottom: 7,
-    borderRadius: 2,
-  },
-  // 2-Column Party Cards
+
+  // 2-COLUMN PARTIES CARDS
   partiesRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -124,94 +117,74 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#cbd5e1',
     borderRadius: 4,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     overflow: 'hidden',
   },
   partyCardHeader: {
-    backgroundColor: '#f1f5f9',
-    borderBottomWidth: 1,
-    borderBottomColor: '#cbd5e1',
+    backgroundColor: '#e2e8f0',
     paddingVertical: 3.5,
     paddingHorizontal: 7,
+    fontSize: 7.6,
     fontFamily: 'Helvetica-Bold',
-    fontSize: 7.8,
-    color: '#1e3a8a',
+    color: '#0f172a',
     textTransform: 'uppercase',
+    borderBottomWidth: 1,
+    borderBottomColor: '#cbd5e1',
   },
   partyCardBody: {
-    padding: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 7,
   },
   dataRow: {
     flexDirection: 'row',
-    marginBottom: 2.5,
+    marginBottom: 2.2,
   },
   dataLabel: {
     width: '36%',
-    fontSize: 7.1,
+    fontSize: 7,
     color: '#64748b',
+    fontFamily: 'Helvetica-Bold',
   },
   dataVal: {
     width: '64%',
-    fontSize: 7.7,
-    fontFamily: 'Helvetica-Bold',
+    fontSize: 7.5,
     color: '#0f172a',
+    fontFamily: 'Helvetica-Bold',
   },
-  // Section Container
+
+  // SECTION CARDS
   sectionCard: {
     borderWidth: 1,
     borderColor: '#cbd5e1',
     borderRadius: 4,
-    marginBottom: 6,
+    marginBottom: 6.5,
     overflow: 'hidden',
   },
   sectionHeader: {
     backgroundColor: '#f1f5f9',
+    paddingVertical: 3.5,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#cbd5e1',
-    paddingVertical: 3,
-    paddingHorizontal: 7,
-    fontFamily: 'Helvetica-Bold',
     fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
     color: '#1e3a8a',
     textTransform: 'uppercase',
   },
   sectionBody: {
-    padding: 6,
+    paddingVertical: 5.5,
+    paddingHorizontal: 8,
   },
-  // Styled Table
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#1e3a8a',
-    color: '#ffffff',
-    paddingVertical: 3,
-    paddingHorizontal: 6,
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 7.2,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e2e8f0',
-    paddingVertical: 3,
-    paddingHorizontal: 6,
-    fontSize: 7.5,
-  },
-  tableRowAlt: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e2e8f0',
-    backgroundColor: '#f8fafc',
-    paddingVertical: 3,
-    paddingHorizontal: 6,
-    fontSize: 7.5,
-  },
+
+  // BULLETS
   bulletRow: {
     flexDirection: 'row',
-    marginBottom: 2,
+    marginBottom: 2.5,
     paddingLeft: 2,
   },
   bulletDot: {
-    width: 8,
+    width: 9,
+    fontSize: 8,
     fontFamily: 'Helvetica-Bold',
     color: '#1d4ed8',
   },
@@ -219,55 +192,63 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 7.6,
     color: '#1e293b',
+    textAlign: 'justify',
   },
-  // Checkbox Row
+
+  // CALLOUT BOX
+  calloutBox: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderLeftWidth: 3,
+    borderLeftColor: '#1e3a8a',
+    borderRadius: 3,
+    paddingVertical: 4.5,
+    paddingHorizontal: 7,
+    marginTop: 3,
+    marginBottom: 3,
+  },
+
+  // CHECKBOXES (SEMPRE VUOTE PER SPUNTA MANUALE DEL DOTTORE / CLIENTE)
   checkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 3,
-  },
-  checkBoxChecked: {
-    width: 9,
-    height: 9,
-    borderWidth: 1,
-    borderColor: '#1e3a8a',
-    backgroundColor: '#eff6ff',
-    marginRight: 4,
-    textAlign: 'center',
-    fontSize: 6.5,
-    lineHeight: 1.1,
-    fontFamily: 'Helvetica-Bold',
-    color: '#1e3a8a',
+    marginBottom: 3.5,
   },
   checkBoxEmpty: {
-    width: 9,
-    height: 9,
-    borderWidth: 1,
-    borderColor: '#94a3b8',
-    marginRight: 4,
+    width: 10,
+    height: 10,
+    borderWidth: 1.2,
+    borderColor: '#1e3a8a',
+    backgroundColor: '#ffffff',
+    borderRadius: 1.5,
+    marginRight: 5,
   },
-  // Signatures
+
+  // SIGNATURES
   signatureRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 6,
+    marginTop: 5,
+    paddingTop: 4,
   },
   signatureCard: {
-    width: '48%',
+    width: '48.5%',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#94a3b8',
     borderRadius: 4,
-    padding: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
     backgroundColor: '#f8fafc',
   },
   signatureLabelTop: {
-    fontSize: 7,
+    fontSize: 6.8,
     color: '#475569',
     textTransform: 'uppercase',
     fontFamily: 'Helvetica-Bold',
   },
   signaturePartyName: {
-    fontSize: 8,
+    fontSize: 7.8,
     fontFamily: 'Helvetica-Bold',
     color: '#0f172a',
     marginTop: 1,
@@ -275,26 +256,26 @@ const styles = StyleSheet.create({
   signatureLine: {
     borderBottomWidth: 1,
     borderBottomColor: '#334155',
-    marginTop: 18,
-    marginBottom: 2,
+    marginTop: 15,
+    marginBottom: 2.5,
   },
   signatureSub: {
-    fontSize: 6.8,
+    fontSize: 6.6,
     color: '#64748b',
     textAlign: 'center',
   },
-  // Footer
+
+  // FOOTER
   footer: {
     position: 'absolute',
     bottom: 14,
     left: 30,
     right: 30,
-    borderTopWidth: 1,
+    borderTopWidth: 0.8,
     borderTopColor: '#cbd5e1',
-    paddingTop: 4,
+    paddingTop: 3.5,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     fontSize: 6.8,
     color: '#475569',
   },
@@ -323,16 +304,17 @@ function CorporateHeader({
   studio: StudioInfo
 }) {
   return (
-    <View style={styles.headerBanner}>
+    <View style={styles.headerBanner} wrap={false}>
       <View>
-        <Text style={styles.studioName}>
-          {studio.denominazione.toUpperCase()}
+        <Text style={styles.studioName}>{studio.denominazione.toUpperCase()}</Text>
+        <Text style={styles.studioSub}>
+          Dottore Commercialista · Albo ODCEC di Reggio Emilia n. 742/A · C.F. {studio.cf} · P.IVA {studio.piva}
         </Text>
         <Text style={styles.studioSub}>
-          Dottore Commercialista · Albo ODCEC di Reggio Emilia n. 742/A · C.F. {studio.cf}
+          {studio.indirizzo} · Tel. {studio.telefono}
         </Text>
-        <Text style={styles.studioSub}>
-          {studio.indirizzo} · Tel. {studio.telefono} · PEC: {studio.pec}
+        <Text style={styles.studioPecHighlight}>
+          PEC: {studio.pec} · Email: {studio.email}
         </Text>
       </View>
       <View style={styles.badgeBox}>
@@ -348,7 +330,8 @@ function CorporateFooter({ pagina, studio }: { pagina: string; studio: StudioInf
   return (
     <View style={styles.footer} fixed>
       <Text>
-        <Text style={styles.bold}>{studio.denominazione} — Dottore Commercialista</Text> · {studio.indirizzo} · {studio.email} · {studio.pec}
+        <Text style={styles.bold}>{studio.denominazione}</Text> · Dottore Commercialista · {studio.indirizzo} · PEC:{' '}
+        <Text style={styles.bold}>{studio.pec}</Text> · Email: {studio.email}
       </Text>
       <Text style={styles.bold}>{pagina}</Text>
     </View>
@@ -389,10 +372,10 @@ function PartiesCards({
   studio: StudioInfo
 }) {
   return (
-    <View style={styles.partiesRow}>
+    <View style={styles.partiesRow} wrap={false}>
       {/* Card 1: IL CLIENTE CONFERENTE */}
       <View style={styles.partyCard}>
-        <Text style={styles.partyCardHeader}>1. Il Cliente Conferente (Autocompilato)</Text>
+        <Text style={styles.partyCardHeader}>1. Il Cliente Conferente</Text>
         <View style={styles.partyCardBody}>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Denominazione:</Text>
@@ -411,7 +394,7 @@ function PartiesCards({
             </Text>
           </View>
           <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Sede Legale:</Text>
+            <Text style={styles.dataLabel}>Sede / Residenza:</Text>
             <Text style={styles.dataVal}>
               {viaSede} — {capSede} {comuneSede} ({provSede})
             </Text>
@@ -437,7 +420,7 @@ function PartiesCards({
             </Text>
           </View>
           <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Doc. Riconoscimento:</Text>
+            <Text style={styles.dataLabel}>Doc. Identità:</Text>
             <Text style={styles.dataVal}>{docInfo}</Text>
           </View>
         </View>
@@ -452,8 +435,10 @@ function PartiesCards({
             <Text style={styles.dataVal}>{studio.denominazione}</Text>
           </View>
           <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Codice Fiscale:</Text>
-            <Text style={styles.dataVal}>{studio.cf}</Text>
+            <Text style={styles.dataLabel}>C.F. / P.IVA:</Text>
+            <Text style={styles.dataVal}>
+              C.F. {studio.cf} · P.IVA {studio.piva}
+            </Text>
           </View>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Iscrizione Albo:</Text>
@@ -464,23 +449,23 @@ function PartiesCards({
             <Text style={styles.dataVal}>{studio.indirizzo}</Text>
           </View>
           <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Recapiti Telefonici:</Text>
-            <Text style={styles.dataVal}>Tel. {studio.telefono}</Text>
+            <Text style={styles.dataLabel}>Telefono:</Text>
+            <Text style={styles.dataVal}>{studio.telefono}</Text>
           </View>
           <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Email / PEC Studio:</Text>
-            <Text style={styles.dataVal}>{studio.email} · {studio.pec}</Text>
+            <Text style={styles.dataLabel}>PEC (Domicilio Dig.):</Text>
+            <Text style={[styles.dataVal, { color: '#1e3a8a' }]}>{studio.pec}</Text>
+          </View>
+          <View style={styles.dataRow}>
+            <Text style={styles.dataLabel}>Email Studio:</Text>
+            <Text style={styles.dataVal}>{studio.email}</Text>
           </View>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Polizza RC Prof.:</Text>
-            <Text style={styles.dataVal}>LLOYD&apos;S Insurance Company (in corso di validità)</Text>
+            <Text style={styles.dataVal}>LLOYD&apos;S Insurance Company</Text>
           </View>
           <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>Regime Fiscale:</Text>
-            <Text style={styles.dataVal}>Forfetario RF19 (Art. 1 co. 54-89 L. 190/2014)</Text>
-          </View>
-          <View style={styles.dataRow}>
-            <Text style={styles.dataLabel}>IBAN Tracciabile:</Text>
+            <Text style={styles.dataLabel}>IBAN Studio:</Text>
             <Text style={[styles.dataVal, { color: '#1e3a8a' }]}>{studio.iban}</Text>
           </View>
         </View>
@@ -533,21 +518,22 @@ function SecondaPaginaPrivacyEF24({
       <CorporateHeader fascicolo={fascicolo} zonaLabel={zonaLabel} dataOggi={oggi} studio={studio} />
 
       {/* SEZIONE PRIVACY GDPR */}
-      <View style={styles.sectionCard}>
+      <View style={styles.sectionCard} wrap={false}>
         <Text style={styles.sectionHeader}>
           Informativa sul Trattamento dei Dati Personali (Policy Privacy — Artt. 13-21 Reg. UE 2016/679 GDPR)
         </Text>
         <View style={styles.sectionBody}>
-          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3 }}>
+          <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 3 }}>
             <Text style={styles.bold}>1. Principi generali e Titolare del Trattamento: </Text>
             Tutti i dati personali sono trattati in modo lecito, corretto e trasparente nel rispetto dell&apos;Art. 5
             del GDPR, con misure di sicurezza idonee a prevenire perdita, usi illeciti o accessi non autorizzati. Il
-            Titolare del Trattamento è lo scrivente Studio <Text style={styles.bold}>{studio.denominazione}</Text> –{' '}
-            {studio.indirizzo} – Tel: {studio.telefono} – Email: {studio.email} – PEC: {studio.pec}, presso il quale
-            l&apos;interessato può esercitare i diritti previsti dagli artt. 15-21 del GDPR (accesso, rettifica,
-            cancellazione, limitazione, portabilità, opposizione, reclamo al Garante).
+            Titolare del Trattamento è <Text style={styles.bold}>{studio.denominazione}</Text> – {studio.indirizzo} –
+            Tel: {studio.telefono} – Email: <Text style={styles.bold}>{studio.email}</Text> – PEC:{' '}
+            <Text style={styles.bold}>{studio.pec}</Text>, presso il quale l&apos;interessato può esercitare i diritti
+            previsti dagli artt. 15-21 del GDPR (accesso, rettifica, cancellazione, limitazione, portabilità,
+            opposizione, reclamo al Garante).
           </Text>
-          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3 }}>
+          <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 3 }}>
             <Text style={styles.bold}>2. Oggetto, Finalità e Base Giuridica (Art. 6, co. 1, lett. b, c, f GDPR): </Text>
             Lo Studio tratta dati identificativi, anagrafici, fiscali, contabili, retributivi e bancari di clienti,
             dipendenti e referenti operativi per: concludere ed eseguire rapporti contrattuali/professionali; adempiere
@@ -555,35 +541,37 @@ function SecondaPaginaPrivacyEF24({
             derivanti dai rapporti in essere; tutelare le posizioni creditorie e le esigenze gestionali/contabili. Il
             mancato conferimento dei dati rende impossibile l&apos;instaurazione del rapporto professionale.
           </Text>
-          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 4 }}>
+          <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 4 }}>
             <Text style={styles.bold}>3. Modalità, Ambito (Art. 29 GDPR) e Conservazione: </Text>
             Il trattamento avviene con strumenti manuali, informatici e telematici da parte di soggetti interni
             autorizzati ed istruiti per il tempo necessario ad adempiere alle finalità contrattuali e agli obblighi di
             legge (10 anni ex art. 2220 c.c. e art. 31 D.Lgs. 231/2007).
           </Text>
 
-          <View style={[styles.calloutBox, { marginBottom: 2 }]}>
-            <Text style={[styles.bold, { fontSize: 7.6, color: '#1e3a8a', marginBottom: 2 }]}>
-              ESPRESSIONE DI CONSENSO (Art. 23 D.Lgs. 196/2003 e Art. 7 Regolamento UE n. 679/2016)
+          <View style={[styles.calloutBox, { marginBottom: 3 }]}>
+            <Text style={[styles.bold, { fontSize: 7.6, color: '#1e3a8a', marginBottom: 3 }]}>
+              ESPRESSIONE DI CONSENSO (Art. 23 D.Lgs. 196/2003 e Art. 7 Regolamento UE n. 679/2016) — Da barrare a cura del Cliente/Dottore
             </Text>
-            <Text style={{ fontSize: 7.3, marginBottom: 3 }}>
+            <Text style={{ fontSize: 7.3, marginBottom: 4 }}>
               Preso atto dell&apos;informativa sopra riportata e dichiarando di averne ricevuto copia, il sottoscritto{' '}
               <Text style={styles.bold}>{rapprNome}</Text> (per <Text style={styles.bold}>{ragSoc}</Text>):
             </Text>
             <View style={styles.checkRow}>
-              <Text style={styles.checkBoxChecked}>X</Text>
-              <Text style={{ fontSize: 7.3, marginRight: 12, fontFamily: 'Helvetica-Bold' }}>AUTORIZZO</Text>
               <View style={styles.checkBoxEmpty} />
+              <Text style={{ fontSize: 7.4, marginRight: 12, fontFamily: 'Helvetica-Bold' }}>AUTORIZZO</Text>
+              <View style={styles.checkBoxEmpty} />
+              <Text style={{ fontSize: 7.4, marginRight: 8, fontFamily: 'Helvetica-Bold' }}>NON AUTORIZZO</Text>
               <Text style={{ fontSize: 7.3, flex: 1 }}>
-                NON AUTORIZZO in modo esplicito il trattamento dei dati personali, inclusi quelli particolari, per l&apos;esecuzione del mandato e l&apos;elaborazione di rapporti (&ldquo;reports&rdquo;) e processi di valutazione.
+                il trattamento dei dati personali, inclusi quelli particolari, per l&apos;esecuzione del mandato e l&apos;elaborazione di rapporti (&ldquo;reports&rdquo;) e processi di valutazione.
               </Text>
             </View>
             <View style={styles.checkRow}>
-              <Text style={styles.checkBoxChecked}>X</Text>
-              <Text style={{ fontSize: 7.3, marginRight: 12, fontFamily: 'Helvetica-Bold' }}>AUTORIZZO</Text>
               <View style={styles.checkBoxEmpty} />
+              <Text style={{ fontSize: 7.4, marginRight: 12, fontFamily: 'Helvetica-Bold' }}>AUTORIZZO</Text>
+              <View style={styles.checkBoxEmpty} />
+              <Text style={{ fontSize: 7.4, marginRight: 8, fontFamily: 'Helvetica-Bold' }}>NON AUTORIZZO</Text>
               <Text style={{ fontSize: 7.3, flex: 1 }}>
-                NON AUTORIZZO la comunicazione dei dati limitatamente agli ambiti ed organi (Agenzia Entrate, INPS, INAIL, CCIAA, Cassa Edile) specificati nell&apos;informativa.
+                la comunicazione dei dati limitatamente agli ambiti ed organi (Agenzia Entrate, INPS, INAIL, CCIAA, Cassa Edile) specificati nell&apos;informativa.
               </Text>
             </View>
           </View>
@@ -596,7 +584,7 @@ function SecondaPaginaPrivacyEF24({
               <Text style={styles.signatureSub}>Luogo e Data: Reggio Emilia, {oggi} — Firma dell&apos;Interessato</Text>
             </View>
             <View style={styles.signatureCard}>
-              <Text style={styles.signatureLabelTop}>Il Titolare del Trattamento — Lo Studio</Text>
+              <Text style={styles.signatureLabelTop}>Il Titolare del Trattamento — Il Professionista</Text>
               <Text style={styles.signaturePartyName}>{studio.denominazione}</Text>
               <View style={styles.signatureLine} />
               <Text style={styles.signatureSub}>Timbro e Firma del Professionista</Text>
@@ -606,12 +594,12 @@ function SecondaPaginaPrivacyEF24({
       </View>
 
       {/* SEZIONE DELEGA F24 TELEMATICO ENTRATEL (ALLEGATO A) */}
-      <View style={styles.sectionCard}>
+      <View style={styles.sectionCard} wrap={false}>
         <Text style={styles.sectionHeader}>
           Allegato A — Autorizzazione alla Trasmissione Telematica dei Modelli di Versamento Unificato F24 (Servizio Entratel)
         </Text>
         <View style={styles.sectionBody}>
-          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3.5 }}>
+          <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 4 }}>
             Il sottoscritto <Text style={styles.bold}>{rapprNome}</Text>, nato a{' '}
             <Text style={styles.bold}>{luogoNascita}</Text> il <Text style={styles.bold}>{dataNascitaIt}</Text>, C.F.{' '}
             <Text style={styles.bold}>{cfPersona}</Text>, residente/domiciliato in{' '}
@@ -623,28 +611,28 @@ function SecondaPaginaPrivacyEF24({
               {isSocieta ? `Rappresentante Legale di ${ragSoc}` : `Titolare di ${ragSoc}`}
             </Text>{' '}
             (P.IVA/C.F. <Text style={styles.bold}>{pivaAzienda}</Text>),{' '}
-            <Text style={styles.bold}>AUTORIZZA</Text> lo Studio <Text style={styles.bold}>{studio.denominazione}</Text> (C.F.{' '}
+            <Text style={styles.bold}>AUTORIZZA</Text> il <Text style={styles.bold}>{studio.denominazione}</Text> (C.F.{' '}
             {studio.cf} — P.IVA {studio.piva}, Dottore Commercialista in Reggio Emilia iscritto al n. 742/A,
             intermediario abilitato al servizio Entratel) a disporre gli ordini di pagamento delle imposte, contributi,
-            tasse e versamenti vari effettuabili tramite modello F24, <Text style={styles.bold}>a valere sul conto corrente bancario o postale intestato allo stesso soggetto che effettua la trasmissione telematica</Text> (previo accredito della provvista), ovvero sul conto corrente intestato al Cliente (<Text style={styles.bold}>IBAN: {ibanCliente}</Text>), relativamente alle deleghe:
+            tasse e versamenti vari effettuabili tramite modello F24, <Text style={styles.bold}>a valere sul conto corrente bancario o postale intestato allo stesso soggetto che effettua la trasmissione telematica</Text>, ovvero sul conto corrente intestato al Cliente (<Text style={styles.bold}>IBAN: {ibanCliente}</Text>), relativamente alle deleghe:
           </Text>
 
           <View style={styles.checkRow}>
             <View style={styles.checkBoxEmpty} />
-            <Text style={{ fontSize: 7.3, flex: 1 }}>
+            <Text style={{ fontSize: 7.4, flex: 1 }}>
               <Text style={styles.bold}>del ____/____/________</Text> — estremi del singolo versamento autorizzato: ________________________________________;
             </Text>
           </View>
-          <View style={[styles.checkRow, { marginBottom: 3.5 }]}>
-            <Text style={styles.checkBoxChecked}>X</Text>
-            <Text style={{ fontSize: 7.3, flex: 1 }}>
-              <Text style={styles.bold}>dal {oggi} al revoca / cessazione dell&apos;incarico professionale</Text> — periodo di riferimento autorizzato in via continuativa per le scadenze fiscali, previdenziali e assicurative.
+          <View style={[styles.checkRow, { marginBottom: 4 }]}>
+            <View style={styles.checkBoxEmpty} />
+            <Text style={{ fontSize: 7.4, flex: 1 }}>
+              <Text style={styles.bold}>dal ____/____/________ al ____/____/________</Text> (ovvero fino a revoca/cessazione dell&apos;incarico) — periodo di riferimento autorizzato.
             </Text>
           </View>
 
           <Text style={{ fontSize: 7.1, textAlign: 'justify', marginBottom: 3 }}>
             <Text style={styles.bold}>Informativa ex art. 13 D.Lgs. 196/2003 e GDPR (&ldquo;F24 on line&rdquo; Agenzia delle Entrate): </Text>
-            I dati conferiti tramite questo modello sono raccolti esclusivamente per l&apos;espletamento del servizio &ldquo;F24 on line&rdquo; dagli intermediari abilitati Entratel e trasmessi con sistemi di cifratura all&apos;Agenzia delle Entrate, che li invierà alla banca/Poste Italiane depositaria del conto corrente indicato per richiedere l&apos;addebito delle somme dovute (diritti ex art. 7 D.Lgs. 196/2003 e artt. 15-22 GDPR su www.agenziaentrate.gov.it). In caso di richiesta anche verbale del Cliente di sospendere il pagamento telematico di una o più deleghe F24, il professionista è esonerato da ogni responsabilità per omesso/ritardato versamento (eventuali ravvedimenti vanno richiesti per iscritto a <Text style={styles.bold}>{studio.email}</Text>).
+            I dati conferiti tramite questo modello sono raccolti esclusivamente per l&apos;espletamento del servizio &ldquo;F24 on line&rdquo; dagli intermediari abilitati Entratel e trasmessi con sistemi di cifratura all&apos;Agenzia delle Entrate, che li invierà alla banca/Poste Italiane depositaria del conto corrente indicato per richiedere l&apos;addebito delle somme dovute (diritti ex art. 7 D.Lgs. 196/2003 e artt. 15-22 GDPR su www.agenziaentrate.gov.it). In caso di richiesta anche verbale del Cliente di sospendere il pagamento telematico di una o più deleghe F24, il professionista è esonerato da ogni responsabilità per omesso/ritardato versamento (eventuali ravvedimenti vanno richiesti per iscritto a <Text style={styles.bold}>{studio.email}</Text> o PEC <Text style={styles.bold}>{studio.pec}</Text>).
           </Text>
 
           <View style={styles.signatureRow}>
@@ -655,7 +643,7 @@ function SecondaPaginaPrivacyEF24({
               <Text style={styles.signatureSub}>Reggio Emilia, lì {oggi} — Firma del Cliente</Text>
             </View>
             <View style={styles.signatureCard}>
-              <Text style={styles.signatureLabelTop}>Intermediario Entratel Abilitato — Lo Studio</Text>
+              <Text style={styles.signatureLabelTop}>Intermediario Entratel Abilitato — Il Professionista</Text>
               <Text style={styles.signaturePartyName}>{studio.denominazione}</Text>
               <View style={styles.signatureLine} />
               <Text style={styles.signatureSub}>Timbro e Firma del Professionista</Text>
@@ -665,12 +653,12 @@ function SecondaPaginaPrivacyEF24({
       </View>
 
       {/* BOX ATTESTAZIONE INQUADRAMENTO ANTIRICICLAGGIO D.LGS. 231/2007 */}
-      <View style={[styles.calloutBox, { backgroundColor: '#eff6ff', borderLeftColor: '#1d4ed8', marginBottom: 0 }]}>
-        <Text style={[styles.bold, { fontSize: 7.8, color: '#1e3a8a' }]}>
+      <View style={[styles.calloutBox, { backgroundColor: '#eff6ff', borderLeftColor: '#1d4ed8', marginBottom: 0 }]} wrap={false}>
+        <Text style={[styles.bold, { fontSize: 7.6, color: '#1e3a8a' }]}>
           ATTESTAZIONE DI INQUADRAMENTO ANTIRICICLAGGIO DEL MANDATO (D.Lgs. 231/2007 — Regole Tecniche CNDCEC/CNOCDL)
         </Text>
-        <Text style={{ fontSize: 7.2, color: '#1e293b', marginTop: 1.5 }}>
-          • <Text style={styles.bold}>Fascicolo:</Text> {fascicolo} · <Text style={styles.bold}>Qualificazione AML:</Text> {zonaLabel} · <Text style={styles.bold}>Titolare Effettivo dichiarato (Art. 20):</Text> {titolareEffettivo}{'\n'}
+        <Text style={{ fontSize: 7.1, color: '#1e293b', marginTop: 1.5 }}>
+          • <Text style={styles.bold}>Fascicolo:</Text> {fascicolo} · <Text style={styles.bold}>Qualificazione AML:</Text> {zonaLabel} · <Text style={styles.bold}>Titolare Effettivo (Art. 20):</Text> {titolareEffettivo}{'\n'}
           • <Text style={styles.bold}>Presidio applicato:</Text> {botMotivo}
         </Text>
       </View>
@@ -704,19 +692,27 @@ export async function generaLetteraIncaricoMandatoPDF(
   const cfAzienda = auto.cfNorm || auto.pivaNorm || 'N/D'
   const pivaAzienda = auto.pivaNorm || cfAzienda
   const pecAzienda = azienda.pec || azienda.emailAmministrativa || 'Come da registro INI-PEC'
-  const ibanCliente = azienda.iban || 'IT __ _ _____ _____ ________________________ (da comunicare per F24)'
-  const ibanStudio = emittente?.iban || 'IBAN Studio come da profilo emittente'
+  const ibanCliente = azienda.iban || azienda.ibanRiferimento || '________________________________________________'
+  const ibanStudio = emittente?.iban || 'IT 89E 03032 12804 0100 00063104'
+
+  // Rimuove eventuale prefisso "Studio Commerciale" per lasciare solo "Dott. Antonio Tuzio"
+  const rawDenom = (emittente?.denominazione || 'Dott. Antonio Tuzio')
+    .replace(/^STUDIO\s+COMMERCIALE\s+/i, '')
+    .trim()
 
   const studio: StudioInfo = {
-    denominazione: emittente?.denominazione || 'Studio Professionale Commerciale',
+    denominazione: rawDenom || 'Dott. Antonio Tuzio',
     cf: emittente?.codiceFiscale || 'N/D',
     piva: emittente?.partitaIva || 'N/D',
     indirizzo: emittente?.indirizzo
       ? `${emittente.indirizzo} — ${emittente.cap || '42123'} ${emittente.comune || 'Reggio Emilia'} (${emittente.provincia || 'RE'})`
-      : 'Sede Studio Professionale — Reggio Emilia (RE)',
-    telefono: emittente?.telefono || 'N/D',
-    email: emittente?.email || 'info@studio.it',
-    pec: emittente?.pec || 'pec@legalmail.it',
+      : 'Via Umberto Poli 9/B — 42123 Reggio Emilia (RE)',
+    telefono: emittente?.telefono || '0522 331628',
+    email:
+      emittente?.email && !emittente.email.includes('postmaster') && !emittente.email.includes('infooizut')
+        ? emittente.email
+        : 'antoniotuzio@cafcgnrostanuova.it',
+    pec: emittente?.pec || 'studiotuzio@legalmail.it',
     iban: ibanStudio,
   }
 
@@ -775,11 +771,11 @@ export async function generaLetteraIncaricoMandatoPDF(
 
   const doc = (
     <Document title={`Lettera_Incarico_${modello}_${ragSoc}`}>
-      {/* ==================== PAGINA 1: PARTI CONTRAENTI, OGGETTO, TARIFFARIO E CLAUSOLE ==================== */}
+      {/* ==================== PAGINA 1: PARTI CONTRAENTI, OGGETTO, COMPENSO (SENZA TARIFFARIO) E CLAUSOLE ==================== */}
       <Page size="A4" style={styles.page}>
         <CorporateHeader fascicolo={fascicolo} zonaLabel={bot.zonaLabel} dataOggi={oggi} studio={studio} />
 
-        <View style={styles.titleBox}>
+        <View style={styles.titleBox} wrap={false}>
           <Text style={styles.titleText}>{titolo}</Text>
           <Text style={styles.subtitleText}>{sottotitolo}</Text>
         </View>
@@ -803,9 +799,9 @@ export async function generaLetteraIncaricoMandatoPDF(
         />
 
         {/* ART. 1 — OGGETTO DELL'INCARICO */}
-        <View style={styles.sectionCard}>
+        <View style={styles.sectionCard} wrap={false}>
           <Text style={styles.sectionHeader}>
-            Art. 1 — Oggetto e Complessità dell&apos;Incarico Professionale Conferito allo Studio
+            Art. 1 — Oggetto e Complessità dell&apos;Incarico Professionale Conferito
           </Text>
           <View style={styles.sectionBody}>
             {modello === 'CONTABILITA' ? (
@@ -841,7 +837,7 @@ export async function generaLetteraIncaricoMandatoPDF(
                     Predisposizione e invio telematico di Dichiarazione annuale IVA, Dichiarazione dei Redditi, IRAP, comunicazione ISA / studi di settore, liquidazione imposte e trasmissione telematica modelli F24.
                   </Text>
                 </View>
-                <Text style={[styles.italic, { fontSize: 7.1, color: '#475569', marginTop: 2 }]}>
+                <Text style={[styles.italic, { fontSize: 7.2, color: '#475569', marginTop: 2 }]}>
                   Nota sulla tenuta documentale: Lo Studio non opera servizio di domiciliazione né di custodia delle scritture contabili; il Professionista trasmetterà periodicamente gli elaborati via mail o cartella informatica e la documentazione sarà conservata dal Cliente presso la propria sede legale sotto la responsabilità diretta dell&apos;amministratore/legale rappresentante, esonerando lo Studio da responsabilità per smarrimento.
                 </Text>
               </View>
@@ -885,7 +881,7 @@ export async function generaLetteraIncaricoMandatoPDF(
                 <View style={styles.bulletRow}>
                   <Text style={styles.bulletDot}>•</Text>
                   <Text style={styles.bulletText}>
-                    <Text style={styles.bold}>1.3 Consulenza Ricorrente e Incontri Periodici:</Text> consulenza telefonica su procedure ricorrenti legate alle specifiche problematiche del Cliente e incontro regolare periodico (cadenza trimestrale, durata 1 ora) presso la sede del Cliente o dello Studio per l&apos;intera durata dell&apos;incarico. Sono escluse le attività di verifica mirate a individuare falsificazioni o altre anomalie.
+                    <Text style={styles.bold}>1.3 Consulenza Ricorrente e Incontri Periodici:</Text> consulenza telefonica su procedure ricorrenti legate alle specifiche problematiche del Cliente e incontro regolare periodico presso la sede del Cliente o dello Studio per l&apos;intera durata dell&apos;incarico. Sono escluse le attività di verifica mirate a individuare falsificazioni o altre anomalie.
                   </Text>
                 </View>
               </View>
@@ -914,139 +910,47 @@ export async function generaLetteraIncaricoMandatoPDF(
           </View>
         </View>
 
-        {/* ART. 2 — PROSPETTO COMPENSI E TARIFFARIO DI STUDIO */}
-        <View style={styles.sectionCard}>
+        {/* ART. 2 — COMPENSO E MODALITÀ DI PAGAMENTO (SENZA TARIFFARIO PRECOMPILATO) */}
+        <View style={styles.sectionCard} wrap={false}>
           <Text style={styles.sectionHeader}>
-            Art. 2 — Compensi Professionali, Tariffario Applicato e Modalità di Pagamento Tracciabile
+            Art. 2 — Determinazione del Compenso e Modalità di Pagamento Tracciabile
           </Text>
-          {modello === 'CONTABILITA' ? (
-            <View>
-              <View style={styles.tableHeader}>
-                <Text style={{ flex: 4.5 }}>VOCE DI PRESTAZIONE CONTABILE / SOCIETARIA / FISCALE</Text>
-                <Text style={{ flex: 2.5 }}>CRITERIO</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right' }}>COMPENSO ANNUO</Text>
-              </View>
-              <View style={styles.tableRow}>
-                <Text style={{ flex: 4.5 }}>1.1 Attività di tenuta contabilità ordinaria e liquidazioni periodiche IVA</Text>
-                <Text style={{ flex: 2.5 }}>Modulabile per complessità</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 873,60</Text>
-              </View>
-              <View style={styles.tableRowAlt}>
-                <Text style={{ flex: 4.5 }}>1.2 Consulenza, redazione e deposito Bilancio d&apos;esercizio (artt. 2423-2428 c.c.)</Text>
-                <Text style={{ flex: 2.5 }}>Modulabile per complessità</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 873,60</Text>
-              </View>
-              <View style={styles.tableRow}>
-                <Text style={{ flex: 4.5 }}>1.3 Consulenza e predisposizione Dichiarazioni Fiscali (IVA, Redditi, IRAP, ISA)</Text>
-                <Text style={{ flex: 2.5 }}>Modulabile per complessità</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 873,60</Text>
-              </View>
-              <View style={[styles.tableRowAlt, { backgroundColor: '#eff6ff' }]}>
-                <Text style={{ flex: 4.5, fontFamily: 'Helvetica-Bold', color: '#1e3a8a' }}>
-                  TOTALE COMPENSI ANNUALI BASE (escluso contributo integrativo 4% — adeguamento ISTAT dic.)
+          <View style={styles.sectionBody}>
+            {modello === 'OCCASIONALI' ? (
+              <View>
+                <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 4 }}>
+                  Per lo svolgimento delle prestazioni oggetto del suddetto incarico, le parti concordano che al Professionista spetteranno i seguenti compensi (da compilare in sede di conferimento):
                 </Text>
-                <Text style={{ flex: 2.5, fontFamily: 'Helvetica-Bold', color: '#1e3a8a' }}>Regime Forfetario RF19</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold', color: '#1e3a8a' }}>
-                  € 2.620,80
+                <Text style={{ fontSize: 7.5, marginBottom: 2.5 }}>
+                  • Per l&apos;attività di consulenza: <Text style={styles.bold}>€ ____________________</Text> · Per l&apos;elaborazione di ogni prospetto paga: <Text style={styles.bold}>€ ______________</Text> per ______ mensilità;
+                </Text>
+                <Text style={{ fontSize: 7.5, marginBottom: 3.5 }}>
+                  • Per la redazione delle dichiarazioni fiscali: <Text style={styles.bold}>€ ____________________</Text> · Per i servizi contabili: <Text style={styles.bold}>€ ______________</Text> per ______ mensilità;
                 </Text>
               </View>
-            </View>
-          ) : modello === 'FORFETTARI' ? (
-            <View>
-              <View style={styles.tableHeader}>
-                <Text style={{ flex: 5 }}>PRESTAZIONE PROFESSIONALE REGIME FORFETARIO (L. 190/2014)</Text>
-                <Text style={{ flex: 2 }}>PERIODICITÀ</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right' }}>COMPENSO</Text>
+            ) : (
+              <View>
+                <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 3.5 }}>
+                  Per lo svolgimento delle prestazioni oggetto del presente incarico, le parti concordano che al Professionista spetteranno i compensi pattuiti tra le parti in ragione della natura e della complessità delle attività svolte:
+                </Text>
+                <Text style={{ fontSize: 7.6, marginBottom: 3.5 }}>
+                  • <Text style={styles.bold}>Compenso pattuito / Periodico concordato:</Text> € ____________________________________ (Cadenza: ________________________)
+                </Text>
               </View>
-              <View style={styles.tableRow}>
-                <Text style={{ flex: 5 }}>Apertura Partita IVA e iscrizione al Registro delle Imprese</Text>
-                <Text style={{ flex: 2 }}>Una tantum</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 90,00</Text>
-              </View>
-              <View style={styles.tableRowAlt}>
-                <Text style={{ flex: 5 }}>Compenso annuale per attività ordinaria (Consulenza fiscale, Dichiarazione Redditi, F24)</Text>
-                <Text style={{ flex: 2 }}>Annuale</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 420,00</Text>
-              </View>
-              <View style={styles.tableRow}>
-                <Text style={{ flex: 5 }}>Eventuale pratica di iscrizione INAIL e autoliquidazione annuale</Text>
-                <Text style={{ flex: 2 }}>Se dovuta</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 90,00</Text>
-              </View>
-            </View>
-          ) : modello === 'OCCASIONALI' ? (
-            <View>
-              <View style={styles.tableHeader}>
-                <Text style={{ flex: 4.6 }}>VOCE DI COMPENSO (RAPPORTI OCCASIONALI AUTONOMI E CONSULENZA LAVORO)</Text>
-                <Text style={{ flex: 2.2 }}>CADENZA / UNITÀ</Text>
-                <Text style={{ flex: 1.7, textAlign: 'right' }}>COMPENSO</Text>
-              </View>
-              <View style={styles.tableRow}>
-                <Text style={{ flex: 4.6 }}>Per l&apos;attività di consulenza (rapporti occasionali autonomi, ispezioni, conciliazioni, budget)</Text>
-                <Text style={{ flex: 2.2 }}>Oraria / A pratica</Text>
-                <Text style={{ flex: 1.7, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 85,00 / ora</Text>
-              </View>
-              <View style={styles.tableRowAlt}>
-                <Text style={{ flex: 4.6 }}>Per l&apos;elaborazione di ogni prospetto paga / ricevuta compenso occasionale</Text>
-                <Text style={{ flex: 2.2 }}>Per mensilità / ricevuta</Text>
-                <Text style={{ flex: 1.7, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 25,00 cad.</Text>
-              </View>
-              <View style={styles.tableRow}>
-                <Text style={{ flex: 4.6 }}>Per la redazione delle dichiarazioni fiscali (Certificazione Unica CU / Mod. 770)</Text>
-                <Text style={{ flex: 2.2 }}>Annuale per adempimento</Text>
-                <Text style={{ flex: 1.7, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 50 (CU) · € 60 (770)</Text>
-              </View>
-              <View style={styles.tableRowAlt}>
-                <Text style={{ flex: 4.6 }}>Per i servizi contabili e comunicazioni preventive obbligatorie (art. 14 D.Lgs. 81/2008)</Text>
-                <Text style={{ flex: 2.2 }}>Per mensilità / comunicazione</Text>
-                <Text style={{ flex: 1.7, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 35,00 / pratica</Text>
-              </View>
-            </View>
-          ) : (
-            <View>
-              <View style={styles.tableHeader}>
-                <Text style={{ flex: 4.5 }}>TARIFFARIO PER LA GESTIONE DELLE PAGHE E PRATICHE LAVORO</Text>
-                <Text style={{ flex: 2.5 }}>UNITÀ DI CALCOLO</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right' }}>TARIFFA</Text>
-              </View>
-              <View style={styles.tableRow}>
-                <Text style={{ flex: 4.5 }}>Buste paga settore Edilizia / Ditte 1-20 dip. / Ditte 21-30 dip.</Text>
-                <Text style={{ flex: 2.5 }}>Per singolo cedolino mensile</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 35 / € 25 / € 20</Text>
-              </View>
-              <View style={styles.tableRowAlt}>
-                <Text style={{ flex: 4.5 }}>Pratica di assunzione / Pratica cessazione Edile / Cessazione Ordinaria</Text>
-                <Text style={{ flex: 2.5 }}>A singola pratica</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 60 / € 60 / € 35</Text>
-              </View>
-              <View style={styles.tableRow}>
-                <Text style={{ flex: 4.5 }}>Autoliquidazione INAIL (€ 50) · Variazioni INAIL/Unilav/INPS (€ 25)</Text>
-                <Text style={{ flex: 2.5 }}>A pratica / adempimento</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 50,00 / € 25,00</Text>
-              </View>
-              <View style={styles.tableRowAlt}>
-                <Text style={{ flex: 4.5 }}>Pratica Mod. 770 · Budget costo personale · Congedi / Maternità / NASpI</Text>
-                <Text style={{ flex: 2.5 }}>A pratica / a domanda</Text>
-                <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 60,00 cad.</Text>
-              </View>
-            </View>
-          )}
-          <View style={{ paddingHorizontal: 6, paddingVertical: 4, backgroundColor: '#f8fafc' }}>
-            <Text style={{ fontSize: 7.2, color: '#334155' }}>
-              I compensi sono esclusi da IVA e ritenuta d&apos;acconto (Regime Forfetario RF19 ex art. 1 co. 54-89 L.
-              190/2014) e maggiorati del contributo integrativo previdenziale (4%). Pagamento tracciabile entro 10 gg
-              dal ricevimento parcella su <Text style={styles.bold}>IBAN Studio: {ibanStudio}</Text>.
+            )}
+            <Text style={{ fontSize: 7.3, color: '#334155', textAlign: 'justify' }}>
+              I compensi sono esclusi dall&apos;applicazione dell&apos;IVA e della ritenuta d&apos;acconto in quanto il Professionista adotta il Regime Forfetario RF19 ai sensi dell&apos;art. 1, co. 54-89, L. 190/2014, e sono soggetti al contributo integrativo previdenziale nella misura del 4%, oltre al rimborso delle spese documentate. Annualmente gli importi saranno adeguati in base alla variazione dell&apos;indice ISTAT dei prezzi al consumo. Il pagamento dovrà avvenire con modalità tracciabile entro i termini pattuiti dalla presentazione della fattura o avviso di parcella su <Text style={styles.bold}>IBAN: {studio.iban}</Text>.
             </Text>
           </View>
         </View>
 
         {/* ART. 3, 4, 5, 6, 7 — DURATA, OBBLIGHI, FORO E DELEGA CASSETTO FISCALE / LUL */}
-        <View style={styles.sectionCard}>
+        <View style={styles.sectionCard} wrap={false}>
           <Text style={styles.sectionHeader}>
-            Artt. 3–7 — Durata, Obblighi delle Parti, Polizza LLOYD&apos;S, Foro CCIAA e Delega Cassetto Fiscale / LUL
+            Artt. 3–7 — Durata, Obblighi delle Parti, Polizza LLOYD&apos;S, Foro Competente e Delega Cassetto Fiscale / LUL
           </Text>
           <View style={styles.sectionBody}>
-            <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 2.5 }}>
+            <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3 }}>
               • <Text style={styles.bold}>Art. 3 (Durata, Recesso e Risoluzione):</Text> L&apos;incarico decorre dalla
               sottoscrizione con durata annuale e rinnovo tacito automatico per eguale periodo, salvo disdetta tramite
               PEC (<Text style={styles.bold}>{studio.pec}</Text>) o raccomandata A/R{' '}
@@ -1060,11 +964,11 @@ export async function generaLetteraIncaricoMandatoPDF(
               <Text style={styles.bold}>LLOYD&apos;S Insurance Company</Text>. Il Cliente garantisce completezza,
               esattezza e autenticità dei documenti forniti e comunica tempestivamente ogni variazione rilevante anche
               ai sensi del <Text style={styles.bold}>D.Lgs. 231/2007</Text> (Titolare Effettivo, compagine sociale,
-              documento d&apos;identità).{'\n'}
+              documento d&apos;identità) a <Text style={styles.bold}>{studio.email}</Text> o PEC <Text style={styles.bold}>{studio.pec}</Text>.{'\n'}
               • <Text style={styles.bold}>Art. 6 (Foro Competente) &amp; Art. 7 (Delega Cassetto Fiscale e LUL):</Text>{' '}
               Per ogni controversia sull&apos;interpretazione ed esecuzione del contratto è competente il{' '}
               <Text style={styles.bold}>Foro di Reggio Emilia</Text> (e Organismo di Mediazione C.C.I.A.A. di Reggio
-              Emilia). Il Cliente autorizza lo Studio ad accedere ai sistemi di{' '}
+              Emilia). Il Cliente autorizza il Professionista ad accedere ai sistemi di{' '}
               <Text style={styles.bold}>Agenzia delle Entrate, Uni-riscossioni, INPS, INAIL e Ispettorato del Lavoro</Text>{' '}
               e alla tenuta del <Text style={styles.bold}>Libro Unico del Lavoro (LUL)</Text>.
             </Text>

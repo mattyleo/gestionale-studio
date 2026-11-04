@@ -155,10 +155,20 @@ export function AutovalutazioneStudioDocument({
     totaleEsoneratiCaf: number
   }
 }) {
-  const studioNome = emittente?.denominazione || 'Dott. Antonio Tuzio'
-  const studioCF = emittente?.codiceFiscale || 'TZUNTN66B16F839U'
+  const rawDenom = (emittente?.denominazione || 'Dott. Antonio Tuzio')
+    .replace(/^STUDIO\s+COMMERCIALE\s+/i, '')
+    .trim()
+  const studioNome = rawDenom || 'Dott. Antonio Tuzio'
+  const studioCF = emittente?.codiceFiscale || 'TZUNTN69A16D612E'
   const studioPIVA = emittente?.partitaIva || '05389400481'
-  const studioSede = `${emittente?.indirizzo || 'Via Roma'} - ${emittente?.cap || '42121'} ${emittente?.comune || "Reggio nell'Emilia"} (${emittente?.provincia || 'RE'})`
+  const studioPec = emittente?.pec || 'studiotuzio@legalmail.it'
+  const studioEmail =
+    emittente?.email && !emittente.email.includes('postmaster') && !emittente.email.includes('infooizut')
+      ? emittente.email
+      : 'antoniotuzio@cafcgnrostanuova.it'
+  const studioSede = `${emittente?.indirizzo || 'Via Umberto Poli 9/B'} - ${emittente?.cap || '42123'} ${
+    emittente?.comune || 'Reggio Emilia'
+  } (${emittente?.provincia || 'RE'}) · PEC: ${studioPec} · Email: ${studioEmail}`
   const dataOggi = new Intl.DateTimeFormat('it-IT').format(new Date())
 
   return (
@@ -167,7 +177,7 @@ export function AutovalutazioneStudioDocument({
         {/* Intestazione */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerStudio}>{studioNome} · Studio Commercialista e Consulenza del Lavoro</Text>
+            <Text style={styles.headerStudio}>{studioNome} · Dottore Commercialista</Text>
             <Text style={styles.headerSub}>P.IVA {studioPIVA} · C.F. {studioCF} · {studioSede}</Text>
           </View>
           <View style={{ textAlign: 'right' }}>

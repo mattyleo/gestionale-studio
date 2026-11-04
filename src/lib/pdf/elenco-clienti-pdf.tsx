@@ -108,9 +108,12 @@ export function ElencoClientiDocument({
   clienti: any[]
   emittente: any
 }) {
-  const studioNome = emittente?.denominazione || 'Dott. Antonio Tuzio'
+  const rawNome = emittente?.denominazione || 'Dott. Antonio Tuzio'
+  const studioNome = rawNome.replace(/Studio Commerciale\s*[-–—]?\s*/i, '').trim() || 'Dott. Antonio Tuzio'
   const studioPIVA = emittente?.partitaIva || '05389400481'
-  const studioComune = emittente?.comune || "Reggio nell'Emilia"
+  const studioComune = emittente?.comune || 'Reggio Emilia'
+  const studioPec = emittente?.pec || 'studiotuzio@legalmail.it'
+  const studioEmail = emittente?.email && !emittente.email.includes('postmaster') && !emittente.email.includes('infooizut') ? emittente.email : 'antoniotuzio@cafcgnrostanuova.it'
 
   return (
     <Document>
@@ -118,10 +121,10 @@ export function ElencoClientiDocument({
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.studioTitle}>{studioNome} · Studio Professionale</Text>
+            <Text style={styles.studioTitle}>{studioNome}</Text>
             <Text style={styles.docTitle}>ELENCO ANAGRAFICO CLIENTI</Text>
             <Text style={styles.metaText}>
-              Sede: {studioComune} · P.IVA: {studioPIVA}
+              Sede: {studioComune} · P.IVA: {studioPIVA} · PEC: {studioPec} · Email: {studioEmail}
             </Text>
           </View>
           <View style={styles.headerRight}>
