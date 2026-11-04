@@ -1254,6 +1254,22 @@ export function AntiriciclaggioDettaglioModal({
                           variant="outline"
                           size="sm"
                           onClick={() =>
+                            window.open(
+                              `/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato&variante=OCCASIONALI`,
+                              '_blank'
+                            )
+                          }
+                          className="h-7 text-xs bg-rose-50 hover:bg-rose-100 text-rose-900 border-rose-300 font-bold"
+                          title="Stampa Lettera d'Incarico per Rapporti di Lavoro Occasionali Autonomi e Consulenza del Lavoro (Art. 2222 c.c., Ispezioni, Conciliazioni, Penale art. 2237 c.c. + Privacy + Delega F24)"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1 text-rose-700" />
+                          Mandato Occasionali
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
                             window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=f24`, '_blank')
                           }
                           className="h-7 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-emerald-300 font-bold"

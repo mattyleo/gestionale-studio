@@ -699,22 +699,27 @@ export async function generaLetteraIncaricoMandatoPDF(
       }`
     : "Carta d'Identità in acquisizione nel fascicolo"
 
-  // Selezione automatica o esplicita del Modello (PAGHE, CONTABILITA, FORFETTARI)
+  // Selezione automatica o esplicita del Modello (PAGHE, CONTABILITA, FORFETTARI, OCCASIONALI)
   const vReq = (varianteRichiesta || '').toUpperCase()
-  let modello: 'PAGHE' | 'CONTABILITA' | 'FORFETTARI' = 'PAGHE'
+  let modello: 'PAGHE' | 'CONTABILITA' | 'FORFETTARI' | 'OCCASIONALI' = 'PAGHE'
 
   if (vReq === 'CONTABILITA') {
     modello = 'CONTABILITA'
   } else if (vReq === 'FORFETTARI' || vReq === 'FORFETTARIO' || vReq === 'CONSULENZA') {
     modello = 'FORFETTARI'
+  } else if (vReq === 'OCCASIONALI' || vReq === 'OCCASIONALE') {
+    modello = 'OCCASIONALI'
   } else if (vReq === 'PAGHE') {
     modello = 'PAGHE'
   } else {
-    if (azienda.settoreAttivita === 'FORFETTARI') {
+    const prestLower = (azienda.antiriciclaggioPrestazione || '').toLowerCase()
+    if (prestLower.includes('occasion') || prestLower.includes('verbale ispettivo')) {
+      modello = 'OCCASIONALI'
+    } else if (azienda.settoreAttivita === 'FORFETTARI') {
       modello = 'FORFETTARI'
     } else if (
       azienda.settoreAttivita === 'CONTABILITA' ||
-      (bot.zona === 'ZONA_3' && !azienda.antiriciclaggioPrestazione?.toLowerCase().includes('verbale ispettivo'))
+      (bot.zona === 'ZONA_3' && !prestLower.includes('verbale ispettivo'))
     ) {
       modello = 'CONTABILITA'
     } else {
@@ -728,6 +733,8 @@ export async function generaLetteraIncaricoMandatoPDF(
       ? 'LETTERA DI INCARICO PROFESSIONALE PER TENUTA CONTABILITÀ ORDINARIA E BILANCIO'
       : modello === 'FORFETTARI'
       ? 'LETTERA DI INCARICO PROFESSIONALE PER DICHIARAZIONI E CONSULENZA IN REGIME FORFETARIO'
+      : modello === 'OCCASIONALI'
+      ? "LETTERA D'INCARICO PER RAPPORTI DI LAVORO OCCASIONALI AUTONOMI E CONSULENZA DEL LAVORO"
       : "LETTERA D'INCARICO PER AMMINISTRAZIONE DEL PERSONALE DIPENDENTE E CONSULENZA DEL LAVORO"
 
   const sottotitolo =
@@ -735,6 +742,8 @@ export async function generaLetteraIncaricoMandatoPDF(
       ? 'Mandato professionale continuativo comprensivo di Delega Cassetto Fiscale/LUL, Policy Privacy GDPR e Delega Telematica F24'
       : modello === 'FORFETTARI'
       ? 'Assistenza fiscale Regime Forfetario (Art. 1 co. 54-89 L. 190/2014), Delega Cassetto Fiscale, Policy Privacy GDPR e Delega F24'
+      : modello === 'OCCASIONALI'
+      ? 'Gestione Rapporti di Lavoro Occasionali Autonomi (Art. 2222 c.c.), Prospetti Paga, Conciliazioni, Assistenza Ispettiva, Privacy GDPR e Delega F24'
       : 'Gestione Buste Paga, Tenuta Libro Unico del Lavoro (LUL), Pratiche UNILAV/INPS/INAIL, Policy Privacy GDPR e Delega F24'
 
   const doc = (
@@ -830,6 +839,29 @@ export async function generaLetteraIncaricoMandatoPDF(
                   </Text>
                 </View>
               </View>
+            ) : modello === 'OCCASIONALI' ? (
+              <View>
+                <View style={styles.bulletRow}>
+                  <Text style={styles.bulletDot}>•</Text>
+                  <Text style={styles.bulletText}>
+                    <Text style={styles.bold}>1.1 Rapporti di Lavoro Occasionali Autonomi e Adempimenti Previdenziali:</Text>{' '}
+                    assistenza, consulenza e adempimenti in ambito di diritto del lavoro, diritto sindacale e previdenza/assistenza sociale; formazione, instaurazione, svolgimento ed estinzione dei <Text style={styles.bold}>rapporti di lavoro occasionali autonomi (art. 2222 c.c.)</Text>, comunicazioni preventive obbligatorie (art. 14 D.Lgs. 81/2008), elaborazione prospetti paga / ricevute di compenso occasionale, invio telematico flussi retributivi e denunce assicurative e previdenziali (inclusa Gestione Separata INPS).
+                  </Text>
+                </View>
+                <View style={styles.bulletRow}>
+                  <Text style={styles.bulletDot}>•</Text>
+                  <Text style={styles.bulletText}>
+                    <Text style={styles.bold}>1.2 Procedimenti Disciplinari, Controversie, Conciliazioni e Accertamenti Ispettivi:</Text>{' '}
+                    consulenza in materia di procedimenti e sanzioni disciplinari, assistenza nelle controversie di lavoro in sede extragiudiziale e tentativi di conciliazione, assistenza in <Text style={styles.bold}>accertamenti ispettivi (INL/INPS/INAIL)</Text>, analisi del costo del lavoro, stime budget personale e consulenza in ambito di incentivi e sgravi.
+                  </Text>
+                </View>
+                <View style={styles.bulletRow}>
+                  <Text style={styles.bulletDot}>•</Text>
+                  <Text style={styles.bulletText}>
+                    <Text style={styles.bold}>1.3 Consulenza Ricorrente e Incontri Periodici:</Text> consulenza telefonica su procedure ricorrenti legate alle specifiche problematiche del Cliente e incontro regolare periodico (cadenza trimestrale, durata 1 ora) presso la sede del Cliente o dello Studio per l&apos;intera durata dell&apos;incarico. Sono escluse le attività di verifica mirate a individuare falsificazioni o altre anomalie.
+                  </Text>
+                </View>
+              </View>
             ) : (
               <View>
                 <View style={styles.bulletRow}>
@@ -915,6 +947,34 @@ export async function generaLetteraIncaricoMandatoPDF(
                 <Text style={{ flex: 1.5, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 90,00</Text>
               </View>
             </View>
+          ) : modello === 'OCCASIONALI' ? (
+            <View>
+              <View style={styles.tableHeader}>
+                <Text style={{ flex: 4.6 }}>VOCE DI COMPENSO (RAPPORTI OCCASIONALI AUTONOMI E CONSULENZA LAVORO)</Text>
+                <Text style={{ flex: 2.2 }}>CADENZA / UNITÀ</Text>
+                <Text style={{ flex: 1.7, textAlign: 'right' }}>COMPENSO</Text>
+              </View>
+              <View style={styles.tableRow}>
+                <Text style={{ flex: 4.6 }}>Per l&apos;attività di consulenza (rapporti occasionali autonomi, ispezioni, conciliazioni, budget)</Text>
+                <Text style={{ flex: 2.2 }}>Oraria / A pratica</Text>
+                <Text style={{ flex: 1.7, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 85,00 / ora</Text>
+              </View>
+              <View style={styles.tableRowAlt}>
+                <Text style={{ flex: 4.6 }}>Per l&apos;elaborazione di ogni prospetto paga / ricevuta compenso occasionale</Text>
+                <Text style={{ flex: 2.2 }}>Per mensilità / ricevuta</Text>
+                <Text style={{ flex: 1.7, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 25,00 cad.</Text>
+              </View>
+              <View style={styles.tableRow}>
+                <Text style={{ flex: 4.6 }}>Per la redazione delle dichiarazioni fiscali (Certificazione Unica CU / Mod. 770)</Text>
+                <Text style={{ flex: 2.2 }}>Annuale per adempimento</Text>
+                <Text style={{ flex: 1.7, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 50 (CU) · € 60 (770)</Text>
+              </View>
+              <View style={styles.tableRowAlt}>
+                <Text style={{ flex: 4.6 }}>Per i servizi contabili e comunicazioni preventive obbligatorie (art. 14 D.Lgs. 81/2008)</Text>
+                <Text style={{ flex: 2.2 }}>Per mensilità / comunicazione</Text>
+                <Text style={{ flex: 1.7, textAlign: 'right', fontFamily: 'Helvetica-Bold' }}>€ 35,00 / pratica</Text>
+              </View>
+            </View>
           ) : (
             <View>
               <View style={styles.tableHeader}>
@@ -960,21 +1020,26 @@ export async function generaLetteraIncaricoMandatoPDF(
           </Text>
           <View style={styles.sectionBody}>
             <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 2.5 }}>
-              • <Text style={styles.bold}>Art. 3 (Durata e Recesso):</Text> L&apos;incarico decorre dalla sottoscrizione
-              ed è valido in forma continuativa con rinnovo tacito annuale automatico, salvo recesso da comunicarsi via
-              PEC (<Text style={styles.bold}>studiotuzio@legalmail.it</Text>) o raccomandata AR{' '}
-              {modello === 'FORFETTARI' ? 'entro il 31 ottobre di ogni anno solare' : 'con preavviso di 90 giorni'}.{'\n'}
+              • <Text style={styles.bold}>Art. 3 (Durata, Recesso e Risoluzione):</Text> L&apos;incarico decorre dalla
+              sottoscrizione con durata annuale e rinnovo tacito automatico per eguale periodo, salvo disdetta tramite
+              PEC (<Text style={styles.bold}>studiotuzio@legalmail.it</Text>) o raccomandata A/R{' '}
+              {modello === 'FORFETTARI' ? 'entro il 31 ottobre di ogni anno solare' : 'almeno 3 mesi (90 gg) prima della scadenza'}.
+              {modello === 'OCCASIONALI'
+                ? " In caso di recesso del Cliente senza il rispetto dei termini ex art. 2237 c.c., è dovuta una penale pari agli onorari maturandi fino a scadenza naturale calcolati sulla media dei 6 mesi precedenti. Il mancato pagamento costituisce giusta causa di risoluzione e facoltà di rinuncia immediata al mandato."
+                : ''}{'\n'}
               • <Text style={styles.bold}>Artt. 4–5 (Obblighi del Professionista e del Cliente &amp; Antiriciclaggio):</Text>{' '}
-              Il Professionista opera con diligenza professionale, trasparenza e segreto professionale ed è assicurato
-              con polizza RC professionale <Text style={styles.bold}>LLOYD&apos;S Insurance Company</Text>. Il Cliente
-              garantisce completezza, esattezza e autenticità dei documenti forniti e comunica tempestivamente ogni
-              variazione rilevante anche ai sensi del <Text style={styles.bold}>D.Lgs. 231/2007</Text> (Titolare
-              Effettivo, compagine sociale, documento d&apos;identità).{'\n'}
+              Il Professionista opera con diligenza, segreto professionale, facoltà di avvalersi di sostituti o
+              collaboratori sotto la propria responsabilità ed è assicurato con polizza RC professionale{' '}
+              <Text style={styles.bold}>LLOYD&apos;S Insurance Company</Text>. Il Cliente garantisce completezza,
+              esattezza e autenticità dei documenti forniti e comunica tempestivamente ogni variazione rilevante anche
+              ai sensi del <Text style={styles.bold}>D.Lgs. 231/2007</Text> (Titolare Effettivo, compagine sociale,
+              documento d&apos;identità).{'\n'}
               • <Text style={styles.bold}>Art. 6 (Foro Competente) &amp; Art. 7 (Delega Cassetto Fiscale e LUL):</Text>{' '}
-              Ogni controversia sarà sottoposta all&apos;Organismo di Mediazione della C.C.I.A.A. di Reggio Emilia
-              (Piazza della Vittoria 3). Il Cliente autorizza lo Studio ad accedere ai sistemi informatici di{' '}
-              <Text style={styles.bold}>Agenzia delle Entrate, Uni-riscossioni, INPS e INAIL</Text> e alla tenuta e
-              conservazione del <Text style={styles.bold}>Libro Unico del Lavoro (LUL)</Text> e delle scritture fiscali.
+              Per ogni controversia sull&apos;interpretazione ed esecuzione del contratto è competente il{' '}
+              <Text style={styles.bold}>Foro di Reggio Emilia</Text> (e Organismo di Mediazione C.C.I.A.A. di Reggio
+              Emilia). Il Cliente autorizza lo Studio ad accedere ai sistemi di{' '}
+              <Text style={styles.bold}>Agenzia delle Entrate, Uni-riscossioni, INPS, INAIL e Ispettorato del Lavoro</Text>{' '}
+              e alla tenuta del <Text style={styles.bold}>Libro Unico del Lavoro (LUL)</Text>.
             </Text>
 
             <View style={styles.signatureRow}>
