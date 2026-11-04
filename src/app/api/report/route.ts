@@ -40,11 +40,17 @@ export async function GET(request: Request) {
 
     // Calcola per ogni fattura
     const fattureCalcolate = fatture.map(f => {
-      const totale = Number(f.totaleDocumento)
-      const incassato = f.payments.reduce((sum, p) => sum + Number(p.importo), 0)
+      const isNC =
+        f.sezionale?.toUpperCase() === 'NC' ||
+        f.numeroCompleto?.toUpperCase().includes('NC') ||
+        f.note?.toLowerCase().includes('credito') ||
+        f.note?.toLowerCase().includes('storno')
+
+      const totaleRaw = Number(f.totaleDocumento)
+      const incassatoRaw = f.payments.reduce((sum, p) => sum + Number(p.importo), 0)
 
       let art15 = 0
-      if (f.lines) {
+      if (!isNC && f.lines) {
         for (const l of f.lines) {
           const imp = Number(l.importo || 0)
           const isArt15 =
@@ -56,6 +62,10 @@ export async function GET(request: Request) {
         }
       }
 
+      const totale = isNC ? -totaleRaw : totaleRaw
+      const incassato = isNC ? -(incassatoRaw > 0 ? incassatoRaw : totaleRaw) : incassatoRaw
+      const residuo = isNC ? 0 : Math.max(0, +(totaleRaw - incassatoRaw).toFixed(2))
+
       return {
         id: f.id,
         numeroCompleto: f.numeroCompleto,
@@ -63,13 +73,14 @@ export async function GET(request: Request) {
         ragioneSociale: f.company.ragioneSociale,
         dataDocumento: f.dataDocumento,
         dataScadenza: f.dataScadenza,
-        imponibile: Number(f.imponibile),
+        imponibile: isNC ? -Number(f.imponibile) : Number(f.imponibile),
         totaleDocumento: totale,
         art15Importo: +art15.toFixed(2),
-        ricaviCompensi: +(totale - art15).toFixed(2),
+        ricaviCompensi: isNC ? -totaleRaw : +(totaleRaw - art15).toFixed(2),
         incassato,
-        residuo: totale - incassato,
-        isScaduta: f.dataScadenza ? f.dataScadenza < new Date() && (totale - incassato) > 0 : false,
+        residuo: residuo > 0.05 ? residuo : 0,
+        isNC,
+        isScaduta: !isNC && f.dataScadenza ? f.dataScadenza < new Date() && residuo > 0.05 : false,
       }
     })
 

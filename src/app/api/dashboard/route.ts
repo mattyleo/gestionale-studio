@@ -77,9 +77,10 @@ export async function GET(request: Request) {
 
     let totaleEmesso = 0
     let totaleIncassato = 0
+    let totaleDaIncassare = 0
     let totaleScaduto = 0
     let totaleArt15 = 0
-    const aziendaMap = new Map<string, { ragioneSociale: string; emesso: number; incassato: number; ultimoPagamento: Date | null }>()
+    const aziendaMap = new Map<string, { ragioneSociale: string; emesso: number; incassato: number; residuo: number; ultimoPagamento: Date | null }>()
 
     for (const fattura of fattureEmesse) {
       const isNotaCredito =
@@ -90,7 +91,8 @@ export async function GET(request: Request) {
 
       const totale = Number(fattura.totaleDocumento)
       const incassatoFattura = fattura.payments.reduce((sum, p) => sum + Number(p.importo), 0)
-      const residuo = totale - incassatoFattura
+      const residuoRaw = totale - incassatoFattura
+      const residuo = !isNotaCredito && residuoRaw > 0.05 ? residuoRaw : 0
 
       let art15Fattura = 0
       if (!isNotaCredito && fattura.lines) {
@@ -106,11 +108,13 @@ export async function GET(request: Request) {
       }
 
       if (isNotaCredito) {
+        const stornoIncassato = incassatoFattura > 0 ? incassatoFattura : totale
         totaleEmesso -= totale
-        totaleIncassato -= incassatoFattura
+        totaleIncassato -= stornoIncassato
       } else {
         totaleEmesso += totale
         totaleIncassato += incassatoFattura
+        totaleDaIncassare += residuo
         totaleArt15 += art15Fattura
       }
 
@@ -125,16 +129,19 @@ export async function GET(request: Request) {
           ragioneSociale: fattura.company.ragioneSociale,
           emesso: 0,
           incassato: 0,
+          residuo: 0,
           ultimoPagamento: null,
         })
       }
       const aziendaData = aziendaMap.get(aziendaId)!
       if (isNotaCredito) {
+        const stornoIncassato = incassatoFattura > 0 ? incassatoFattura : totale
         aziendaData.emesso -= totale
-        aziendaData.incassato -= incassatoFattura
+        aziendaData.incassato -= stornoIncassato
       } else {
         aziendaData.emesso += (totale - art15Fattura)
         aziendaData.incassato += (incassatoFattura - art15Fattura)
+        aziendaData.residuo += residuo
       }
     }
 
@@ -174,7 +181,7 @@ export async function GET(request: Request) {
         valoreNonFatturato: Number(valoreNonFatturato),
         bozzeCount,
         bozzeImporto: Number(bozzeImporto._sum.totaleDocumento ?? 0),
-        daIncassare: +(totaleEmesso - totaleIncassato).toFixed(2),
+        daIncassare: +totaleDaIncassare.toFixed(2),
         scaduto: +totaleScaduto.toFixed(2),
         fatturatoEmesso: +(totaleEmesso - totaleArt15).toFixed(2),
         fatturatoEmessoLordo: +totaleEmesso.toFixed(2),
@@ -187,7 +194,9 @@ export async function GET(request: Request) {
       aziende: Array.from(aziendaMap.entries()).map(([id, data]) => ({
         id,
         ...data,
-        residuo: data.emesso - data.incassato,
+        emesso: +data.emesso.toFixed(2),
+        incassato: +data.incassato.toFixed(2),
+        residuo: +data.residuo.toFixed(2),
       })),
     })
   } catch (error) {
