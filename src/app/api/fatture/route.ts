@@ -15,6 +15,14 @@ const generaBozzaSchema = z.object({
   attivitaIds: z.array(z.string()).optional(),
   raggruppamento: z.enum(['per_servizio', 'dettagliato']).default('per_servizio'),
   noteInterne: z.string().optional(),
+  righe: z.array(z.object({
+    descrizione: z.string().min(1),
+    quantita: z.number().positive().default(1),
+    prezzoUnitario: z.number().min(0),
+    aliquotaIva: z.string().default('0'),
+    naturaIva: z.string().default('N2.2'),
+    serviceId: z.string().optional().nullable(),
+  })).optional(),
 })
 
 function isNotaCredito(f: { sezionale?: string | null, numeroCompleto?: string | null, note?: string | null }) {
@@ -222,66 +230,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Azienda non trovata' }, { status: 404 })
     }
 
-    // Costruisci filtro per attività approvate non collegate a fatture
-    const whereAttivita: any = {
-      companyId: dati.companyId,
-      stato: 'APPROVATA',
-      invoiceLineId: null, // Non già collegate a una fattura
-    }
-
-    if (dati.attivitaIds && dati.attivitaIds.length > 0) {
-      whereAttivita.id = { in: dati.attivitaIds }
-    } else if (dati.periodoDal || dati.periodoAl) {
-      whereAttivita.data = {
-        ...(dati.periodoDal && { gte: dati.periodoDal }),
-        ...(dati.periodoAl && { lte: dati.periodoAl }),
-      }
-    }
-
-    // Carica le attività approvate selezionate
-    const attivita = await prisma.workEntry.findMany({
-      where: whereAttivita,
-      include: {
-        service: true,
-      },
-      orderBy: [{ data: 'asc' }, { serviceId: 'asc' }],
-    })
-
-    if (attivita.length === 0) {
-      return NextResponse.json(
-        { error: 'Nessuna attività approvata trovata per questa azienda con i filtri selezionati' },
-        { status: 400 }
-      )
-    }
-
-    // Determina il periodo effettivo di fatturazione
-    const dateAttivita = attivita.map(a => a.data.getTime())
-    const periodoEffettivoDal = dati.periodoDal || new Date(Math.min(...dateAttivita))
-    const periodoEffettivoAl = dati.periodoAl || new Date(Math.max(...dateAttivita))
-
-    // Verifica se esiste già una bozza attiva per questa azienda con date sovrapposte
-    if (dati.periodoDal && dati.periodoAl) {
-      const bozzaEsistente = await prisma.invoice.findFirst({
-        where: {
-          companyId: dati.companyId,
-          stato: { in: ['BOZZA', 'DA_APPROVARE', 'PRONTA_EMISSIONE'] },
-          periodoDal: dati.periodoDal,
-          periodoAl: dati.periodoAl,
-        },
-      })
-
-      if (bozzaEsistente) {
-        return NextResponse.json(
-          { error: `Esiste già una bozza per questa azienda e periodo (ID: ${bozzaEsistente.id})` },
-          { status: 409 }
-        )
-      }
-    }
-
     // Calcola totali
     let imponibile = new Decimal(0)
+    let periodoEffettivoDal = dati.periodoDal || new Date()
+    let periodoEffettivoAl = dati.periodoAl || new Date()
+    let attivitaCount = 0
 
-    // Raggruppa per servizio se richiesto
     type GruppoServizio = {
       serviceId: string | null
       serviceCodice: string | null
@@ -290,51 +244,130 @@ export async function POST(request: Request) {
       quantita: Decimal
       prezzoUnitario: Decimal | null
       importo: Decimal
+      aliquotaIva?: string
+      naturaIva?: string
     }
 
     const gruppi: GruppoServizio[] = []
 
-    if (dati.raggruppamento === 'per_servizio') {
-      const mappaServizi = new Map<string, GruppoServizio>()
+    // CASO 1: Creazione manuale diretta con righe fornite (bypassa Attività)
+    if (dati.righe && dati.righe.length > 0) {
+      for (const r of dati.righe) {
+        const q = new Decimal(r.quantita)
+        const p = new Decimal(r.prezzoUnitario)
+        const imp = q.mul(p).toDecimalPlaces(2)
+        gruppi.push({
+          serviceId: r.serviceId || null,
+          serviceCodice: null,
+          serviceDescrizione: r.descrizione,
+          attivitaIds: [],
+          quantita: q,
+          prezzoUnitario: p,
+          importo: imp,
+          aliquotaIva: r.aliquotaIva || '0',
+          naturaIva: r.naturaIva || 'N2.2',
+        })
+        imponibile = imponibile.add(imp)
+      }
+    } else {
+      // CASO 2: Generazione da attività approvate
+      const whereAttivita: any = {
+        companyId: dati.companyId,
+        stato: 'APPROVATA',
+        invoiceLineId: null, // Non già collegate a una fattura
+      }
 
-      for (const att of attivita) {
-        const chiave = att.serviceId || 'NESSUN_SERVIZIO'
-        if (!mappaServizi.has(chiave)) {
-          mappaServizi.set(chiave, {
-            serviceId: att.serviceId,
-            serviceCodice: att.service?.codice || null,
-            serviceDescrizione: att.service?.descrizione || att.descrizione || 'Prestazione',
-            attivitaIds: [],
-            quantita: new Decimal(0),
-            prezzoUnitario: att.prezzoUnitario ? new Decimal(att.prezzoUnitario.toString()) : null,
-            importo: new Decimal(0),
-          })
+      if (dati.attivitaIds && dati.attivitaIds.length > 0) {
+        whereAttivita.id = { in: dati.attivitaIds }
+      } else if (dati.periodoDal || dati.periodoAl) {
+        whereAttivita.data = {
+          ...(dati.periodoDal && { gte: dati.periodoDal }),
+          ...(dati.periodoAl && { lte: dati.periodoAl }),
+        }
+      }
+
+      // Carica le attività approvate selezionate
+      const attivita = await prisma.workEntry.findMany({
+        where: whereAttivita,
+        include: {
+          service: true,
+        },
+        orderBy: [{ data: 'asc' }, { serviceId: 'asc' }],
+      })
+
+      if (attivita.length === 0) {
+        return NextResponse.json(
+          { error: 'Nessuna attività approvata trovata per questa azienda con i filtri selezionati. Per creare una fattura al volo, usa "+ Nuova Fattura (Manuale)".' },
+          { status: 400 }
+        )
+      }
+
+      attivitaCount = attivita.length
+      const dateAttivita = attivita.map(a => a.data.getTime())
+      periodoEffettivoDal = dati.periodoDal || new Date(Math.min(...dateAttivita))
+      periodoEffettivoAl = dati.periodoAl || new Date(Math.max(...dateAttivita))
+
+      // Verifica se esiste già una bozza attiva per questa azienda con date sovrapposte
+      if (dati.periodoDal && dati.periodoAl) {
+        const bozzaEsistente = await prisma.invoice.findFirst({
+          where: {
+            companyId: dati.companyId,
+            stato: { in: ['BOZZA', 'DA_APPROVARE', 'PRONTA_EMISSIONE'] },
+            periodoDal: dati.periodoDal,
+            periodoAl: dati.periodoAl,
+          },
+        })
+
+        if (bozzaEsistente) {
+          return NextResponse.json(
+            { error: `Esiste già una bozza per questa azienda e periodo (ID: ${bozzaEsistente.id})` },
+            { status: 409 }
+          )
+        }
+      }
+
+      if (dati.raggruppamento === 'per_servizio') {
+        const mappaServizi = new Map<string, GruppoServizio>()
+
+        for (const att of attivita) {
+          const chiave = att.serviceId || 'NESSUN_SERVIZIO'
+          if (!mappaServizi.has(chiave)) {
+            mappaServizi.set(chiave, {
+              serviceId: att.serviceId,
+              serviceCodice: att.service?.codice || null,
+              serviceDescrizione: att.service?.descrizione || att.descrizione || 'Prestazione',
+              attivitaIds: [],
+              quantita: new Decimal(0),
+              prezzoUnitario: att.prezzoUnitario ? new Decimal(att.prezzoUnitario.toString()) : null,
+              importo: new Decimal(0),
+            })
+          }
+
+          const gruppo = mappaServizi.get(chiave)!
+          gruppo.attivitaIds.push(att.id)
+          gruppo.quantita = gruppo.quantita.add(att.quantita ? new Decimal(att.quantita.toString()) : new Decimal(1))
+          gruppo.importo = gruppo.importo.add(att.importo ? new Decimal(att.importo.toString()) : new Decimal(0))
         }
 
-        const gruppo = mappaServizi.get(chiave)!
-        gruppo.attivitaIds.push(att.id)
-        gruppo.quantita = gruppo.quantita.add(att.quantita ? new Decimal(att.quantita.toString()) : new Decimal(1))
-        gruppo.importo = gruppo.importo.add(att.importo ? new Decimal(att.importo.toString()) : new Decimal(0))
+        gruppi.push(...mappaServizi.values())
+      } else {
+        // Righe dettagliate — una per attività
+        for (const att of attivita) {
+          gruppi.push({
+            serviceId: att.serviceId,
+            serviceCodice: att.service?.codice || null,
+            serviceDescrizione: att.descrizione || att.service?.descrizione || 'Prestazione',
+            attivitaIds: [att.id],
+            quantita: att.quantita ? new Decimal(att.quantita.toString()) : new Decimal(1),
+            prezzoUnitario: att.prezzoUnitario ? new Decimal(att.prezzoUnitario.toString()) : null,
+            importo: att.importo ? new Decimal(att.importo.toString()) : new Decimal(0),
+          })
+        }
       }
 
-      gruppi.push(...mappaServizi.values())
-    } else {
-      // Righe dettagliate — una per attività
-      for (const att of attivita) {
-        gruppi.push({
-          serviceId: att.serviceId,
-          serviceCodice: att.service?.codice || null,
-          serviceDescrizione: att.descrizione || att.service?.descrizione || 'Prestazione',
-          attivitaIds: [att.id],
-          quantita: att.quantita ? new Decimal(att.quantita.toString()) : new Decimal(1),
-          prezzoUnitario: att.prezzoUnitario ? new Decimal(att.prezzoUnitario.toString()) : null,
-          importo: att.importo ? new Decimal(att.importo.toString()) : new Decimal(0),
-        })
+      for (const g of gruppi) {
+        imponibile = imponibile.add(g.importo)
       }
-    }
-
-    for (const g of gruppi) {
-      imponibile = imponibile.add(g.importo)
     }
 
     // Carica profilo emittente per configurazione fiscale
@@ -389,8 +422,8 @@ export async function POST(request: Request) {
             quantita: g.quantita,
             prezzoUnitario: g.prezzoUnitario ?? g.importo.div(g.quantita).toDecimalPlaces(2),
             importo: g.importo,
-            aliquotaIva: '0',
-            naturaIva: 'N2.2',
+            aliquotaIva: g.aliquotaIva || '0',
+            naturaIva: g.naturaIva || 'N2.2',
             serviceId: g.serviceId,
             serviceCodice: g.serviceCodice,
             serviceDescrizione: g.serviceDescrizione,
@@ -420,7 +453,7 @@ export async function POST(request: Request) {
           companyId: dati.companyId,
           periodoDal: periodoEffettivoDal,
           periodoAl: periodoEffettivoAl,
-          attivitaCollegate: attivita.length,
+          attivitaCollegate: attivitaCount,
           totale: totaleDocumento.toNumber(),
         },
       },
