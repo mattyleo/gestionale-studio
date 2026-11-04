@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { generaAntiriciclaggioDichiarazionePDF } from '@/lib/pdf/antiriciclaggio-dichiarazione-pdf'
 import { generaAntiriciclaggioPrivacyPDF } from '@/lib/pdf/antiriciclaggio-privacy-pdf'
 import { generaAntiriciclaggioValutazionePDF } from '@/lib/pdf/antiriciclaggio-valutazione-pdf'
+import { generaLetteraIncaricoMandatoPDF } from '@/lib/pdf/antiriciclaggio-mandato-pdf'
 
 export async function GET(
   req: Request,
@@ -18,7 +19,8 @@ export async function GET(
 
   const { id } = await _params
   const { searchParams } = new URL(req.url)
-  const tipo = searchParams.get('tipo') || 'dichiarazione' // 'dichiarazione' | 'privacy' | 'valutazione'
+  const tipo = searchParams.get('tipo') || 'dichiarazione' // 'dichiarazione' | 'privacy' | 'valutazione' | 'mandato'
+  const variante = searchParams.get('variante') || undefined // 'PAGHE' | 'CONTABILITA' | 'FORFETTARI'
 
   try {
     const [azienda, emittente] = await Promise.all([
@@ -37,7 +39,10 @@ export async function GET(
     let filename: string
     const safeRagSoc = azienda.ragioneSociale.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 30)
 
-    if (tipo === 'privacy') {
+    if (tipo === 'mandato') {
+      buffer = await generaLetteraIncaricoMandatoPDF(azienda, emittente, variante)
+      filename = `Lettera_Incarico_Mandato_${safeRagSoc}.pdf`
+    } else if (tipo === 'privacy') {
       buffer = await generaAntiriciclaggioPrivacyPDF(azienda, emittente)
       filename = `Privacy_GDPR_${safeRagSoc}.pdf`
     } else if (tipo === 'valutazione') {

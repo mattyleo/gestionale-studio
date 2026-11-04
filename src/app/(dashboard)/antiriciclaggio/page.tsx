@@ -907,6 +907,16 @@ export default function AntiriciclaggioPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8 text-amber-700 hover:text-amber-900 hover:bg-amber-50"
+                            onClick={() => window.open(`/api/antiriciclaggio/${az.id}/pdf?tipo=mandato`, '_blank')}
+                            title="Stampa Lettera d'Incarico / Mandato Professionale Studio Tuzio (con Delega LUL/F24, Policy Privacy, Tariffario e Inquadramento Antiriciclaggio)"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-8 w-8 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
                             onClick={() => window.open(`/api/antiriciclaggio/${az.id}/pdf?tipo=valutazione`, '_blank')}
                             title="Scarica Modelli Ufficiali CNDCEC AV.1 + AV.2 + AV.3 + AV.7 — Fascicolo Professionista (PDF)"

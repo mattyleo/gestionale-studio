@@ -1182,21 +1182,21 @@ export function AntiriciclaggioDettaglioModal({
                       </div>
                     </div>
 
-                    {/* CARD 4: INFORMATIVA PRIVACY GDPR & MANDATO FIRMATO + SCHEDA VALUTAZIONE AV.1/AV.2/AV.3/AV.7 */}
+                    {/* CARD 4: LETTERA D'INCARICO / MANDATO PROFESSIONALE + PRIVACY GDPR + DELEGA F24 + TARIFFARIO + SCHEDE STUDIO */}
                     <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm flex flex-col justify-between gap-2.5">
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                            🔒 4. Privacy GDPR / Mandato Firmato &amp; Schede Studio (AV.1-AV.7)
+                            📜 4. Lettera d&apos;Incarico (Paghe/Contabilità), Delega F24 &amp; Privacy
                           </span>
                           <p className="text-[11px] text-slate-500 mt-0.5">
                             {docPrivacy
-                              ? `Documento firmato in archivio: ${docPrivacy.nomeFile}`
-                              : 'Stampa l\'Informativa Privacy da far firmare e la Scheda Rischio CNDCEC'}
+                              ? `Mandato/Privacy firmato in archivio: ${docPrivacy.nomeFile}`
+                              : 'Genera la Lettera d\'Incarico Studio Tuzio precompilata (con Delega LUL/F24, Privacy e Tariffario)'}
                           </p>
                         </div>
                         {docPrivacy || form.privacyFirmata ? (
-                          <Badge className="bg-emerald-600 text-white text-[10px]">✓ Firmata</Badge>
+                          <Badge className="bg-emerald-600 text-white text-[10px]">✓ Firmato</Badge>
                         ) : (
                           <Badge variant="outline" className="text-[10px] text-teal-700 border-teal-300 bg-teal-50">
                             Da far firmare
@@ -1208,11 +1208,17 @@ export function AntiriciclaggioDettaglioModal({
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank')}
-                          className="h-7 text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 border-teal-300 font-semibold"
+                          onClick={() =>
+                            window.open(
+                              `/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato&variante=${form.settoreAttivita || 'PAGHE'}`,
+                              '_blank'
+                            )
+                          }
+                          className="h-7 text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300 font-bold"
+                          title="Stampa Lettera d'Incarico autocompilata (Mandato + Delega LUL/Cassetto + Policy Privacy + Delega F24 + Tariffario + Clausola Antiriciclaggio)"
                         >
-                          <Printer className="h-3.5 w-3.5 mr-1 text-teal-600" />
-                          Stampa Privacy
+                          <Printer className="h-3.5 w-3.5 mr-1 text-amber-700" />
+                          Stampa Lettera d&apos;Incarico
                         </Button>
                         <Button
                           type="button"
@@ -1222,7 +1228,17 @@ export function AntiriciclaggioDettaglioModal({
                           className="h-7 text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border-indigo-300 font-semibold"
                         >
                           <ShieldCheck className="h-3.5 w-3.5 mr-1 text-indigo-600" />
-                          Stampa AV.1+AV.2+AV.3+AV.7
+                          Stampa AV.1-AV.7
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank')}
+                          className="h-7 text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 border-teal-300 font-semibold"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1 text-teal-600" />
+                          Solo Privacy
                         </Button>
                         {docPrivacy && (
                           <>
@@ -1262,7 +1278,7 @@ export function AntiriciclaggioDettaglioModal({
                               ) : (
                                 <Upload className="h-3.5 w-3.5 mr-1" />
                               )}
-                              Carica Privacy/Mandato Firmato
+                              Carica Mandato/Privacy Firmato
                             </span>
                           </Button>
                           <input
@@ -1270,7 +1286,7 @@ export function AntiriciclaggioDettaglioModal({
                             accept=".pdf,image/*"
                             className="hidden"
                             onChange={(e) =>
-                              handleUploadDocTipo('privacy_firmata', 'Informativa Privacy / Mandato Firmato', e)
+                              handleUploadDocTipo('privacy_firmata', 'Lettera d\'Incarico / Privacy Firmata', e)
                             }
                             disabled={uploadingDoc}
                           />
