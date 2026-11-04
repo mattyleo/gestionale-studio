@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Building2,
@@ -40,10 +40,15 @@ interface NavItem {
 
 export function Sidebar({ bozzeBadge = 0, daIncassareBadge = 0 }: SidebarProps) {
   const pathname = usePathname();
-  const [fattureOpen, setFattureOpen] = React.useState(
-    pathname.startsWith('/fatture')
-  );
+  const router = useRouter();
+  const [fattureOpen, setFattureOpen] = React.useState(true);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (pathname.startsWith('/fatture')) {
+      setFattureOpen(true);
+    }
+  }, [pathname]);
 
   const navItems: NavItem[] = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -72,7 +77,7 @@ export function Sidebar({ bozzeBadge = 0, daIncassareBadge = 0 }: SidebarProps) 
     return pathname.startsWith(href);
   };
 
-  const SidebarContent = () => (
+  const sidebarNav = (
     <nav className="flex flex-col gap-0.5 px-3 py-4">
       {navItems.map((item) => {
         if (item.children) {
@@ -82,7 +87,14 @@ export function Sidebar({ bozzeBadge = 0, daIncassareBadge = 0 }: SidebarProps) 
           return (
             <div key={item.label}>
               <button
-                onClick={() => setFattureOpen((prev) => !prev)}
+                onClick={() => {
+                  if (!pathname.startsWith('/fatture')) {
+                    setFattureOpen(true);
+                    router.push('/fatture/bozze');
+                  } else {
+                    setFattureOpen((prev) => !prev);
+                  }
+                }}
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
                   isGroupActive
@@ -184,7 +196,7 @@ export function Sidebar({ bozzeBadge = 0, daIncassareBadge = 0 }: SidebarProps) 
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <SidebarContent />
+          {sidebarNav}
         </div>
         <div className="border-t border-gray-200 px-4 py-3">
           <p className="text-[10px] text-gray-400 leading-relaxed">
@@ -208,7 +220,7 @@ export function Sidebar({ bozzeBadge = 0, daIncassareBadge = 0 }: SidebarProps) 
           <span className="font-semibold text-gray-900">Gestionale Studio</span>
         </div>
         <div className="flex-1 overflow-y-auto">
-          <SidebarContent />
+          {sidebarNav}
         </div>
         <div className="border-t border-gray-200 px-4 py-3">
           <p className="text-[10px] text-gray-400 leading-relaxed">

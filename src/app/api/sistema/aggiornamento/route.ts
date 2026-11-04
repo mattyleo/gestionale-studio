@@ -117,15 +117,27 @@ export async function POST() {
     // 1. Git pull
     logFasi.push('1. Scaricamento codice aggiornato da GitHub...')
     try {
-      execSync('git fetch origin main 2>/dev/null || git fetch origin 2>/dev/null || true', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 })
-    } catch {}
-    const pullOut = execSync('git checkout -B main origin/main 2>/dev/null || git pull origin main || git pull', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 }).trim()
+      execSync('git fetch origin main', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 })
+    } catch {
+      try {
+        execSync('git fetch origin', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 })
+      } catch {}
+    }
+
+    let pullOut = ''
+    try {
+      pullOut = execSync('git reset --hard origin/main', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 }).trim()
+    } catch {
+      pullOut = execSync('git pull origin main', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 }).trim()
+    }
     logFasi.push(`   ${pullOut}`)
 
     // Se su Linux, assicurati che gli script .sh abbiano i permessi di esecuzione
-    try {
-      execSync('chmod +x *.sh 2>/dev/null || true', { cwd: PROJECT_DIR, encoding: 'utf8' })
-    } catch {}
+    if (process.platform !== 'win32') {
+      try {
+        execSync('chmod +x *.sh', { cwd: PROJECT_DIR, encoding: 'utf8' })
+      } catch {}
+    }
 
     // 2. Allineamento dipendenze se necessario
     logFasi.push('2. Verifica dipendenze (npm install)...')
@@ -133,12 +145,21 @@ export async function POST() {
 
     // 3. Allineamento schema database (dati esistenti preservati)
     logFasi.push('3. Sincronizzazione database con Prisma...')
-    execSync('npx prisma generate', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 })
+    try {
+      execSync('npx prisma generate', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 })
+    } catch {
+      // Su Windows con dev server attivo il file .dll.node può essere in uso ma lo schema è già generato
+    }
     execSync('npx prisma db push', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 })
 
-    // 4. Ricompilazione produzione
-    logFasi.push('4. Compilazione della nuova versione...')
-    execSync('npm run build', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 120000 })
+    // 4. Ricompilazione produzione (solo se non siamo in modalità dev live che ricarica in automatico)
+    const isDevRunning = fs.existsSync(path.join(PROJECT_DIR, '.next', 'dev', 'lock'))
+    if (isDevRunning) {
+      logFasi.push('4. Modalità sviluppo attiva: aggiornamento applicato in tempo reale (Hot Reload).')
+    } else {
+      logFasi.push('4. Compilazione della nuova versione...')
+      execSync('npm run build', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 120000 })
+    }
 
     // 5. Se PM2 è presente, riavvia
     try {

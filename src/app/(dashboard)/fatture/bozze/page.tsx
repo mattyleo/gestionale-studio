@@ -78,10 +78,10 @@ export default function BozzePage() {
       const datiAziende = await resAziende.json()
       const datiAttivita = await resAttivita.json()
       const datiServizi = await resServizi.json()
-      setBozze(datiBozze.fatture ?? [])
-      setAziende(datiAziende.aziende ?? [])
-      setAttivitaApprovate(datiAttivita.attivita ?? [])
-      setServizi(datiServizi ?? [])
+      setBozze(Array.isArray(datiBozze?.fatture) ? datiBozze.fatture : [])
+      setAziende(Array.isArray(datiAziende?.aziende) ? datiAziende.aziende : [])
+      setAttivitaApprovate(Array.isArray(datiAttivita?.attivita) ? datiAttivita.attivita : [])
+      setServizi(Array.isArray(datiServizi) ? datiServizi : (Array.isArray(datiServizi?.servizi) ? datiServizi.servizi : []))
     } catch {
       toast({ title: 'Errore', description: 'Impossibile caricare i dati', variant: 'destructive' })
     } finally {
@@ -137,11 +137,13 @@ export default function BozzePage() {
 
   const handleSelezionaServizio = (serviceId: string) => {
     setManualeServizio(serviceId)
-    const s = servizi.find(srv => srv.id === serviceId)
+    const listaServizi = Array.isArray(servizi) ? servizi : []
+    const s = listaServizi.find(srv => srv.id === serviceId)
     if (s) {
       setManualeDescrizione(s.descrizione)
-      if (s.prezzoUnitario != null) {
-        setManualePrezzo(String(s.prezzoUnitario))
+      const prezzoSrv = s.prezzoBase ?? s.tariffaOraria ?? s.prezzoUnitario
+      if (prezzoSrv != null) {
+        setManualePrezzo(String(prezzoSrv))
       }
     }
   }
@@ -456,11 +458,14 @@ export default function BozzePage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MANUALE">-- Descrizione libera manuale --</SelectItem>
-                  {servizi.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.descrizione} {s.prezzoUnitario != null ? `(${formatEuro(s.prezzoUnitario)})` : ''}
-                    </SelectItem>
-                  ))}
+                  {(Array.isArray(servizi) ? servizi : []).map((s) => {
+                    const prezzoSrv = s.prezzoBase ?? s.tariffaOraria ?? s.prezzoUnitario
+                    return (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.descrizione} {prezzoSrv != null ? `(${formatEuro(prezzoSrv)})` : ''}
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>
