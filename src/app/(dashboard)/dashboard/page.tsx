@@ -14,14 +14,14 @@ import { formatEuro } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const PERIODI = [
+  { value: 'anno', label: 'Anno corrente (Gen - Dic)' },
+  { value: 'trimestre', label: 'Ultimo trimestre' },
   { value: 'mese-corrente', label: 'Questo mese' },
   { value: 'mese-precedente', label: 'Mese scorso' },
-  { value: 'trimestre', label: 'Ultimo trimestre' },
-  { value: 'anno', label: 'Anno corrente' },
 ]
 
 export default function DashboardPage() {
-  const [periodo, setPeriodo] = React.useState('mese-corrente')
+  const [periodo, setPeriodo] = React.useState('anno')
   const [dati, setDati] = React.useState<any>(null)
   const [loading, setLoading] = React.useState(true)
 
@@ -149,7 +149,9 @@ export default function DashboardPage() {
       {/* Grafico */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Andamento mensile</CardTitle>
+          <CardTitle className="text-base">
+            Andamento mensile {dati?.annoGrafico ? `${dati.annoGrafico} ` : ''}(Gen - Dic)
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (

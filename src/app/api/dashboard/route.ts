@@ -1,40 +1,45 @@
 // src/app/api/dashboard/route.ts
-// API Dashboard — dati aggregati per KPI e grafici
+// API Dashboard — dati aggregati per KPI e grafici (12 mesi Gen-Dic allineati ad Aruba)
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, format } from 'date-fns'
+import { startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns'
+
+const MESI_NOMI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
-  const periodo = searchParams.get('periodo') || 'mese-corrente'
+  const periodo = searchParams.get('periodo') || 'anno'
 
   // Calcola intervallo date
   const oggi = new Date()
   let dal: Date, al: Date
 
   switch (periodo) {
-    case 'mese-precedente':
+    case 'mese-corrente':
+      dal = startOfMonth(oggi)
+      al = endOfMonth(oggi)
+      break
+    case 'mese-precedente': {
       const mesePrecedente = subMonths(oggi, 1)
       dal = startOfMonth(mesePrecedente)
       al = endOfMonth(mesePrecedente)
       break
+    }
     case 'trimestre':
       dal = startOfMonth(subMonths(oggi, 2))
       al = endOfMonth(oggi)
       break
     case 'anno':
+    default:
       dal = startOfYear(oggi)
       al = endOfYear(oggi)
       break
-    default: // mese-corrente
-      dal = startOfMonth(oggi)
-      al = endOfMonth(oggi)
   }
 
   try {
@@ -42,7 +47,7 @@ export async function GET(request: Request) {
     const attivitaDaVerificare = await prisma.workEntry.count({
       where: {
         stato: { in: ['DA_CLASSIFICARE', 'DA_VERIFICARE'] },
-        data: { gte: dal, lte: al },
+        ...(periodo !== 'anno' ? { data: { gte: dal, lte: al } } : {}),
       },
     })
 
@@ -50,7 +55,7 @@ export async function GET(request: Request) {
     const attivitaApprovate = await prisma.workEntry.aggregate({
       where: {
         stato: 'APPROVATA',
-        data: { gte: dal, lte: al },
+        ...(periodo !== 'anno' ? { data: { gte: dal, lte: al } } : {}),
       },
       _sum: { importo: true },
     })
@@ -65,15 +70,39 @@ export async function GET(request: Request) {
       }),
     ])
 
-    // 4. Fatture emesse non saldate (da incassare)
+    // 4. Fatture emesse
     const fattureEmesse = await prisma.invoice.findMany({
       where: { stato: 'EMESSA' },
       include: {
-        payments: { select: { importo: true } },
+        payments: { select: { importo: true, dataIncasso: true } },
         company: { select: { ragioneSociale: true } },
         lines: { select: { importo: true, naturaIva: true, descrizione: true } },
       },
+      orderBy: { dataDocumento: 'asc' },
     })
+
+    // Determina l'anno di riferimento per il grafico 12 mesi (Gen - Dic)
+    const annoCorrente = oggi.getFullYear()
+    const haFattureAnnoCorrente = fattureEmesse.some(f => {
+      const d = f.dataDocumento || f.emessaAl || f.createdAt
+      return d && new Date(d).getFullYear() === annoCorrente
+    })
+    const annoGrafico = haFattureAnnoCorrente
+      ? annoCorrente
+      : (fattureEmesse.length > 0
+          ? new Date(
+              fattureEmesse[fattureEmesse.length - 1].dataDocumento ||
+              fattureEmesse[fattureEmesse.length - 1].emessaAl ||
+              fattureEmesse[fattureEmesse.length - 1].createdAt
+            ).getFullYear()
+          : annoCorrente)
+
+    // Inizializza sempre tutti i 12 mesi da Gennaio a Dicembre
+    const mesi: { label: string; emesso: number; incassato: number }[] = MESI_NOMI.map((nome) => ({
+      label: nome,
+      emesso: 0,
+      incassato: 0,
+    }))
 
     let totaleEmesso = 0
     let totaleIncassato = 0
@@ -83,6 +112,7 @@ export async function GET(request: Request) {
     const aziendaMap = new Map<string, { ragioneSociale: string; emesso: number; incassato: number; residuo: number; ultimoPagamento: Date | null }>()
 
     for (const fattura of fattureEmesse) {
+      const dataRif = new Date(fattura.dataDocumento || fattura.emessaAl || fattura.createdAt)
       const isNotaCredito =
         fattura.sezionale?.toUpperCase() === 'NC' ||
         fattura.numeroCompleto?.toUpperCase().includes('NC') ||
@@ -93,6 +123,14 @@ export async function GET(request: Request) {
       const incassatoFattura = fattura.payments.reduce((sum, p) => sum + Number(p.importo), 0)
       const residuoRaw = totale - incassatoFattura
       const residuo = !isNotaCredito && residuoRaw > 0.05 ? residuoRaw : 0
+
+      // Il "Da incassare" e lo "Scaduto" sono sempre globali su tutte le fatture aperte
+      if (!isNotaCredito) {
+        totaleDaIncassare += residuo
+        if (residuo > 0 && fattura.dataScadenza && fattura.dataScadenza < oggi) {
+          totaleScaduto += residuo
+        }
+      }
 
       let art15Fattura = 0
       if (!isNotaCredito && fattura.lines) {
@@ -107,6 +145,28 @@ export async function GET(request: Request) {
         }
       }
 
+      const ricavoNetto = isNotaCredito ? -totale : (totale - art15Fattura)
+      const incassatoNetto = isNotaCredito
+        ? -(incassatoFattura > 0 ? incassatoFattura : totale)
+        : (incassatoFattura - art15Fattura)
+
+      // Popola il grafico mensile (Gen - Dic dell'anno di riferimento)
+      if (dataRif.getFullYear() === annoGrafico) {
+        const meseIdx = dataRif.getMonth() // 0 = Gen, 11 = Dic
+        if (meseIdx >= 0 && meseIdx < 12) {
+          mesi[meseIdx].emesso = +(mesi[meseIdx].emesso + ricavoNetto).toFixed(2)
+          mesi[meseIdx].incassato = +(mesi[meseIdx].incassato + incassatoNetto).toFixed(2)
+        }
+      }
+
+      // Filtra tabella e totali di periodo se l'utente ha scelto mese/trimestre specifico
+      const nelPeriodo =
+        periodo === 'anno'
+          ? dataRif.getFullYear() === annoGrafico
+          : (dataRif >= dal && dataRif <= al)
+
+      if (!nelPeriodo) continue
+
       if (isNotaCredito) {
         const stornoIncassato = incassatoFattura > 0 ? incassatoFattura : totale
         totaleEmesso -= totale
@@ -114,12 +174,7 @@ export async function GET(request: Request) {
       } else {
         totaleEmesso += totale
         totaleIncassato += incassatoFattura
-        totaleDaIncassare += residuo
         totaleArt15 += art15Fattura
-      }
-
-      if (!isNotaCredito && residuo > 0 && fattura.dataScadenza && fattura.dataScadenza < oggi) {
-        totaleScaduto += residuo
       }
 
       // Aggrega per azienda
@@ -145,37 +200,8 @@ export async function GET(request: Request) {
       }
     }
 
-    // 5. Grafico andamento mensile ultimi 6 mesi
-    const mesi: { label: string; emesso: number; incassato: number }[] = []
-    for (let i = 5; i >= 0; i--) {
-      const mese = subMonths(oggi, i)
-      const meseStart = startOfMonth(mese)
-      const meseEnd = endOfMonth(mese)
-
-      const [fattureEmesseMese, pagamentiMese] = await Promise.all([
-        prisma.invoice.aggregate({
-          where: {
-            stato: 'EMESSA',
-            emessaAl: { gte: meseStart, lte: meseEnd },
-          },
-          _sum: { totaleDocumento: true },
-        }),
-        prisma.payment.aggregate({
-          where: {
-            dataIncasso: { gte: meseStart, lte: meseEnd },
-          },
-          _sum: { importo: true },
-        }),
-      ])
-
-      mesi.push({
-        label: format(mese, 'MMM yyyy'),
-        emesso: Number(fattureEmesseMese._sum.totaleDocumento ?? 0),
-        incassato: Number(pagamentiMese._sum.importo ?? 0),
-      })
-    }
-
     return NextResponse.json({
+      annoGrafico,
       kpi: {
         attivitaDaVerificare,
         valoreNonFatturato: Number(valoreNonFatturato),
@@ -188,16 +214,18 @@ export async function GET(request: Request) {
         fatturatoIncassato: +(totaleIncassato - totaleArt15).toFixed(2),
         fatturatoIncassatoLordo: +totaleIncassato.toFixed(2),
         speseArt15: +totaleArt15.toFixed(2),
-        ricaviCompensi: +(totaleIncassato - totaleArt15).toFixed(2),
+        ricaviCompensi: +(totaleEmesso - totaleArt15).toFixed(2),
       },
       grafico: mesi,
-      aziende: Array.from(aziendaMap.entries()).map(([id, data]) => ({
-        id,
-        ...data,
-        emesso: +data.emesso.toFixed(2),
-        incassato: +data.incassato.toFixed(2),
-        residuo: +data.residuo.toFixed(2),
-      })),
+      aziende: Array.from(aziendaMap.entries())
+        .map(([id, data]) => ({
+          id,
+          ...data,
+          emesso: +data.emesso.toFixed(2),
+          incassato: +data.incassato.toFixed(2),
+          residuo: +data.residuo.toFixed(2),
+        }))
+        .sort((a, b) => b.emesso - a.emesso),
     })
   } catch (error) {
     console.error('Errore dashboard:', error)
