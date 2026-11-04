@@ -36,6 +36,7 @@ export default function IncassatePage() {
   const [loading, setLoading] = React.useState(true)
   const [ricerca, setRicerca] = React.useState('')
   const [filtroAzienda, setFiltroAzienda] = React.useState('TUTTE')
+  const [escludiArt15, setEscludiArt15] = React.useState(false)
 
   const caricaDati = React.useCallback(async () => {
     setLoading(true)
@@ -77,10 +78,17 @@ export default function IncassatePage() {
   })
 
   // Le Note di Credito vengono sottratte dal totale incassato per riflettere lo storno reale
-  const totaleIncassato = fattureFiltrate.reduce((sum, f) => {
+  const totaleIncassatoLordo = fattureFiltrate.reduce((sum, f) => {
     const importo = Number(f.totaleDocumento || 0)
     return isNotaCredito(f) ? sum - importo : sum + importo
   }, 0)
+
+  const totaleArt15 = fattureFiltrate.reduce((sum, f) => {
+    return isNotaCredito(f) ? sum : sum + Number(f.art15Importo || 0)
+  }, 0)
+
+  const totaleRicavi = +(totaleIncassatoLordo - totaleArt15).toFixed(2)
+  const totaleIncassato = escludiArt15 ? totaleRicavi : totaleIncassatoLordo
 
   const numNC = fattureFiltrate.filter(isNotaCredito).length
   const numSaldate = fattureFiltrate.length - numNC
@@ -91,10 +99,18 @@ export default function IncassatePage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Fatture Incassate</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {numSaldate} fatture saldate{numNC > 0 ? ` · ${numNC} note di credito stornate` : ''} · Totale netto:{' '}
-            <span className="font-semibold text-green-700">{formatEuro(totaleIncassato)}</span>
-          </p>
+          <div className="text-sm text-gray-500 mt-0.5 flex items-center gap-2 flex-wrap">
+            <span>
+              {numSaldate} fatture saldate{numNC > 0 ? ` · ${numNC} note di credito stornate` : ''} ·{' '}
+              {escludiArt15 ? 'Ricavi netti (escluso Art. 15):' : 'Totale netto incassato:'}{' '}
+              <span className="font-semibold text-green-700">{formatEuro(totaleIncassato)}</span>
+            </span>
+            {totaleArt15 > 0 && (
+              <span className="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md font-mono">
+                {escludiArt15 ? `(Cassa tot: ${formatEuro(totaleIncassatoLordo)} - Art. 15: ${formatEuro(totaleArt15)})` : `(Di cui Spese Art. 15: ${formatEuro(totaleArt15)} non ricavi)`}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <ControlloNumerazioneModal />
@@ -112,7 +128,7 @@ export default function IncassatePage() {
       {/* Filtri */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -135,6 +151,15 @@ export default function IncassatePage() {
                 ))}
               </SelectContent>
             </Select>
+            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-700 bg-amber-50/70 border border-amber-200 rounded-lg px-3 py-2 hover:bg-amber-100/70 transition shrink-0">
+              <input
+                type="checkbox"
+                checked={escludiArt15}
+                onChange={(e) => setEscludiArt15(e.target.checked)}
+                className="rounded text-amber-600 focus:ring-amber-500 h-4 w-4"
+              />
+              <span>Check Art. 15 (escludi spese da ricavi)</span>
+            </label>
           </div>
         </CardContent>
       </Card>
@@ -154,7 +179,9 @@ export default function IncassatePage() {
                   <TableHead>Azienda</TableHead>
                   <TableHead>Data emissione</TableHead>
                   <TableHead>Ultimo pagamento</TableHead>
-                  <TableHead className="text-right">Totale saldato</TableHead>
+                  <TableHead className="text-right">
+                    {escludiArt15 ? 'Ricavi netti' : 'Totale saldato'}
+                  </TableHead>
                   <TableHead className="text-right">Azioni</TableHead>
                 </TableRow>
               </TableHeader>
@@ -190,7 +217,14 @@ export default function IncassatePage() {
                         </span>
                       </TableCell>
                       <TableCell className={`text-right font-bold ${isNC ? 'text-purple-700 font-mono' : 'text-green-700 font-mono'}`}>
-                        {isNC ? `- ${formatEuro(f.totaleDocumento)}` : formatEuro(f.totaleDocumento)}
+                        <div>
+                          {isNC ? `- ${formatEuro(f.totaleDocumento)}` : formatEuro(escludiArt15 ? f.ricaviNetto : f.totaleDocumento)}
+                        </div>
+                        {f.hasArt15 && (
+                          <div className="text-[10px] text-amber-700 font-normal">
+                            Di cui Art. 15: {formatEuro(f.art15Importo)}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -230,8 +264,15 @@ export default function IncassatePage() {
               <span className="text-gray-500">
                 Conteggio: {fattureFiltrate.length} fatture saldate
               </span>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Totale incassato:</span>
+              <div className="flex items-center gap-3">
+                {totaleArt15 > 0 && (
+                  <span className="text-xs text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                    Spese Art. 15: {formatEuro(totaleArt15)}
+                  </span>
+                )}
+                <span className="text-gray-600">
+                  {escludiArt15 ? 'Ricavi netti (escluso Art. 15):' : 'Totale incassato:'}
+                </span>
                 <span className="text-lg font-bold text-green-700">{formatEuro(totaleIncassato)}</span>
               </div>
             </div>

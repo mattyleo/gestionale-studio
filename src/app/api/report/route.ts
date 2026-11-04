@@ -33,6 +33,7 @@ export async function GET(request: Request) {
       include: {
         company: { select: { ragioneSociale: true, id: true } },
         payments: { select: { importo: true, dataIncasso: true } },
+        lines: { select: { importo: true, naturaIva: true, descrizione: true } },
       },
       orderBy: { emessaAl: 'asc' },
     })
@@ -41,6 +42,20 @@ export async function GET(request: Request) {
     const fattureCalcolate = fatture.map(f => {
       const totale = Number(f.totaleDocumento)
       const incassato = f.payments.reduce((sum, p) => sum + Number(p.importo), 0)
+
+      let art15 = 0
+      if (f.lines) {
+        for (const l of f.lines) {
+          const imp = Number(l.importo || 0)
+          const isArt15 =
+            l.naturaIva === 'N1' ||
+            l.descrizione?.toLowerCase().includes('art. 15') ||
+            l.descrizione?.toLowerCase().includes('spese vive') ||
+            l.descrizione?.toLowerCase().includes('sanzione amministrativa non dovuta')
+          if (isArt15) art15 += imp
+        }
+      }
+
       return {
         id: f.id,
         numeroCompleto: f.numeroCompleto,
@@ -50,6 +65,8 @@ export async function GET(request: Request) {
         dataScadenza: f.dataScadenza,
         imponibile: Number(f.imponibile),
         totaleDocumento: totale,
+        art15Importo: +art15.toFixed(2),
+        ricaviCompensi: +(totale - art15).toFixed(2),
         incassato,
         residuo: totale - incassato,
         isScaduta: f.dataScadenza ? f.dataScadenza < new Date() && (totale - incassato) > 0 : false,
@@ -62,6 +79,8 @@ export async function GET(request: Request) {
       fattureCount: number
       fatturatoEmesso: number
       fatturatoIncassato: number
+      speseArt15: number
+      ricaviCompensi: number
       residuo: number
     }>()
 
@@ -72,6 +91,8 @@ export async function GET(request: Request) {
           fattureCount: 0,
           fatturatoEmesso: 0,
           fatturatoIncassato: 0,
+          speseArt15: 0,
+          ricaviCompensi: 0,
           residuo: 0,
         })
       }
@@ -79,6 +100,8 @@ export async function GET(request: Request) {
       dati.fattureCount++
       dati.fatturatoEmesso += f.totaleDocumento
       dati.fatturatoIncassato += f.incassato
+      dati.speseArt15 += f.art15Importo
+      dati.ricaviCompensi += f.ricaviCompensi
       dati.residuo += f.residuo
     }
 
@@ -86,6 +109,8 @@ export async function GET(request: Request) {
       fattureCount: fattureCalcolate.length,
       fatturatoEmesso: fattureCalcolate.reduce((s, f) => s + f.totaleDocumento, 0),
       fatturatoIncassato: fattureCalcolate.reduce((s, f) => s + f.incassato, 0),
+      speseArt15: fattureCalcolate.reduce((s, f) => s + f.art15Importo, 0),
+      ricaviCompensi: fattureCalcolate.reduce((s, f) => s + f.ricaviCompensi, 0),
       residuo: fattureCalcolate.reduce((s, f) => s + f.residuo, 0),
     }
 

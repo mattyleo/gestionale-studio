@@ -42,6 +42,7 @@ export default function ReportPage() {
   const mensile: any[] = dati?.mensile ?? []
   const totEmesso = aziende.reduce((s: number, a: any) => s + (a.emesso ?? 0), 0)
   const totIncassato = aziende.reduce((s: number, a: any) => s + (a.incassato ?? 0), 0)
+  const totArt15 = aziende.reduce((s: number, a: any) => s + (a.speseArt15 ?? 0), 0)
   const totResiduo = totEmesso - totIncassato
 
   const esportaCsv = () => {
@@ -96,6 +97,11 @@ export default function ReportPage() {
         <Card><CardContent className="pt-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide">Incassato {anno}</p>
           <p className="text-2xl font-bold text-green-600 mt-1">{loading ? '…' : formatEuro(totIncassato)}</p>
+          {totArt15 > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              Ricavi netti: <strong className="text-indigo-700">{formatEuro(totIncassato - totArt15)}</strong> · Art. 15: {formatEuro(totArt15)}
+            </p>
+          )}
         </CardContent></Card>
         <Card><CardContent className="pt-4">
           <p className="text-xs text-gray-500 uppercase tracking-wide">Residuo</p>

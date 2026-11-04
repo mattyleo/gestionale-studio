@@ -210,9 +210,23 @@ export default function DashboardPage() {
                 ))}
                 {/* Totali */}
                 <TableRow className="bg-gray-50 font-bold border-t-2">
-                  <TableCell>Totale</TableCell>
+                  <TableCell>
+                    <div>Totale</div>
+                    {(kpi.speseArt15 ?? 0) > 0 && (
+                      <div className="text-[11px] font-normal text-amber-800">
+                        Di cui Spese Art. 15 (non ricavi): {formatEuro(kpi.speseArt15)}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right">{formatEuro(kpi.fatturatoEmesso ?? 0)}</TableCell>
-                  <TableCell className="text-right text-green-600">{formatEuro(kpi.fatturatoIncassato ?? 0)}</TableCell>
+                  <TableCell className="text-right text-green-600">
+                    <div>{formatEuro(kpi.fatturatoIncassato ?? 0)}</div>
+                    {(kpi.speseArt15 ?? 0) > 0 && (
+                      <div className="text-[11px] font-normal text-indigo-700">
+                        Ricavi netti: {formatEuro(kpi.ricaviCompensi ?? 0)}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right text-red-600">{formatEuro(kpi.daIncassare ?? 0)}</TableCell>
                 </TableRow>
               </TableBody>

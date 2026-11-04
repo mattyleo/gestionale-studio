@@ -53,6 +53,7 @@ export async function GET(request: Request) {
         include: {
           company: { select: { ragioneSociale: true } },
           payments: { select: { importo: true, dataIncasso: true } },
+          lines: { select: { importo: true, naturaIva: true, descrizione: true } },
           _count: { select: { lines: true } },
         },
       })
@@ -66,12 +67,31 @@ export async function GET(request: Request) {
           ? f.payments.sort((a, b) => new Date(b.dataIncasso).getTime() - new Date(a.dataIncasso).getTime())[0].dataIncasso
           : null
 
+        // Calcolo Art. 15 (spese anticipate / rimborsi non ricavi)
+        let art15Importo = 0
+        if (f.lines && !isNC) {
+          for (const l of f.lines) {
+            const imp = Number(l.importo || 0)
+            const isArt15 =
+              l.naturaIva === 'N1' ||
+              l.descrizione?.toLowerCase().includes('art. 15') ||
+              l.descrizione?.toLowerCase().includes('spese vive') ||
+              l.descrizione?.toLowerCase().includes('sanzione amministrativa non dovuta')
+            if (isArt15) art15Importo += imp
+          }
+        }
+
+        const ricaviNetto = isNC ? -totaleDocumento : +(totaleDocumento - art15Importo).toFixed(2)
+
         return {
           ...f,
           incassato,
           residuo,
           ultimoPagamento,
           isNC,
+          art15Importo: +art15Importo.toFixed(2),
+          hasArt15: art15Importo > 0,
+          ricaviNetto,
           isScaduta: !isNC && f.dataScadenza ? f.dataScadenza < new Date() && residuo > 0.05 : false,
           giorniRitardo: !isNC && f.dataScadenza && residuo > 0.05
             ? Math.floor((new Date().getTime() - new Date(f.dataScadenza).getTime()) / (1000 * 60 * 60 * 24))
@@ -88,6 +108,9 @@ export async function GET(request: Request) {
         filtrate = elaborate.filter(f => f.isNC || f.residuo <= 0.05)
       }
 
+      const totaleArt15Complessivo = filtrate.reduce((acc, f) => acc + (f.isNC ? 0 : f.art15Importo), 0)
+      const totaleRicaviComplessivo = filtrate.reduce((acc, f) => acc + (f.isNC ? -Number(f.totaleDocumento) : f.ricaviNetto), 0)
+
       const totaleFiltrate = filtrate.length
       const paginated = (perPagina >= 100 && pagina === 1)
         ? filtrate
@@ -95,6 +118,10 @@ export async function GET(request: Request) {
 
       return NextResponse.json({
         fatture: paginated,
+        riepilogoArt15: {
+          totaleArt15: +totaleArt15Complessivo.toFixed(2),
+          totaleRicavi: +totaleRicaviComplessivo.toFixed(2),
+        },
         paginazione: {
           totale: totaleFiltrate,
           pagina,

@@ -362,46 +362,88 @@ export default function FatturaDettaglioPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {fattura.lines?.map((riga: any) => (
-                <TableRow key={riga.id}>
-                  <TableCell className="text-gray-500">{riga.ordinamento}</TableCell>
-                  <TableCell>{riga.descrizione}</TableCell>
-                  <TableCell className="text-right">{Number(riga.quantita).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">{formatEuro(riga.prezzoUnitario)}</TableCell>
-                  <TableCell className="text-right font-medium">{formatEuro(riga.importo)}</TableCell>
-                </TableRow>
-              ))}
+              {fattura.lines?.map((riga: any) => {
+                const isArt15 =
+                  riga.naturaIva === 'N1' ||
+                  riga.descrizione?.toLowerCase().includes('art. 15') ||
+                  riga.descrizione?.toLowerCase().includes('spese vive') ||
+                  riga.descrizione?.toLowerCase().includes('sanzione amministrativa non dovuta')
+                return (
+                  <TableRow key={riga.id} className={isArt15 ? 'bg-amber-50/40' : ''}>
+                    <TableCell className="text-gray-500">{riga.ordinamento}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span>{riga.descrizione}</span>
+                        {isArt15 && (
+                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-800 border-amber-300">
+                            Art. 15 DPR 633/72 (Escluso dai ricavi)
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">{Number(riga.quantita).toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{formatEuro(riga.prezzoUnitario)}</TableCell>
+                    <TableCell className="text-right font-medium">{formatEuro(riga.importo)}</TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
 
           {/* Riepilogo */}
-          <div className="mt-4 border-t pt-4 space-y-1.5 ml-auto max-w-xs text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Imponibile</span>
-              <span>{formatEuro(fattura.imponibile)}</span>
-            </div>
-            {Number(fattura.totaleCassa) > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Cassa CNPADC 4%</span>
-                <span>{formatEuro(fattura.totaleCassa)}</span>
+          {(() => {
+            const totArt15 = (fattura.lines || []).reduce((acc: number, l: any) => {
+              const isArt15 =
+                l.naturaIva === 'N1' ||
+                l.descrizione?.toLowerCase().includes('art. 15') ||
+                l.descrizione?.toLowerCase().includes('spese vive') ||
+                l.descrizione?.toLowerCase().includes('sanzione amministrativa non dovuta')
+              return isArt15 ? acc + Number(l.importo || 0) : acc
+            }, 0)
+            const ricaviCompensi = Number(fattura.imponibile || 0) - totArt15
+
+            return (
+              <div className="mt-4 border-t pt-4 space-y-1.5 ml-auto max-w-xs text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Imponibile totale</span>
+                  <span>{formatEuro(fattura.imponibile)}</span>
+                </div>
+                {totArt15 > 0 && (
+                  <>
+                    <div className="flex justify-between text-xs text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      <span>di cui Spese Art. 15 (non ricavo):</span>
+                      <span className="font-mono font-bold">-{formatEuro(totArt15)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-indigo-900 bg-indigo-50/70 px-2 py-0.5 rounded border border-indigo-200">
+                      <span>Ricavi compensi netti:</span>
+                      <span className="font-mono font-bold">{formatEuro(ricaviCompensi)}</span>
+                    </div>
+                  </>
+                )}
+                {Number(fattura.totaleCassa) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Cassa CNPADC 4%</span>
+                    <span>{formatEuro(fattura.totaleCassa)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">IVA N2.2</span>
+                  <span className="text-gray-400">Esclusa</span>
+                </div>
+                {Number(fattura.bollo) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Bollo virtuale</span>
+                    <span>{formatEuro(fattura.bollo)}</span>
+                  </div>
+                )}
+                <Separator />
+                <div className="flex justify-between font-bold text-base">
+                  <span>Totale documento</span>
+                  <span className="text-blue-600">{formatEuro(fattura.totaleDocumento)}</span>
+                </div>
               </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-gray-600">IVA N2.2</span>
-              <span className="text-gray-400">Esclusa</span>
-            </div>
-            {Number(fattura.bollo) > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Bollo virtuale</span>
-                <span>{formatEuro(fattura.bollo)}</span>
-              </div>
-            )}
-            <Separator />
-            <div className="flex justify-between font-bold text-base">
-              <span>Totale documento</span>
-              <span className="text-blue-600">{formatEuro(fattura.totaleDocumento)}</span>
-            </div>
-          </div>
+            )
+          })()}
         </CardContent>
       </Card>
 

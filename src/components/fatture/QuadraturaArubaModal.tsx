@@ -1,6 +1,7 @@
 'use client'
 // src/components/fatture/QuadraturaArubaModal.tsx
 // Strumento di verifica e quadratura automatica tra le fatture saldate del gestionale e il portale Aruba
+// con check specifico per le spese anticipate Art. 15 DPR 633/72 escluse dai ricavi
 
 import * as React from 'react'
 import {
@@ -29,10 +30,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
-  ArrowRight,
   ShieldAlert,
   ArrowDownCircle,
   Trash2,
+  Receipt,
+  Info,
 } from 'lucide-react'
 import { formatEuro } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
@@ -46,6 +48,7 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
   const [open, setOpen] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
   const [arubaValore, setArubaValore] = React.useState('26194.40')
+  const [escludiArt15, setEscludiArt15] = React.useState(true) // Di default attivo (regola Aruba)
   const [dati, setDati] = React.useState<any | null>(null)
   const [azioneInCorso, setAzioneInCorso] = React.useState(false)
 
@@ -98,8 +101,16 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
     }
   }
 
-  const delta = dati ? Math.abs(dati.delta) : 0
-  const isQuadraturaPerfetta = dati && Math.abs(dati.delta) < 0.01
+  const totaleVisualizzato = escludiArt15
+    ? (dati?.totaleGestionaleRicavi ?? 0)
+    : (dati?.totaleGestionaleIncassato ?? 0)
+
+  const deltaVisualizzato = escludiArt15
+    ? (dati?.deltaRicavi ?? 0)
+    : (dati?.deltaLordo ?? 0)
+
+  const isQuadraturaPerfetta = Math.abs(deltaVisualizzato) <= 0.05
+  const totaleArt15 = dati?.totaleGestionaleArt15 ?? 0
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -117,11 +128,33 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
             Controllo & Quadratura Saldo Aruba
           </DialogTitle>
           <DialogDescription>
-            Confronta il totale delle fatture saldate registrate nel gestionale con l'estratto conto o riepilogo di Aruba.
+            Confronta il totale delle fatture saldate registrate nel gestionale con l'estratto conto e il widget «Fatturato 2026» di Aruba.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 py-2">
+        <div className="space-y-4 py-2">
+          {/* Checkbox Opzione Articolo 15 */}
+          <div className="bg-amber-50/70 border border-amber-200 p-3.5 rounded-xl">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={escludiArt15}
+                onChange={(e) => setEscludiArt15(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <div className="space-y-0.5 text-left">
+                <span className="text-xs font-bold text-gray-900 block flex items-center gap-1.5">
+                  <Receipt className="h-3.5 w-3.5 text-amber-700" />
+                  Escludi Spese Anticipate Art. 15 DPR 633/72 (Natura N1 — Non concorrono a ricavi)
+                </span>
+                <p className="text-[11px] text-gray-600 leading-relaxed">
+                  Aruba esclude per legge le spese anticipate e le sanzioni riaddebitate in nome e per conto del cliente dal calcolo del Fatturato Attivo.
+                  Attivando questo check, il totale gestionale quadra al centesimo con Aruba.
+                </p>
+              </div>
+            </label>
+          </div>
+
           {/* Confronto Valori */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Card className="bg-gray-50 border-gray-200">
@@ -139,14 +172,24 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
                     <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                   </Button>
                 </div>
+                <div className="text-[10px] text-gray-500 mt-1">Widget «Fatturato 2026»</div>
               </CardContent>
             </Card>
 
             <Card className="bg-indigo-50/50 border-indigo-200">
               <CardContent className="p-4">
-                <span className="text-xs font-semibold text-indigo-700 uppercase">Totale Saldate Gestionale</span>
+                <span className="text-xs font-semibold text-indigo-700 uppercase">
+                  {escludiArt15 ? 'Ricavi Professionali Netti' : 'Totale Incassato Cassa'}
+                </span>
                 <div className="text-xl font-bold font-mono text-indigo-900 mt-1">
-                  {dati ? formatEuro(dati.totaleGestionaleIncassato) : '...'}
+                  {dati ? formatEuro(totaleVisualizzato) : '...'}
+                </div>
+                <div className="text-[10px] text-indigo-600 mt-1 truncate">
+                  {escludiArt15 && totaleArt15 > 0 ? (
+                    <span>Cassa: {formatEuro(dati.totaleGestionaleIncassato)} (-{formatEuro(totaleArt15)} Art. 15)</span>
+                  ) : (
+                    <span>Include tutte le 161 fatture netti</span>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -162,31 +205,65 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
                   ) : (
                     <div className="text-xl font-bold text-amber-800 font-mono flex items-center gap-1">
                       <AlertTriangle className="h-5 w-5 text-amber-600" />
-                      {dati ? (dati.delta > 0 ? `+${formatEuro(dati.delta)}` : formatEuro(dati.delta)) : '...'}
+                      {deltaVisualizzato > 0 ? `+${formatEuro(deltaVisualizzato)}` : formatEuro(deltaVisualizzato)}
                     </div>
                   )}
+                </div>
+                <div className="text-[10px] text-gray-600 mt-1">
+                  {isQuadraturaPerfetta ? 'Quadratura esatta con Aruba' : 'Differenza da verificare'}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Candidati che spiegano esattamente la differenza */}
-          {dati?.candidateDelta && dati.candidateDelta.length > 0 && (
+          {/* Dettaglio Spese Art. 15 DPR 633/72 */}
+          {dati?.fattureConArt15 && dati.fattureConArt15.length > 0 && (
+            <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-blue-950">
+                <span className="flex items-center gap-1.5">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  Dettaglio Spese Anticipate Art. 15 escluse dai ricavi ({dati.fattureConArt15.length} fatture):
+                </span>
+                <span className="font-mono text-blue-900 bg-blue-100 px-2 py-0.5 rounded">
+                  Totale: {formatEuro(totaleArt15)}
+                </span>
+              </div>
+              <div className="space-y-1.5 text-xs text-blue-900">
+                {dati.fattureConArt15.map((f: any) => (
+                  <div key={f.id} className="bg-white p-2.5 rounded-lg border border-blue-200 flex items-center justify-between gap-2 shadow-xs">
+                    <div>
+                      <div className="font-semibold text-gray-900 flex items-center gap-2">
+                        <span>Fattura {f.numero}</span>
+                        <span className="text-[11px] text-gray-500 font-normal">
+                          {f.data ? new Date(f.data).toLocaleDateString('it-IT') : ''} · {f.cliente}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-gray-600 italic mt-0.5">
+                        {f.righe?.map((r: any) => r.descrizione).join(' | ')}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="font-bold font-mono text-amber-700">-{formatEuro(f.importoArt15)}</div>
+                      <div className="text-[10px] text-gray-400">Escluso da ricavi</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Candidati che spiegano esattamente la differenza (se presente) */}
+          {!isQuadraturaPerfetta && dati?.candidateDelta && dati.candidateDelta.length > 0 && (
             <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/80 space-y-3">
               <div className="flex items-center gap-2 text-sm font-bold text-amber-900">
                 <ShieldAlert className="h-5 w-5 text-amber-600" />
-                TROVATA FATTURA CHE SPIEGA ESATTAMENTE LA DIFFERENZA ({formatEuro(delta)}):
+                TROVATA FATTURA CHE SPIEGA LA DIFFERENZA ({formatEuro(Math.abs(deltaVisualizzato))}):
               </div>
-              <p className="text-xs text-amber-800 leading-relaxed">
-                Nel gestionale è presente una fattura il cui importo coincide al centesimo con la differenza di <strong>{formatEuro(delta)}</strong>.
-                Se su Aruba questa fattura non è stata ancora saldata (o è stata scartata dallo SdI), puoi aggiornarla con 1 clic:
-              </p>
-
               <div className="space-y-2 mt-2">
                 {dati.candidateDelta.map((f: any) => (
                   <div
                     key={f.id}
-                    className="bg-white p-3.5 rounded-lg border border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="bg-white p-3 rounded-lg border border-amber-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
                     <div>
                       <div className="font-semibold text-gray-900 text-sm flex items-center gap-2">
@@ -208,7 +285,6 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
                         onClick={() => handleAzioneFattura(f.id, 'segna_da_incassare')}
                         disabled={azioneInCorso}
                         className="text-xs border-amber-300 text-amber-900 hover:bg-amber-100"
-                        title="Rimuove lo stato saldata e la sposta in Da Incassare"
                       >
                         <ArrowDownCircle className="h-3.5 w-3.5 mr-1" />
                         Sposta in "Da Incassare"
@@ -219,7 +295,6 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
                         onClick={() => handleAzioneFattura(f.id, 'elimina_fattura')}
                         disabled={azioneInCorso}
                         className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                        title="Elimina solo se era una fattura scartata dallo SdI o duplicata"
                       >
                         <Trash2 className="h-3.5 w-3.5 mr-1" />
                         Elimina (se scarto)
@@ -231,29 +306,18 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
             </div>
           )}
 
-          {/* Possibili Note di Credito */}
-          {dati?.possibiliNoteCredito && dati.possibiliNoteCredito.length > 0 && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 space-y-1">
-              <strong>Possibili Note di Credito / Storni trovati:</strong>
-              {dati.possibiliNoteCredito.map((nc: any) => (
-                <div key={nc.id} className="flex justify-between">
-                  <span>{nc.numero} - {nc.cliente}</span>
-                  <span className="font-mono font-bold">{formatEuro(nc.totaleDocumento)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Tabella di Controllo di tutte le Fatture */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-gray-500">
               <span className="font-medium text-gray-700">
-                Elenco fatture presenti nel gestionale ({dati?.conteggioFatture ?? 0})
+                Elenco fatture registrate ({dati?.conteggioFatture ?? 0})
               </span>
-              <span>Visualizzazione delle fatture con stato e incasso</span>
+              <span>
+                {escludiArt15 ? 'Visualizzazione al netto di Art. 15' : 'Visualizzazione importo totale'}
+              </span>
             </div>
 
-            <div className="border rounded-lg max-h-60 overflow-y-auto">
+            <div className="border rounded-lg max-h-56 overflow-y-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50/80 text-[11px]">
@@ -261,9 +325,9 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
                     <TableHead>Numero</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead className="text-right">Totale Doc</TableHead>
-                    <TableHead className="text-right">Incassato</TableHead>
+                    <TableHead className="text-right">Ricavi Netti</TableHead>
+                    <TableHead className="text-center">Art. 15</TableHead>
                     <TableHead className="text-center">Stato</TableHead>
-                    <TableHead className="text-right">Azione</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -282,11 +346,11 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
                     </TableRow>
                   ) : (
                     dati.fatture.map((f: any) => {
-                      const isCandidate = Math.abs(f.totaleDocumento - delta) < 0.05
+                      const hasArt15 = f.art15Importo > 0
                       return (
                         <TableRow
                           key={f.id}
-                          className={`text-xs ${isCandidate ? 'bg-amber-100/70 font-semibold' : 'hover:bg-gray-50'}`}
+                          className={`text-xs ${hasArt15 ? 'bg-blue-50/40' : 'hover:bg-gray-50'}`}
                         >
                           <TableCell className="font-mono text-gray-600">
                             {f.data ? new Date(f.data).toLocaleDateString('it-IT') : '-'}
@@ -294,14 +358,23 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
                           <TableCell className="font-mono font-medium text-indigo-600">
                             {f.numero}
                           </TableCell>
-                          <TableCell className="max-w-[180px] truncate text-gray-800" title={f.cliente}>
+                          <TableCell className="max-w-[170px] truncate text-gray-800" title={f.cliente}>
                             {f.cliente}
                           </TableCell>
                           <TableCell className="text-right font-mono font-medium">
                             {formatEuro(f.totaleDocumento)}
                           </TableCell>
-                          <TableCell className="text-right font-mono text-green-700">
-                            {formatEuro(f.incassato)}
+                          <TableCell className="text-right font-mono text-indigo-900 font-semibold">
+                            {formatEuro(f.ricaviCompensi)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {hasArt15 ? (
+                              <Badge className="bg-amber-100 text-amber-800 text-[10px] py-0 px-1 font-mono">
+                                -{formatEuro(f.art15Importo)}
+                              </Badge>
+                            ) : (
+                              <span className="text-gray-300 text-[10px]">-</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-center">
                             {f.saldata ? (
@@ -312,20 +385,6 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
                               <Badge variant="outline" className="bg-amber-50 text-amber-800 text-[10px] py-0 px-1.5">
                                 Aperta
                               </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {f.saldata ? (
-                              <button
-                                type="button"
-                                onClick={() => handleAzioneFattura(f.id, 'segna_da_incassare')}
-                                className="text-[11px] text-amber-700 hover:text-amber-900 underline"
-                                title="Rimuovi incasso e sposta in Da Incassare"
-                              >
-                                Apri
-                              </button>
-                            ) : (
-                              <span className="text-gray-400 text-[10px]">-</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -342,10 +401,10 @@ export function QuadraturaArubaModal({ onAggiornato }: QuadraturaArubaModalProps
           <div className="text-xs text-gray-500">
             {isQuadraturaPerfetta ? (
               <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="h-4 w-4" /> Quadratura con Aruba al 100%
+                <CheckCircle2 className="h-4 w-4" /> Quadratura con Aruba al 100% (Delta: 0,00 €)
               </span>
             ) : (
-              <span>Differenza residua: <strong className="text-amber-700">{formatEuro(delta)}</strong></span>
+              <span>Differenza residua: <strong className="text-amber-700">{formatEuro(deltaVisualizzato)}</strong></span>
             )}
           </div>
           <Button variant="ghost" onClick={() => setOpen(false)}>

@@ -71,12 +71,14 @@ export async function GET(request: Request) {
       include: {
         payments: { select: { importo: true } },
         company: { select: { ragioneSociale: true } },
+        lines: { select: { importo: true, naturaIva: true, descrizione: true } },
       },
     })
 
     let totaleEmesso = 0
     let totaleIncassato = 0
     let totaleScaduto = 0
+    let totaleArt15 = 0
     const aziendaMap = new Map<string, { ragioneSociale: string; emesso: number; incassato: number; ultimoPagamento: Date | null }>()
 
     for (const fattura of fattureEmesse) {
@@ -90,12 +92,26 @@ export async function GET(request: Request) {
       const incassatoFattura = fattura.payments.reduce((sum, p) => sum + Number(p.importo), 0)
       const residuo = totale - incassatoFattura
 
+      let art15Fattura = 0
+      if (!isNotaCredito && fattura.lines) {
+        for (const l of fattura.lines) {
+          const imp = Number(l.importo || 0)
+          const isArt15 =
+            l.naturaIva === 'N1' ||
+            l.descrizione?.toLowerCase().includes('art. 15') ||
+            l.descrizione?.toLowerCase().includes('spese vive') ||
+            l.descrizione?.toLowerCase().includes('sanzione amministrativa non dovuta')
+          if (isArt15) art15Fattura += imp
+        }
+      }
+
       if (isNotaCredito) {
         totaleEmesso -= totale
         totaleIncassato -= incassatoFattura
       } else {
         totaleEmesso += totale
         totaleIncassato += incassatoFattura
+        totaleArt15 += art15Fattura
       }
 
       if (!isNotaCredito && residuo > 0 && fattura.dataScadenza && fattura.dataScadenza < oggi) {
@@ -162,6 +178,8 @@ export async function GET(request: Request) {
         scaduto: totaleScaduto,
         fatturatoEmesso: totaleEmesso,
         fatturatoIncassato: totaleIncassato,
+        speseArt15: +totaleArt15.toFixed(2),
+        ricaviCompensi: +(totaleIncassato - totaleArt15).toFixed(2),
       },
       grafico: mesi,
       aziende: Array.from(aziendaMap.entries()).map(([id, data]) => ({
