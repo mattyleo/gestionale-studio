@@ -1,28 +1,42 @@
 // src/app/api/report/route.ts
-// Report: fatturato emesso, incassato, residuo per azienda e periodo
+// Report: fatturato emesso, incassato, residuo per azienda e andamento mensile (allineato ai ricavi effettivi Aruba)
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+const MESI_NOMI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
+  const annoParam = searchParams.get('anno')
   const dal = searchParams.get('dal')
   const al = searchParams.get('al')
   const companyId = searchParams.get('companyId')
-  const tipo = searchParams.get('tipo') || 'riepilogo' // riepilogo | per-azienda | dettaglio
+  const tipo = searchParams.get('tipo') || 'riepilogo'
 
   try {
     const whereInvoice: any = {
       stato: 'EMESSA',
     }
     if (companyId) whereInvoice.companyId = companyId
-    if (dal || al) {
-      whereInvoice.emessaAl = {
+
+    if (annoParam) {
+      const annoNum = parseInt(annoParam, 10)
+      if (!isNaN(annoNum)) {
+        const startAnno = new Date(`${annoNum}-01-01T00:00:00.000Z`)
+        const endAnno = new Date(`${annoNum}-12-31T23:59:59.999Z`)
+        whereInvoice.OR = [
+          { anno: annoNum },
+          { dataDocumento: { gte: startAnno, lte: endAnno } },
+        ]
+      }
+    } else if (dal || al) {
+      whereInvoice.dataDocumento = {
         ...(dal && { gte: new Date(dal) }),
         ...(al && { lte: new Date(al) }),
       }
@@ -35,8 +49,18 @@ export async function GET(request: Request) {
         payments: { select: { importo: true, dataIncasso: true } },
         lines: { select: { importo: true, naturaIva: true, descrizione: true } },
       },
-      orderBy: { emessaAl: 'asc' },
+      orderBy: { dataDocumento: 'asc' },
     })
+
+    // Array mensile (12 mesi)
+    const mensile = MESI_NOMI.map((label, idx) => ({
+      mese: idx + 1,
+      label,
+      emesso: 0,
+      incassato: 0,
+      emessoLordo: 0,
+      speseArt15: 0,
+    }))
 
     // Calcola per ogni fattura
     const fattureCalcolate = fatture.map(f => {
@@ -62,9 +86,26 @@ export async function GET(request: Request) {
         }
       }
 
-      const totale = isNC ? -totaleRaw : totaleRaw
-      const incassato = isNC ? -(incassatoRaw > 0 ? incassatoRaw : totaleRaw) : incassatoRaw
-      const residuo = isNC ? 0 : Math.max(0, +(totaleRaw - incassatoRaw).toFixed(2))
+      const ricavoEffettivo = isNC ? -totaleRaw : +(totaleRaw - art15).toFixed(2)
+      const incassatoEffettivo = isNC
+        ? -(incassatoRaw > 0 ? incassatoRaw : totaleRaw)
+        : +(incassatoRaw - art15).toFixed(2)
+      const totaleLordo = isNC ? -totaleRaw : totaleRaw
+      const incassatoLordo = isNC ? -(incassatoRaw > 0 ? incassatoRaw : totaleRaw) : incassatoRaw
+      const residuoRaw = isNC ? 0 : +(totaleRaw - incassatoRaw).toFixed(2)
+      const residuo = residuoRaw > 0.05 ? residuoRaw : 0
+
+      // Aggrega nel mese di competenza
+      const dataRif = f.dataDocumento || f.emessaAl || f.createdAt
+      if (dataRif) {
+        const mIdx = new Date(dataRif).getMonth()
+        if (mIdx >= 0 && mIdx < 12) {
+          mensile[mIdx].emesso = +(mensile[mIdx].emesso + ricavoEffettivo).toFixed(2)
+          mensile[mIdx].incassato = +(mensile[mIdx].incassato + incassatoEffettivo).toFixed(2)
+          mensile[mIdx].emessoLordo = +(mensile[mIdx].emessoLordo + totaleLordo).toFixed(2)
+          mensile[mIdx].speseArt15 = +(mensile[mIdx].speseArt15 + (isNC ? 0 : art15)).toFixed(2)
+        }
+      }
 
       return {
         id: f.id,
@@ -74,11 +115,12 @@ export async function GET(request: Request) {
         dataDocumento: f.dataDocumento,
         dataScadenza: f.dataScadenza,
         imponibile: isNC ? -Number(f.imponibile) : Number(f.imponibile),
-        totaleDocumento: totale,
+        totaleDocumento: totaleLordo,
         art15Importo: +art15.toFixed(2),
-        ricaviCompensi: isNC ? -totaleRaw : +(totaleRaw - art15).toFixed(2),
-        incassato,
-        residuo: residuo > 0.05 ? residuo : 0,
+        ricaviCompensi: ricavoEffettivo,
+        incassato: incassatoEffettivo,
+        incassatoLordo,
+        residuo,
         isNC,
         isScaduta: !isNC && f.dataScadenza ? f.dataScadenza < new Date() && residuo > 0.05 : false,
       }
@@ -87,7 +129,12 @@ export async function GET(request: Request) {
     // Raggruppa per azienda
     const perAzienda = new Map<string, {
       ragioneSociale: string
+      nFatture: number
       fattureCount: number
+      emesso: number
+      incassato: number
+      emessoLordo: number
+      incassatoLordo: number
       fatturatoEmesso: number
       fatturatoIncassato: number
       speseArt15: number
@@ -99,7 +146,12 @@ export async function GET(request: Request) {
       if (!perAzienda.has(f.companyId)) {
         perAzienda.set(f.companyId, {
           ragioneSociale: f.ragioneSociale,
+          nFatture: 0,
           fattureCount: 0,
+          emesso: 0,
+          incassato: 0,
+          emessoLordo: 0,
+          incassatoLordo: 0,
           fatturatoEmesso: 0,
           fatturatoIncassato: 0,
           speseArt15: 0,
@@ -108,27 +160,39 @@ export async function GET(request: Request) {
         })
       }
       const dati = perAzienda.get(f.companyId)!
+      dati.nFatture++
       dati.fattureCount++
-      dati.fatturatoEmesso += f.totaleDocumento
-      dati.fatturatoIncassato += f.incassato
-      dati.speseArt15 += f.art15Importo
-      dati.ricaviCompensi += f.ricaviCompensi
-      dati.residuo += f.residuo
+      dati.emesso = +(dati.emesso + f.ricaviCompensi).toFixed(2)
+      dati.incassato = +(dati.incassato + f.incassato).toFixed(2)
+      dati.emessoLordo = +(dati.emessoLordo + f.totaleDocumento).toFixed(2)
+      dati.incassatoLordo = +(dati.incassatoLordo + f.incassatoLordo).toFixed(2)
+      dati.fatturatoEmesso = dati.emesso
+      dati.fatturatoIncassato = dati.incassato
+      dati.speseArt15 = +(dati.speseArt15 + f.art15Importo).toFixed(2)
+      dati.ricaviCompensi = dati.emesso
+      dati.residuo = +(dati.residuo + f.residuo).toFixed(2)
     }
+
+    const listaAziende = Array.from(perAzienda.entries())
+      .map(([id, dati]) => ({ id, ...dati }))
+      .sort((a, b) => b.emesso - a.emesso)
 
     const totaliGlobali = {
       fattureCount: fattureCalcolate.length,
-      fatturatoEmesso: fattureCalcolate.reduce((s, f) => s + f.totaleDocumento, 0),
-      fatturatoIncassato: fattureCalcolate.reduce((s, f) => s + f.incassato, 0),
-      speseArt15: fattureCalcolate.reduce((s, f) => s + f.art15Importo, 0),
-      ricaviCompensi: fattureCalcolate.reduce((s, f) => s + f.ricaviCompensi, 0),
-      residuo: fattureCalcolate.reduce((s, f) => s + f.residuo, 0),
+      fatturatoEmesso: +fattureCalcolate.reduce((s, f) => s + f.ricaviCompensi, 0).toFixed(2),
+      fatturatoIncassato: +fattureCalcolate.reduce((s, f) => s + f.incassato, 0).toFixed(2),
+      fatturatoEmessoLordo: +fattureCalcolate.reduce((s, f) => s + f.totaleDocumento, 0).toFixed(2),
+      fatturatoIncassatoLordo: +fattureCalcolate.reduce((s, f) => s + f.incassatoLordo, 0).toFixed(2),
+      speseArt15: +fattureCalcolate.reduce((s, f) => s + f.art15Importo, 0).toFixed(2),
+      ricaviCompensi: +fattureCalcolate.reduce((s, f) => s + f.ricaviCompensi, 0).toFixed(2),
+      residuo: +fattureCalcolate.reduce((s, f) => s + f.residuo, 0).toFixed(2),
     }
 
     return NextResponse.json({
       totali: totaliGlobali,
-      perAzienda: Array.from(perAzienda.entries()).map(([id, dati]) => ({ id, ...dati }))
-        .sort((a, b) => b.fatturatoEmesso - a.fatturatoEmesso),
+      aziende: listaAziende,
+      perAzienda: listaAziende,
+      mensile,
       ...(tipo === 'dettaglio' ? { fatture: fattureCalcolate } : {}),
     })
   } catch (error) {

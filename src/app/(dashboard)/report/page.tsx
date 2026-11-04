@@ -40,10 +40,10 @@ export default function ReportPage() {
 
   const aziende: any[] = dati?.aziende ?? []
   const mensile: any[] = dati?.mensile ?? []
-  const totEmesso = aziende.reduce((s: number, a: any) => s + (a.emesso ?? 0), 0)
-  const totIncassato = aziende.reduce((s: number, a: any) => s + (a.incassato ?? 0), 0)
-  const totArt15 = aziende.reduce((s: number, a: any) => s + (a.speseArt15 ?? 0), 0)
-  const totResiduo = totEmesso - totIncassato
+  const totEmesso = +(aziende.reduce((s: number, a: any) => s + (a.emesso ?? 0), 0)).toFixed(2)
+  const totIncassato = +(aziende.reduce((s: number, a: any) => s + (a.incassato ?? 0), 0)).toFixed(2)
+  const totArt15 = +(aziende.reduce((s: number, a: any) => s + (a.speseArt15 ?? 0), 0)).toFixed(2)
+  const totResiduo = +(aziende.reduce((s: number, a: any) => s + (a.residuo ?? 0), 0)).toFixed(2)
 
   const esportaCsv = () => {
     const righe = [
@@ -91,20 +91,25 @@ export default function ReportPage() {
       {/* KPI */}
       <div className="grid grid-cols-3 gap-4">
         <Card><CardContent className="pt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Fatturato emesso {anno}</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wide">Ricavi emessi {anno} (escluso Art. 15)</p>
           <p className="text-2xl font-bold text-blue-600 mt-1">{loading ? '…' : formatEuro(totEmesso)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Incassato {anno}</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">{loading ? '…' : formatEuro(totIncassato)}</p>
           {totArt15 > 0 && (
             <p className="text-xs text-gray-500 mt-1">
-              Ricavi netti: <strong className="text-indigo-700">{formatEuro(totIncassato - totArt15)}</strong> · Art. 15: {formatEuro(totArt15)}
+              Lordo con Art. 15: <strong>{formatEuro(totEmesso + totArt15)}</strong>
             </p>
           )}
         </CardContent></Card>
         <Card><CardContent className="pt-4">
-          <p className="text-xs text-gray-500 uppercase tracking-wide">Residuo</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wide">Ricavi incassati {anno}</p>
+          <p className="text-2xl font-bold text-green-600 mt-1">{loading ? '…' : formatEuro(totIncassato)}</p>
+          {totArt15 > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              Cassa lorda: <strong className="text-gray-700">{formatEuro(totIncassato + totArt15)}</strong> · Spese Art. 15: {formatEuro(totArt15)}
+            </p>
+          )}
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-gray-500 uppercase tracking-wide">Residuo da incassare</p>
           <p className="text-2xl font-bold text-red-500 mt-1">{loading ? '…' : formatEuro(totResiduo)}</p>
         </CardContent></Card>
       </div>
@@ -144,13 +149,13 @@ export default function ReportPage() {
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie
-                    data={aziende.map((a: any, i: number) => ({ name: a.ragioneSociale, value: a.emesso }))}
+                    data={aziende.filter((a: any) => a.emesso > 0).map((a: any) => ({ name: a.ragioneSociale, value: a.emesso }))}
                     cx="50%" cy="50%" outerRadius={80}
                     dataKey="value"
                     label={({ percent }) => percent != null ? `${(percent * 100).toFixed(0)}%` : ''}
                     labelLine={false}
                   >
-                    {aziende.map((_: any, i: number) => (
+                    {aziende.filter((a: any) => a.emesso > 0).map((_: any, i: number) => (
                       <Cell key={i} fill={COLORI[i % COLORI.length]} />
                     ))}
                   </Pie>
@@ -184,8 +189,8 @@ export default function ReportPage() {
               </TableHeader>
               <TableBody>
                 {aziende.map((a: any, i: number) => {
-                  const residuo = a.emesso - a.incassato
-                  const pct = a.emesso > 0 ? Math.round((a.incassato / a.emesso) * 100) : 0
+                  const residuo = a.residuo ?? Math.max(0, a.emesso - a.incassato)
+                  const pct = a.emesso > 0 ? Math.min(100, Math.round((a.incassato / a.emesso) * 100)) : 100
                   return (
                     <TableRow key={a.id} className="hover:bg-gray-50">
                       <TableCell>
