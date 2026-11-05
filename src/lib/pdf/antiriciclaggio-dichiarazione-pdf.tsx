@@ -49,11 +49,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     paddingHorizontal: 7,
     paddingVertical: 3,
+    maxWidth: 220,
+    alignItems: 'flex-end',
   },
   docBadgeText: {
-    fontSize: 7.5,
+    fontSize: 7.2,
     fontFamily: 'Helvetica-Bold',
     color: '#1d4ed8',
+    textAlign: 'right',
   },
   mainTitle: {
     fontSize: 10.5,

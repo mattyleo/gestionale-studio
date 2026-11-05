@@ -384,7 +384,7 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
         {/* ── Sezione Prodotti e Servizi ── */}
         <Text style={styles.sectionHeading}>Prodotti e Servizi</Text>
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
+          <View style={styles.tableHeader} fixed>
             <Text style={styles.colNr}>NR</Text>
             <Text style={styles.colDesc}>DESCRIZIONE</Text>
             <Text style={styles.colQty}>QUANTITÀ</Text>
@@ -399,7 +399,7 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
               const aliq = line.aliquotaIva ?? '0'
               const nat = line.naturaIva ?? 'N2.2'
               return (
-                <View key={idx} style={styles.tableRow}>
+                <View key={idx} style={styles.tableRow} wrap={false}>
                   <Text style={styles.colNr}>{idx + 1}</Text>
                   <Text style={styles.colDesc}>{line.descrizione}</Text>
                   <Text style={styles.colQty}>{formatNumber(line.quantita)}</Text>
@@ -411,7 +411,7 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
               )
             })
           ) : (
-            <View style={styles.tableRow}>
+            <View style={styles.tableRow} wrap={false}>
               <Text style={styles.colNr}>1</Text>
               <Text style={styles.colDesc}>Prestazioni professionali</Text>
               <Text style={styles.colQty}>1</Text>
@@ -479,7 +479,7 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
         </View>
 
         {/* ── Riepilogo IVA e Calcolo Fattura ── */}
-        <View style={styles.totalsSection}>
+        <View style={styles.totalsSection} wrap={false}>
           {/* Riquadro Riepilogo IVA */}
           <View style={styles.vatSummaryBox}>
             <Text style={[styles.bold, { fontSize: 8.5, marginBottom: 5, color: '#0f172a' }]}>

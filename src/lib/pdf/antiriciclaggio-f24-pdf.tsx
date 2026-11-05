@@ -57,6 +57,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     alignItems: 'flex-end',
+    maxWidth: 200,
+    flexShrink: 0,
   },
   badgeTitle: {
     fontSize: 7.8,

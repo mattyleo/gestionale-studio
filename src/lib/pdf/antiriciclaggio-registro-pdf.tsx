@@ -149,7 +149,7 @@ export function AntiriciclaggioRegistroDocument({
 
         {/* Tabella Registro */}
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
+          <View style={styles.tableHeader} fixed>
             <Text style={styles.colFasc}>FASCICOLO</Text>
             <Text style={styles.colData}>DATA VERIF.</Text>
             <Text style={styles.colRagSoc}>CLIENTE / RAGIONE SOCIALE</Text>
@@ -176,6 +176,7 @@ export function AntiriciclaggioRegistroDocument({
             return (
               <View
                 key={az.id || idx}
+                wrap={false}
                 style={[
                   styles.tableRow,
                   { backgroundColor: idx % 2 === 1 ? '#f8fafc' : '#ffffff' },
@@ -226,9 +227,9 @@ export function AntiriciclaggioRegistroDocument({
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Text>Studio {studioNome} · Registro conservato ai sensi dell'art. 31 D.Lgs. 231/2007</Text>
-          <Text>Pagina stampata il {formatDate(new Date())}</Text>
+        <View style={styles.footer} fixed>
+          <Text>Studio {studioNome} · Registro conservato ai sensi dell&apos;art. 31 D.Lgs. 231/2007</Text>
+          <Text render={({ pageNumber, totalPages }) => `Pagina ${pageNumber} di ${totalPages} · Data: ${formatDate(new Date())}`} />
         </View>
       </Page>
     </Document>

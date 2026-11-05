@@ -50,11 +50,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     paddingHorizontal: 7,
     paddingVertical: 3,
+    alignItems: 'flex-end',
+    flexShrink: 0,
   },
   docBadgeText: {
-    fontSize: 7.5,
+    fontSize: 7,
     fontFamily: 'Helvetica-Bold',
     color: '#3730a3',
+    textAlign: 'right',
   },
   mainTitle: {
     fontSize: 10,
@@ -301,18 +304,29 @@ export async function generaAntiriciclaggioValutazionePDF(
     { q: '8. Assenza di indicatori di anomalia ex Provvedimento UIF / D.M. Giustizia ai fini di eventuale SOS (Art. 35)', esito: 'NESSUNA SOS' },
   ]
 
+  const fascicolo = azienda.antiriciclaggioFascicolo || 'ARC-2026'
+  const cleanZona =
+    bot.zona === 'ZONA_3'
+      ? 'ZONA 3 · Soggetta AVC'
+      : bot.zona === 'ZONA_2'
+      ? 'ZONA 2 · Esente AVC'
+      : 'ZONA 1 · Esente CAF'
+
   const doc = (
     <Document title={`AV1_AV2_AV3_AV7_Fascicolo_CNDCEC_${azienda.ragioneSociale}`}>
       {/* PAGINA 1: MODELLO AV.1 (DETERMINAZIONE RISCHIO EFFETTIVO) + MODELLO AV.2 (DOCUMENTI ACQUISITI) */}
       <Page size="A4" style={styles.page}>
         <View style={styles.headerBox}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 10 }}>
             <Text style={styles.studioTitle}>{studioDenominazione}</Text>
             <Text style={styles.studioSub}>{studioIndirizzo}</Text>
           </View>
           <View style={styles.docBadge}>
             <Text style={styles.docBadgeText}>
-              MODELLI AV.1 + AV.2 CNDCEC — {bot.zonaLabel} — FASCICOLO: {azienda.antiriciclaggioFascicolo || 'ARC-2026'}
+              AV.1 + AV.2 CNDCEC — {cleanZona}
+            </Text>
+            <Text style={[styles.docBadgeText, { fontSize: 6.8, color: '#475569', marginTop: 1 }]}>
+              FASCICOLO: {fascicolo}
             </Text>
           </View>
         </View>
@@ -515,12 +529,15 @@ export async function generaAntiriciclaggioValutazionePDF(
       {/* PAGINA 2: MODELLO AV.3 (ISTRUTTORIA CLIENTE) + MODELLO AV.7 (PROCEDURA DI CONTROLLO COSTANTE) */}
       <Page size="A4" style={styles.page}>
         <View style={styles.headerBox}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 10 }}>
             <Text style={styles.studioTitle}>{studioDenominazione}</Text>
             <Text style={styles.studioSub}>Istruttoria Cliente (AV.3) e Procedura di Controllo Costante (AV.7)</Text>
           </View>
           <View style={styles.docBadge}>
-            <Text style={styles.docBadgeText}>MODELLI AV.3 + AV.7 CNDCEC</Text>
+            <Text style={styles.docBadgeText}>AV.3 + AV.7 CNDCEC</Text>
+            <Text style={[styles.docBadgeText, { fontSize: 6.8, color: '#475569', marginTop: 1 }]}>
+              FASCICOLO: {fascicolo}
+            </Text>
           </View>
         </View>
 

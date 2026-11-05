@@ -206,17 +206,19 @@ export interface DatiSchedaCliente {
 }
 
 export function SchedaClienteDocument({ data }: { data: DatiSchedaCliente }) {
-  const { emittente, cliente, vociIncassate, vociDaIncassare, dataEstrazione } = data
+  const { emittente, cliente, dataEstrazione } = data
+  const vociIncassate = data.vociIncassate || []
+  const vociDaIncassare = data.vociDaIncassare || []
 
   // Calcoli Incassato
-  const totImpInc = vociIncassate.reduce((acc, v) => acc + v.imponibile, 0)
-  const totCasInc = vociIncassate.reduce((acc, v) => acc + v.cassa, 0)
-  const totDocInc = vociIncassate.reduce((acc, v) => acc + v.totale, 0)
+  const totImpInc = vociIncassate.reduce((acc, v) => acc + (v.imponibile || 0), 0)
+  const totCasInc = vociIncassate.reduce((acc, v) => acc + (v.cassa || 0), 0)
+  const totDocInc = vociIncassate.reduce((acc, v) => acc + (v.totale || 0), 0)
 
   // Calcoli Da Incassare
-  const totImpDai = vociDaIncassare.reduce((acc, v) => acc + v.imponibile, 0)
-  const totCasDai = vociDaIncassare.reduce((acc, v) => acc + v.cassa, 0)
-  const totDocDai = vociDaIncassare.reduce((acc, v) => acc + v.totale, 0)
+  const totImpDai = vociDaIncassare.reduce((acc, v) => acc + (v.imponibile || 0), 0)
+  const totCasDai = vociDaIncassare.reduce((acc, v) => acc + (v.cassa || 0), 0)
+  const totDocDai = vociDaIncassare.reduce((acc, v) => acc + (v.totale || 0), 0)
 
   // Totali Generali
   const totImpGen = totImpInc + totImpDai
@@ -278,6 +280,7 @@ export function SchedaClienteDocument({ data }: { data: DatiSchedaCliente }) {
             vociIncassate.map((v, idx) => (
               <View
                 key={idx}
+                wrap={false}
                 style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}
               >
                 <Text style={styles.colDesc}>{v.descrizione}</Text>
@@ -312,6 +315,7 @@ export function SchedaClienteDocument({ data }: { data: DatiSchedaCliente }) {
             vociDaIncassare.map((v, idx) => (
               <View
                 key={idx}
+                wrap={false}
                 style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowEven : {}]}
               >
                 <Text style={styles.colDesc}>{v.descrizione}</Text>
@@ -326,7 +330,7 @@ export function SchedaClienteDocument({ data }: { data: DatiSchedaCliente }) {
 
         {/* 3. Quadro Riepilogativo Generale */}
         <Text style={styles.sectionTitle}>3. QUADRO RIEPILOGATIVO GENERALE</Text>
-        <View style={styles.summaryTable}>
+        <View style={styles.summaryTable} wrap={false}>
           <View style={styles.summaryHeader}>
             <Text style={styles.colSumLabel}>Riepilogo Posizione Contabile</Text>
             <Text style={styles.colSumVal}>Imponibile</Text>
@@ -355,7 +359,7 @@ export function SchedaClienteDocument({ data }: { data: DatiSchedaCliente }) {
 
         {/* Coordinate di pagamento dello studio se presente residuo */}
         {emittente.iban && totDocDai > 0 && (
-          <View style={styles.ibanBox}>
+          <View style={styles.ibanBox} wrap={false}>
             <Text style={{ fontFamily: 'Helvetica-Bold', marginBottom: 2 }}>
               Coordinate Bancarie per il Saldo:
             </Text>

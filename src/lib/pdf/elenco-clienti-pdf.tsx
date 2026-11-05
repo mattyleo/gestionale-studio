@@ -137,7 +137,7 @@ export function ElencoClientiDocument({
 
         {/* Tabella Clienti */}
         <View style={styles.table}>
-          <View style={styles.tableHeader}>
+          <View style={styles.tableHeader} fixed>
             <Text style={styles.colNr}>N°</Text>
             <Text style={styles.colRagSoc}>RAGIONE SOCIALE / NOME</Text>
             <Text style={styles.colFiscale}>CODICE FISCALE / P.IVA</Text>
@@ -149,6 +149,7 @@ export function ElencoClientiDocument({
           {clienti.map((c, idx) => (
             <View
               key={c.id || idx}
+              wrap={false}
               style={[
                 styles.tableRow,
                 { backgroundColor: idx % 2 === 1 ? '#f8fafc' : '#ffffff' },
@@ -195,9 +196,9 @@ export function ElencoClientiDocument({
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={styles.footer} fixed>
           <Text>Studio {studioNome} · Documento ad uso interno amministrativo</Text>
-          <Text>Stampato il {formatDate()}</Text>
+          <Text render={({ pageNumber, totalPages }) => `Pagina ${pageNumber} di ${totalPages} · Stampato il ${formatDate()}`} />
         </View>
       </Page>
     </Document>
