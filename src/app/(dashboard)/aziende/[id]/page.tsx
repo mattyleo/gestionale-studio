@@ -4,7 +4,7 @@
 import * as React from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Loader2, RefreshCw, FileText, CheckCircle2, Clock, AlertCircle, Plus, Pencil, Trash2, ShieldCheck, FileDown, AlertTriangle, Sparkles } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, RefreshCw, FileText, CheckCircle2, Clock, AlertCircle, Plus, Pencil, Trash2, ShieldCheck, FileDown, AlertTriangle, Sparkles, Printer } from 'lucide-react'
 import { AntiriciclaggioDettaglioModal } from '@/components/antiriciclaggio/AntiriciclaggioDettaglioModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -971,6 +971,28 @@ export default function AziendaDettaglioPage() {
                   type="button"
                   variant="outline"
                   size="sm"
+                  onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato`, '_blank')}
+                  className="bg-amber-600 hover:bg-amber-500 text-white border-amber-500 text-xs font-bold"
+                  title="Stampa Lettera d'Incarico specifica corrispondente al servizio scelto per il cliente"
+                >
+                  <Printer className="h-3.5 w-3.5 mr-1" />
+                  Lettera d&apos;Incarico PDF
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=f24`, '_blank')}
+                  className="bg-slate-800 hover:bg-slate-700 text-white border-slate-600 text-xs"
+                  title="Stampa Allegato A Delega F24 Entratel"
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1 text-teal-400" />
+                  Allegato A (F24) PDF
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=dichiarazione`, '_blank')}
                   className="bg-slate-800 hover:bg-slate-700 text-white border-slate-600 text-xs"
                 >
@@ -1001,15 +1023,16 @@ export default function AziendaDettaglioPage() {
                   type="button"
                   size="sm"
                   onClick={() => {
-                    window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=dichiarazione`, '_blank')
-                    setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank'), 300)
-                    setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=valutazione`, '_blank'), 600)
+                    window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato`, '_blank')
+                    setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=dichiarazione`, '_blank'), 300)
+                    setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=privacy`, '_blank'), 600)
+                    setTimeout(() => window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=valutazione`, '_blank'), 900)
                   }}
                   className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
-                  title="Stampa istantaneamente tutti i 3 documenti da far firmare al nuovo cliente"
+                  title="Stampa istantaneamente la Lettera d'Incarico corretta e tutti i documenti conformi da far firmare"
                 >
                   <FileText className="h-3.5 w-3.5 mr-1" />
-                  Stampa Kit Completo (3 Documenti)
+                  Stampa Kit Completo
                 </Button>
               </div>
             </div>
@@ -1035,10 +1058,11 @@ export default function AziendaDettaglioPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="CONTABILITA">📊 CONTABILITÀ (Ditte e Società)</SelectItem>
-                        <SelectItem value="PAGHE">💼 PAGHE (Consulenza del lavoro)</SelectItem>
+                        <SelectItem value="CONTABILITA">📊 CONTABILITÀ (Ordinaria / Ditte e Società)</SelectItem>
+                        <SelectItem value="FORFETTARI">💼 FORFETTARIO (Regime Forfettario)</SelectItem>
+                        <SelectItem value="PAGHE">👥 PAGHE (Consulenza del lavoro &amp; Buste Paga)</SelectItem>
+                        <SelectItem value="OCCASIONALI">🤝 OCCASIONALE (Rapporti di Lavoro Occasionali CPO)</SelectItem>
                         <SelectItem value="CAF">🧾 CAF (Dichiarazioni e Privati)</SelectItem>
-                        <SelectItem value="MISTO">🏢 MISTO (Contabilità + Paghe + Altro)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

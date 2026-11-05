@@ -537,12 +537,11 @@ export function AntiriciclaggioDettaglioModal({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="PAGHE">1-2. Consulenza Lavoro &amp; Buste Paga (LUL)</SelectItem>
-                      <SelectItem value="CONTABILITA">3. Contabilità &amp; Gestione Fiscale (Ditte/Società/SRL/Consorzi)</SelectItem>
-                      <SelectItem value="FORFETTARI">5. Redditi Ditte Individuali &amp; Regime Forfettario</SelectItem>
-                      <SelectItem value="SUCCESSIONI">6. Pratiche Dichiarazione di Successione</SelectItem>
-                      <SelectItem value="CAF">4. CAF / 730 / Pratiche INPS (Privati - Esonerato)</SelectItem>
-                      <SelectItem value="MISTO">Misto (Contabilità + Paghe)</SelectItem>
+                      <SelectItem value="CONTABILITA">1. Contabilità &amp; Gestione Fiscale (Ditte/Società/SRL)</SelectItem>
+                      <SelectItem value="FORFETTARI">2. Regime Forfettario (Redditi &amp; Consulenza)</SelectItem>
+                      <SelectItem value="PAGHE">3. Consulenza Lavoro &amp; Buste Paga (LUL)</SelectItem>
+                      <SelectItem value="OCCASIONALI">4. Rapporti di Lavoro Occasionali (CPO Art. 2222)</SelectItem>
+                      <SelectItem value="CAF">5. CAF / 730 / Pratiche INPS (Privati - Esonerato)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1204,6 +1203,18 @@ export function AntiriciclaggioDettaglioModal({
                         )}
                       </div>
                       <div className="flex items-center flex-wrap gap-1.5 pt-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() =>
+                            window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato`, '_blank')
+                          }
+                          className="h-7 text-xs bg-indigo-700 hover:bg-indigo-800 text-white font-bold shadow-sm"
+                          title="Stampa Lettera d'Incarico generata automaticamente in base al Servizio/Settore assegnato al cliente (Contabilità, Forfettario, Paghe, Occasionale)"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1" />
+                          Stampa Mandato Cliente (Auto)
+                        </Button>
                         <Button
                           type="button"
                           variant="outline"

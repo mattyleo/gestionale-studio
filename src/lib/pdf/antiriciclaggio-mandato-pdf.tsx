@@ -40,11 +40,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e3a8a',
     borderRadius: 5,
     paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     marginBottom: 6,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  studioHeaderLeft: {
+    flex: 1,
+    paddingRight: 8,
   },
   studioName: {
     fontSize: 12,
@@ -67,20 +71,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 4,
     paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     alignItems: 'flex-end',
-    width: 170,
+    width: 175,
     flexShrink: 0,
   },
   badgeTitle: {
-    fontSize: 7.8,
+    fontSize: 7.6,
     fontFamily: 'Helvetica-Bold',
     color: '#1e3a8a',
+    textAlign: 'right',
   },
   badgeSub: {
-    fontSize: 6.8,
+    fontSize: 6.4,
     color: '#334155',
     marginTop: 1,
+    textAlign: 'right',
+  },
+  badgeDate: {
+    fontSize: 6.2,
+    color: '#64748b',
+    marginTop: 1,
+    textAlign: 'right',
   },
 
   // DOCUMENT TITLE
@@ -307,9 +319,20 @@ function CorporateHeader({
   dataOggi: string
   studio: StudioInfo
 }) {
+  // Sintesi pulita per il badge (evita overflow orizzontale o sovrapposizioni)
+  const cleanZona = zonaLabel.includes('ZONA 2')
+    ? 'ZONA 2 · Esente AVC (Art. 17 c. 7)'
+    : zonaLabel.includes('ZONA 3')
+    ? 'ZONA 3 · Soggetta AVC (Mod. AV.1)'
+    : zonaLabel.includes('ZONA 1')
+    ? 'ZONA 1 · Esente (Privati / CAF)'
+    : zonaLabel.length > 34
+    ? zonaLabel.slice(0, 32) + '...'
+    : zonaLabel
+
   return (
     <View style={styles.headerBanner} wrap={false}>
-      <View style={{ flex: 1, paddingRight: 10 }}>
+      <View style={styles.studioHeaderLeft}>
         <Text style={styles.studioName}>{studio.denominazione.toUpperCase()}</Text>
         <Text style={styles.studioSub}>
           Dottore Commercialista · Albo ODCEC di Reggio Emilia n. 742/A
@@ -326,8 +349,8 @@ function CorporateHeader({
       </View>
       <View style={styles.badgeBox}>
         <Text style={styles.badgeTitle}>FASCICOLO: {fascicolo}</Text>
-        <Text style={[styles.badgeSub, { textAlign: 'right' }]}>{zonaLabel}</Text>
-        <Text style={{ fontSize: 6.5, color: '#64748b', marginTop: 1 }}>Data: {dataOggi}</Text>
+        <Text style={styles.badgeSub}>{cleanZona}</Text>
+        <Text style={styles.badgeDate}>Data: {dataOggi}</Text>
       </View>
     </View>
   )
@@ -844,18 +867,23 @@ export async function generaLetteraIncaricoMandatoPDF(
   } else if (vReq === 'PAGHE') {
     modello = 'PAGHE'
   } else {
+    // Risoluzione automatica in base al settore dell'azienda o prestazione
+    const settore = (azienda.settoreAttivita || '').toUpperCase()
     const prestLower = (azienda.antiriciclaggioPrestazione || '').toLowerCase()
-    if (prestLower.includes('occasion') || prestLower.includes('verbale ispettivo')) {
+
+    if (settore === 'OCCASIONALI' || prestLower.includes('occasion') || prestLower.includes('verbale ispettivo')) {
       modello = 'OCCASIONALI'
-    } else if (azienda.settoreAttivita === 'FORFETTARI') {
+    } else if (settore === 'FORFETTARI' || settore === 'FORFETTARIO' || prestLower.includes('forfet')) {
       modello = 'FORFETTARI'
-    } else if (
-      azienda.settoreAttivita === 'CONTABILITA' ||
-      (bot.zona === 'ZONA_3' && !prestLower.includes('verbale ispettivo'))
-    ) {
+    } else if (settore === 'SEMPLIFICATA' || prestLower.includes('semplificat')) {
+      modello = 'SEMPLIFICATA'
+    } else if (settore === 'CONTABILITA' || bot.zona === 'ZONA_3') {
       modello = 'CONTABILITA'
-    } else {
+    } else if (settore === 'PAGHE') {
       modello = 'PAGHE'
+    } else {
+      // Default per CAF o altro
+      modello = azienda.partitaIva ? 'CONTABILITA' : 'PAGHE'
     }
   }
 
