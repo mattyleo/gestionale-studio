@@ -20,6 +20,7 @@ import { formatEuro, formatData, statoInvoiceLabel, statoInvoiceBadgeColor, cn }
 import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ImportaArubaModal } from '@/components/aruba/ImportaArubaModal'
+import { PromemoriaTrimestraleBanner } from '@/components/fatture/PromemoriaTrimestraleBanner'
 import { SelettoreClienteCombobox } from '@/components/aziende/SelettoreClienteCombobox'
 
 export default function BozzePage() {
@@ -52,17 +53,30 @@ export default function BozzePage() {
   const [periodoAl, setPeriodoAl] = React.useState(fineMese)
   const [raggruppamento, setRaggruppamento] = React.useState<'per_servizio' | 'dettagliato'>('per_servizio')
 
-  const impostaPresetPeriodo = (tipo: 'anno' | 'questo_mese' | 'mese_scorso') => {
+  const impostaPresetPeriodo = (tipo: 'anno' | 'questo_mese' | 'mese_scorso' | 'q1' | 'q2' | 'q3' | 'q4') => {
     const o = new Date()
+    const yr = o.getFullYear()
     if (tipo === 'anno') {
-      setPeriodoDal(`${o.getFullYear()}-01-01`)
-      setPeriodoAl(new Date(o.getFullYear(), o.getMonth() + 1, 0).toISOString().split('T')[0])
+      setPeriodoDal(`${yr}-01-01`)
+      setPeriodoAl(new Date(yr, o.getMonth() + 1, 0).toISOString().split('T')[0])
     } else if (tipo === 'questo_mese') {
-      setPeriodoDal(new Date(o.getFullYear(), o.getMonth(), 1).toISOString().split('T')[0])
-      setPeriodoAl(new Date(o.getFullYear(), o.getMonth() + 1, 0).toISOString().split('T')[0])
+      setPeriodoDal(new Date(yr, o.getMonth(), 1).toISOString().split('T')[0])
+      setPeriodoAl(new Date(yr, o.getMonth() + 1, 0).toISOString().split('T')[0])
     } else if (tipo === 'mese_scorso') {
-      setPeriodoDal(new Date(o.getFullYear(), o.getMonth() - 1, 1).toISOString().split('T')[0])
-      setPeriodoAl(new Date(o.getFullYear(), o.getMonth(), 0).toISOString().split('T')[0])
+      setPeriodoDal(new Date(yr, o.getMonth() - 1, 1).toISOString().split('T')[0])
+      setPeriodoAl(new Date(yr, o.getMonth(), 0).toISOString().split('T')[0])
+    } else if (tipo === 'q1') {
+      setPeriodoDal(`${yr}-01-01`)
+      setPeriodoAl(`${yr}-03-31`)
+    } else if (tipo === 'q2') {
+      setPeriodoDal(`${yr}-04-01`)
+      setPeriodoAl(`${yr}-06-30`)
+    } else if (tipo === 'q3') {
+      setPeriodoDal(`${yr}-07-01`)
+      setPeriodoAl(`${yr}-09-30`)
+    } else if (tipo === 'q4') {
+      setPeriodoDal(`${yr}-10-01`)
+      setPeriodoAl(`${yr}-12-31`)
     }
   }
 
@@ -228,6 +242,9 @@ export default function BozzePage() {
         </div>
       </div>
 
+      {/* Promemoria Trimestrale Clienti */}
+      <PromemoriaTrimestraleBanner />
+
       {/* Banner attività approvate pronte per la fatturazione */}
       {attivitaApprovate.length > 0 && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border border-green-200 bg-green-50 text-green-900 shadow-sm">
@@ -357,19 +374,31 @@ export default function BozzePage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-1">
                 <Label>Periodo attività</Label>
-                <div className="flex items-center gap-1">
-                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('anno')}>
-                    Anno intero
+                <div className="flex items-center gap-1 flex-wrap">
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('anno')}>
+                    Anno
                   </Button>
                   <span className="text-gray-300">·</span>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('questo_mese')}>
-                    Questo mese
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('questo_mese')}>
+                    Mese
                   </Button>
                   <span className="text-gray-300">·</span>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('mese_scorso')}>
-                    Mese scorso
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q1')} title="1° Trimestre (Gen - Mar)">
+                    Q1
+                  </Button>
+                  <span className="text-gray-300">·</span>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q2')} title="2° Trimestre (Apr - Giu)">
+                    Q2
+                  </Button>
+                  <span className="text-gray-300">·</span>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q3')} title="3° Trimestre (Lug - Set)">
+                    Q3
+                  </Button>
+                  <span className="text-gray-300">·</span>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q4')} title="4° Trimestre (Ott - Dic)">
+                    Q4
                   </Button>
                 </div>
               </div>

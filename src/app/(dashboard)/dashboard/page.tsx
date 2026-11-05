@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table'
 import { formatEuro } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PromemoriaTrimestraleBanner } from '@/components/fatture/PromemoriaTrimestraleBanner'
 
 const PERIODI = [
   { value: 'anno', label: 'Anno corrente (Gen - Dic)' },
@@ -72,6 +73,9 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Promemoria Fatturazione Trimestrale Clienti */}
+      <PromemoriaTrimestraleBanner />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
