@@ -531,7 +531,21 @@ export function AntiriciclaggioDettaglioModal({
                   <Label>Settore di Attività Studio *</Label>
                   <Select
                     value={form.settoreAttivita}
-                    onValueChange={(val) => setForm({ ...form, settoreAttivita: val })}
+                    onValueChange={(val) => {
+                      let prest = form.antiriciclaggioPrestazione
+                      if (val === 'PAGHE') {
+                        prest = 'Consulenza del lavoro, elaborazione buste paga e Libro Unico del Lavoro (LUL)'
+                      } else if (val === 'FORFETTARI') {
+                        prest = 'Assistenza e consulenza fiscale in regime forfetario (L. 190/2014)'
+                      } else if (val === 'OCCASIONALI') {
+                        prest = 'Gestione rapporti di lavoro autonomo occasionale e contrattualistica'
+                      } else if (val === 'CONTABILITA') {
+                        prest = 'Tenuta contabilità generale, bilancio e adempimenti fiscali periodici'
+                      } else if (val === 'CAF') {
+                        prest = 'Dichiarazioni dei redditi persone fisiche, modello 730 e pratiche CAF'
+                      }
+                      setForm({ ...form, settoreAttivita: val, antiriciclaggioPrestazione: prest })
+                    }}
                   >
                     <SelectTrigger className="bg-white">
                       <SelectValue />

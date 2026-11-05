@@ -63,6 +63,7 @@ export default function AziendePage() {
   const [form, setForm] = React.useState({
     ragioneSociale: '',
     tipoSoggetto: 'PERSONA_GIURIDICA',
+    settoreAttivita: 'CONTABILITA',
     partitaIva: '',
     codiceFiscale: '',
     codiceDestinatarioSdi: '0000000',
@@ -137,6 +138,7 @@ export default function AziendePage() {
       setForm({
         ragioneSociale: '',
         tipoSoggetto: 'PERSONA_GIURIDICA',
+        settoreAttivita: 'CONTABILITA',
         partitaIva: '',
         codiceFiscale: '',
         codiceDestinatarioSdi: '0000000',
@@ -429,6 +431,25 @@ export default function AziendePage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:col-span-2">
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label htmlFor="settoreAttivita">Servizio Prevalente per lo Studio *</Label>
+                <Select
+                  value={form.settoreAttivita}
+                  onValueChange={(v) => setForm({ ...form, settoreAttivita: v })}
+                >
+                  <SelectTrigger id="settoreAttivita">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CONTABILITA">📊 CONTABILITÀ (Ordinaria / Ditte e Società)</SelectItem>
+                    <SelectItem value="FORFETTARI">💼 FORFETTARIO (Regime Forfettario L. 190/2014)</SelectItem>
+                    <SelectItem value="PAGHE">👥 PAGHE (Consulenza del lavoro &amp; Buste Paga)</SelectItem>
+                    <SelectItem value="OCCASIONALI">🤝 OCCASIONALE (Rapporti di Lavoro Occasionali CPO)</SelectItem>
+                    <SelectItem value="CAF">🧾 CAF (Dichiarazioni e Privati)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="sm:col-span-2 space-y-1.5">
                 <Label htmlFor="ragioneSociale">
                   {form.tipoSoggetto === 'PERSONA_FISICA' ? 'Nome e Cognome *' : 'Ragione Sociale / Denominazione *'}

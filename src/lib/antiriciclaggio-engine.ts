@@ -242,16 +242,21 @@ export function calcolaZonaERischioBot(az: any, testoFatture?: string): Valutazi
   }
 
   const prestTesto = String(az.antiriciclaggioPrestazione || '').toLowerCase()
-  const isEsplicitaZona2 = prestTesto.includes('[zona 2') || prestTesto.includes('esente da avc')
+  const settoreUpper = String(az.settoreAttivita || '').toUpperCase().trim()
+  const isPaghe = settoreUpper === 'PAGHE'
+  const isForfettari = settoreUpper === 'FORFETTARI' || settoreUpper === 'FORFETTARIO'
+  const isEsplicitaZona2 = prestTesto.includes('[zona 2') || prestTesto.includes('esente da avc') || isPaghe || isForfettari
   const isEsplicitaZona3 = prestTesto.includes('[zona 3') || prestTesto.includes('soggetta avc')
 
   // Verifica se rientra in ZONA 3 / GRUPPO B (Soggetta ad Adeguata Verifica Completa AVC — Grado 3 o Grado 2/3)
-  // Nota: Le pratiche di Successione isolate / adempimenti telematici sono ESENTI / Regola di condotta (Mera dichiarazione tributaria -> ZONA 2)
+  // Nota: Paghe (art. 17 c. 7) e Forfettari (senza contabilità) sono in ZONA 2 (Esenti AVC), salvo PEP o procedimenti ispettivi ITL
   const isSoggettaAvc =
     Boolean(az.antiriciclaggioPep) ||
     isEsplicitaZona3 ||
     (!isEsplicitaZona2 &&
       !isSuccessione &&
+      !isPaghe &&
+      !isForfettari &&
       (prestTesto.includes('consulenza') ||
         prestTesto.includes('verbale ispettivo') ||
         prestTesto.includes('itl') ||
@@ -259,7 +264,7 @@ export function calcolaZonaERischioBot(az: any, testoFatture?: string): Valutazi
         prestTesto.includes('tenuta contabilit') ||
         prestTesto.includes('bilancio') ||
         prestTesto.includes('registro imprese') ||
-        (az.settoreAttivita === 'CONTABILITA' && !prestTesto.includes('caf nazionale'))))
+        (settoreUpper === 'CONTABILITA' && !prestTesto.includes('caf nazionale'))))
 
   if (isSoggettaAvc) {
     const isConsulenzaLavoroStraord =

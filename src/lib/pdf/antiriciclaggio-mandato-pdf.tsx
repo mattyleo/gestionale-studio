@@ -868,19 +868,31 @@ export async function generaLetteraIncaricoMandatoPDF(
     modello = 'PAGHE'
   } else {
     // Risoluzione automatica in base al settore dell'azienda o prestazione
-    const settore = (azienda.settoreAttivita || '').toUpperCase()
+    const settore = (azienda.settoreAttivita || '').toUpperCase().trim()
     const prestLower = (azienda.antiriciclaggioPrestazione || '').toLowerCase()
 
-    if (settore === 'OCCASIONALI' || prestLower.includes('occasion') || prestLower.includes('verbale ispettivo')) {
-      modello = 'OCCASIONALI'
-    } else if (settore === 'FORFETTARI' || settore === 'FORFETTARIO' || prestLower.includes('forfet')) {
-      modello = 'FORFETTARI'
-    } else if (settore === 'SEMPLIFICATA' || prestLower.includes('semplificat')) {
-      modello = 'SEMPLIFICATA'
-    } else if (settore === 'CONTABILITA' || bot.zona === 'ZONA_3') {
-      modello = 'CONTABILITA'
-    } else if (settore === 'PAGHE') {
+    // 1. PRIORITÀ ASSOLUTA al settore assegnato esplicitamente all'anagrafica cliente
+    if (settore === 'PAGHE') {
       modello = 'PAGHE'
+    } else if (settore === 'FORFETTARI' || settore === 'FORFETTARIO') {
+      modello = 'FORFETTARI'
+    } else if (settore === 'OCCASIONALI' || settore === 'OCCASIONALE') {
+      modello = 'OCCASIONALI'
+    } else if (settore === 'SEMPLIFICATA') {
+      modello = 'SEMPLIFICATA'
+    } else if (settore === 'CONTABILITA') {
+      modello = 'CONTABILITA'
+    // 2. Se settore non è uno di quelli sopra (es. CAF o non specificato), analizza il testo della prestazione
+    } else if (prestLower.includes('paghe') || prestLower.includes('cedolin') || prestLower.includes('dipendent') || prestLower.includes('buste')) {
+      modello = 'PAGHE'
+    } else if (prestLower.includes('forfet')) {
+      modello = 'FORFETTARI'
+    } else if (prestLower.includes('occasion') || prestLower.includes('verbale ispettivo')) {
+      modello = 'OCCASIONALI'
+    } else if (prestLower.includes('semplificat')) {
+      modello = 'SEMPLIFICATA'
+    } else if (prestLower.includes('contabilit') || prestLower.includes('bilancio') || bot.zona === 'ZONA_3') {
+      modello = 'CONTABILITA'
     } else {
       // Default per CAF o altro
       modello = azienda.partitaIva ? 'CONTABILITA' : 'PAGHE'

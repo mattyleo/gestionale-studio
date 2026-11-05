@@ -1052,7 +1052,23 @@ export default function AziendaDettaglioPage() {
                     <Label htmlFor="settoreAttivita">Settore Attività per lo Studio *</Label>
                     <Select
                       value={form.settoreAttivita}
-                      onValueChange={(v) => setForm({ ...form, settoreAttivita: v })}
+                      onValueChange={(v) => {
+                        let prest = form.antiriciclaggioPrestazione
+                        if (v === 'PAGHE') {
+                          prest = 'Consulenza del lavoro, elaborazione buste paga e Libro Unico del Lavoro (LUL)'
+                        } else if (v === 'FORFETTARI') {
+                          prest = 'Assistenza e consulenza fiscale in regime forfetario (L. 190/2014)'
+                        } else if (v === 'OCCASIONALI') {
+                          prest = 'Gestione rapporti di lavoro autonomo occasionale e contrattualistica'
+                        } else if (v === 'SEMPLIFICATA') {
+                          prest = 'Tenuta contabilità semplificata e adempimenti fiscali periodici'
+                        } else if (v === 'CONTABILITA') {
+                          prest = 'Tenuta contabilità generale, bilancio e adempimenti fiscali periodici'
+                        } else if (v === 'CAF') {
+                          prest = 'Dichiarazioni dei redditi persone fisiche, modello 730 e pratiche CAF'
+                        }
+                        setForm({ ...form, settoreAttivita: v, antiriciclaggioPrestazione: prest })
+                      }}
                     >
                       <SelectTrigger id="settoreAttivita">
                         <SelectValue />
