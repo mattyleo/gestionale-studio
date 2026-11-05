@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   },
 })
 
-type ModelloIncarico = 'PAGHE' | 'CONTABILITA' | 'SEMPLIFICATA' | 'FORFETTARI' | 'OCCASIONALI'
+type ModelloIncarico = 'PAGHE' | 'CONTABILITA' | 'SEMPLIFICATA' | 'FORFETTARI' | 'OCCASIONALI' | 'CAF'
 
 interface StudioInfo {
   denominazione: string
@@ -418,13 +418,19 @@ function PartiesCards({
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>Qualifica Soggetto:</Text>
             <Text style={styles.dataVal}>
-              {isSocieta ? 'Società / Ente (Persona Giuridica)' : 'Impresa Individuale / Professionista'}
+              {isSocieta
+                ? 'Società / Ente (Persona Giuridica)'
+                : cfAzienda && cfAzienda.length === 16 && (!pivaAzienda || pivaAzienda === 'N/D' || pivaAzienda === cfAzienda)
+                ? 'Persona Fisica (Privato / Contribuente CAF)'
+                : 'Impresa Individuale / Professionista'}
             </Text>
           </View>
           <View style={styles.dataRow}>
             <Text style={styles.dataLabel}>C.F. / Partita IVA:</Text>
             <Text style={styles.dataVal}>
-              {cfAzienda === pivaAzienda ? `C.F./P.IVA ${cfAzienda}` : `C.F. ${cfAzienda} · P.IVA ${pivaAzienda}`}
+              {!pivaAzienda || pivaAzienda === 'N/D' || pivaAzienda === cfAzienda
+                ? `C.F. ${cfAzienda}`
+                : `C.F. ${cfAzienda} · P.IVA ${pivaAzienda}`}
             </Text>
           </View>
           <View style={styles.dataRow}>
@@ -550,6 +556,7 @@ function SecondaPaginaPrivacyEF24({
   modello: ModelloIncarico
 }) {
   const esenteAvcPaghe = modello === 'PAGHE' || modello === 'OCCASIONALI'
+  const isCaf = modello === 'CAF'
   return (
     <>
     <Page size="A4" style={styles.page}>
@@ -561,7 +568,14 @@ function SecondaPaginaPrivacyEF24({
           Art. 8 — Disciplina Antiriciclaggio, Titolare Effettivo e Obbligo di Astensione (D.Lgs. 231/2007)
         </Text>
         <View style={styles.sectionBody}>
-          {esenteAvcPaghe && (
+          {isCaf ? (
+            <View style={[styles.calloutBox, { marginTop: 0, marginBottom: 4 }]}>
+              <Text style={{ fontSize: 7.3, textAlign: 'justify' }}>
+                <Text style={styles.bold}>8.0 Inquadramento Antiriciclaggio — ZONA 1 (Esente AVC ex Tab. 1 RT n. 2 CNDCEC): </Text>
+                ai sensi dell&apos;<Text style={styles.bold}>art. 17, comma 7 del D.Lgs. 231/2007</Text> e della Tabella 1 allegata alla Regola Tecnica n. 2 del CNDCEC del 16/01/2025, le prestazioni di mera redazione e trasmissione delle dichiarazioni tributarie (Mod. 730, Mod. Redditi PF privati) e assistenza fiscale CAF/Patronato rientrano nella ZONA 1 esente dall&apos;obbligo di fascicolo formale di adeguata verifica, fermi restando l&apos;identificazione del contribuente, la conservazione decennale della documentazione fiscale e l&apos;obbligo generale di Segnalazione di Operazioni Sospette (SOS).
+              </Text>
+            </View>
+          ) : esenteAvcPaghe ? (
             <View style={[styles.calloutBox, { marginTop: 0, marginBottom: 4 }]}>
               <Text style={{ fontSize: 7.3, textAlign: 'justify' }}>
                 <Text style={styles.bold}>8.0 Esenzione per le paghe e riserva di adeguata verifica: </Text>
@@ -573,7 +587,7 @@ function SecondaPaginaPrivacyEF24({
                 della clientela, fermo restando l&apos;obbligo di Segnalazione di Operazioni Sospette (SOS).
               </Text>
             </View>
-          )}
+          ) : null}
           <Text style={{ fontSize: 7.4, textAlign: 'justify', marginBottom: 3 }}>
             <Text style={styles.bold}>8.1 Obbligo di informazione del Cliente (Art. 22): </Text>
             il Cliente si obbliga a fornire per iscritto e sotto la propria responsabilità tutte le informazioni
@@ -606,6 +620,8 @@ function SecondaPaginaPrivacyEF24({
               ? ' Prestazione soggetta ad adeguata verifica (Rischio Inerente Grado 3): il Cliente attesta che le scritture e i documenti trasmessi rispecchiano operazioni gestionali effettive; il controllo costante è effettuato con cadenza biennale o triennale.'
               : modello === 'FORFETTARI'
               ? ' Il Cliente si impegna al rispetto dei requisiti di accesso e permanenza nel regime forfetario; l\u2019adeguata verifica è effettuata in forma semplificata/ordinaria con aggiornamento triennale.'
+              : modello === 'CAF'
+              ? ' Per le prestazioni di sola assistenza fiscale 730/CAF ai privati si applica la semplificazione per adempimenti standard esenti da fascicolo AVC.'
               : ''}
           </Text>
         </View>
@@ -866,13 +882,17 @@ export async function generaLetteraIncaricoMandatoPDF(
     modello = 'OCCASIONALI'
   } else if (vReq === 'PAGHE') {
     modello = 'PAGHE'
+  } else if (vReq === 'CAF' || vReq === '730' || vReq === 'DICHIARAZIONI') {
+    modello = 'CAF'
   } else {
     // Risoluzione automatica in base al settore dell'azienda o prestazione
     const settore = (azienda.settoreAttivita || '').toUpperCase().trim()
     const prestLower = (azienda.antiriciclaggioPrestazione || '').toLowerCase()
 
     // 1. PRIORITÀ ASSOLUTA al settore assegnato esplicitamente all'anagrafica cliente
-    if (settore === 'PAGHE') {
+    if (settore === 'CAF' || prestLower.includes('caf') || prestLower.includes('730') || prestLower.includes('redditi pf') || prestLower.includes('dichiarazione dei redditi')) {
+      modello = 'CAF'
+    } else if (settore === 'PAGHE') {
       modello = 'PAGHE'
     } else if (settore === 'FORFETTARI' || settore === 'FORFETTARIO') {
       modello = 'FORFETTARI'
@@ -882,7 +902,7 @@ export async function generaLetteraIncaricoMandatoPDF(
       modello = 'SEMPLIFICATA'
     } else if (settore === 'CONTABILITA') {
       modello = 'CONTABILITA'
-    // 2. Se settore non è uno di quelli sopra (es. CAF o non specificato), analizza il testo della prestazione
+    // 2. Se settore non è uno di quelli sopra, analizza il testo della prestazione
     } else if (prestLower.includes('paghe') || prestLower.includes('cedolin') || prestLower.includes('dipendent') || prestLower.includes('buste')) {
       modello = 'PAGHE'
     } else if (prestLower.includes('forfet')) {
@@ -894,14 +914,16 @@ export async function generaLetteraIncaricoMandatoPDF(
     } else if (prestLower.includes('contabilit') || prestLower.includes('bilancio') || bot.zona === 'ZONA_3') {
       modello = 'CONTABILITA'
     } else {
-      // Default per CAF o altro
-      modello = azienda.partitaIva ? 'CONTABILITA' : 'PAGHE'
+      // Default per chi non ha P.IVA è CAF; per chi ha P.IVA è CONTABILITA
+      modello = azienda.partitaIva ? 'CONTABILITA' : 'CAF'
     }
   }
 
   // Titolo e sottotitolo in base al modello
   const titolo =
-    modello === 'CONTABILITA'
+    modello === 'CAF'
+      ? 'LETTERA DI INCARICO PROFESSIONALE PER DICHIARAZIONI DEI REDDITI, ASSISTENZA FISCALE CAF E ADEMPIMENTI TRIBUTARI'
+      : modello === 'CONTABILITA'
       ? 'LETTERA DI INCARICO PROFESSIONALE PER TENUTA CONTABILITÀ ORDINARIA E BILANCIO'
       : modello === 'SEMPLIFICATA'
       ? 'LETTERA DI INCARICO PROFESSIONALE PER TENUTA CONTABILITÀ SEMPLIFICATA E CONSULENZA FISCALE'
@@ -912,7 +934,9 @@ export async function generaLetteraIncaricoMandatoPDF(
       : "LETTERA D'INCARICO PER AMMINISTRAZIONE DEL PERSONALE DIPENDENTE E CONSULENZA DEL LAVORO"
 
   const sottotitolo =
-    modello === 'CONTABILITA'
+    modello === 'CAF'
+      ? 'Modello 730, Modello Redditi PF, IMU, Visto di Conformità, Cassetto Fiscale, Policy Privacy GDPR e Delega F24'
+      : modello === 'CONTABILITA'
       ? 'Mandato professionale continuativo comprensivo di Delega Cassetto Fiscale/LUL, Policy Privacy GDPR e Delega Telematica F24'
       : modello === 'SEMPLIFICATA'
       ? 'Registri in contabilità semplificata, Dichiarazioni Redditi/IVA/IRAP, Cassetto Fiscale, Antiriciclaggio, Privacy GDPR e Delega F24'
@@ -926,7 +950,12 @@ export async function generaLetteraIncaricoMandatoPDF(
     <Document title={`Lettera_Incarico_${modello}_${ragSoc}`}>
       {/* ==================== PAGINA 1: PARTI CONTRAENTI, OGGETTO, COMPENSO (SENZA TARIFFARIO) E CLAUSOLE ==================== */}
       <Page size="A4" style={styles.page}>
-        <CorporateHeader fascicolo={fascicolo} zonaLabel={bot.zonaLabel} dataOggi={oggi} studio={studio} />
+        <CorporateHeader
+          fascicolo={fascicolo}
+          zonaLabel={modello === 'CAF' ? 'ZONA 1 · Esente (Privati / CAF)' : bot.zonaLabel}
+          dataOggi={oggi}
+          studio={studio}
+        />
 
         <View style={styles.titleBox} wrap={false}>
           <Text style={styles.titleText}>{titolo}</Text>
@@ -957,7 +986,31 @@ export async function generaLetteraIncaricoMandatoPDF(
             Art. 1 — Oggetto e Complessità dell&apos;Incarico Professionale Conferito
           </Text>
           <View style={styles.sectionBody}>
-            {modello === 'CONTABILITA' ? (
+            {modello === 'CAF' ? (
+              <View>
+                <View style={styles.bulletRow}>
+                  <Text style={styles.bulletDot}>•</Text>
+                  <Text style={styles.bulletText}>
+                    <Text style={styles.bold}>1.1 Dichiarazioni Fiscali e Visto di Conformità:</Text> assistenza nella raccolta documentale, elaborazione, apposizione del visto di conformità e trasmissione telematica del <Text style={styles.bold}>Modello 730</Text> o <Text style={styles.bold}>Modello Redditi PF</Text> (inclusi quadri RW per monitoraggio fiscale estero, quadri RT plusvalenze e quadri integrativi).
+                  </Text>
+                </View>
+                <View style={styles.bulletRow}>
+                  <Text style={styles.bulletDot}>•</Text>
+                  <Text style={styles.bulletText}>
+                    <Text style={styles.bold}>1.2 Imposte Locali (IMU) e Deleghe di Pagamento F24:</Text> conteggio dell&apos;Imposta Municipale Propria (IMU) su fabbricati e terreni posseduti, compilazione e invio telematico ovvero rilascio delle <Text style={styles.bold}>deleghe di versamento F24</Text> (acconto e saldo).
+                  </Text>
+                </View>
+                <View style={styles.bulletRow}>
+                  <Text style={styles.bulletDot}>•</Text>
+                  <Text style={styles.bulletText}>
+                    <Text style={styles.bold}>1.3 Cassetto Fiscale, Certificazioni Uniche e Assistenza Tributaria:</Text> consultazione del Cassetto Fiscale (Certificazioni Uniche, oneri detraibili, spese sanitarie, bonifici bonus casa), gestione comunicazioni di irregolarità (avvisi bonari ex artt. 36-bis e 36-ter D.P.R. 600/73), cartelle esattoriali e istanze di autotutela.
+                  </Text>
+                </View>
+                <Text style={[styles.italic, { fontSize: 7.2, color: '#475569', marginTop: 2 }]}>
+                  Responsabilità documentale: il Cliente garantisce che fatture, scontrini e documentazione probatoria di oneri deducibili e detraibili sono autentici, conformi agli originali e non utilizzati per altre dichiarazioni fiscali.
+                </Text>
+              </View>
+            ) : modello === 'CONTABILITA' ? (
               <View>
                 <Text style={[styles.bold, { fontSize: 7.8, color: '#1e3a8a', marginBottom: 2 }]}>
                   1.1 Impianto e tenuta delle scritture contabili:
@@ -1093,7 +1146,22 @@ export async function generaLetteraIncaricoMandatoPDF(
             Art. 2 — Determinazione del Compenso e Modalità di Pagamento Tracciabile
           </Text>
           <View style={styles.sectionBody}>
-            {modello === 'OCCASIONALI' ? (
+            {modello === 'CAF' ? (
+              <View>
+                <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 3 }}>
+                  Per lo svolgimento delle prestazioni oggetto del presente incarico, le parti concordano che al Professionista spetteranno i seguenti compensi (da compilare all&apos;atto del conferimento):
+                </Text>
+                <Text style={{ fontSize: 7.6, marginBottom: 2 }}>
+                  • <Text style={styles.bold}>Elaborazione Modello 730 / Modello Redditi PF:</Text> € ____________________ cad.
+                </Text>
+                <Text style={{ fontSize: 7.6, marginBottom: 2 }}>
+                  • <Text style={styles.bold}>Calcolo IMU e predisposizione modelli F24:</Text> € ____________________ annui
+                </Text>
+                <Text style={{ fontSize: 7.6, marginBottom: 3 }}>
+                  • <Text style={styles.bold}>Pratiche tributarie, CU, ISEE e istanze di sgravio:</Text> € ____________________ a pratica
+                </Text>
+              </View>
+            ) : modello === 'OCCASIONALI' ? (
               <View>
                 <Text style={{ fontSize: 7.5, textAlign: 'justify', marginBottom: 4 }}>
                   Per lo svolgimento delle prestazioni oggetto del suddetto incarico, le parti concordano che al Professionista spetteranno i seguenti compensi (da compilare in sede di conferimento):

@@ -1311,6 +1311,22 @@ export function AntiriciclaggioDettaglioModal({
                           variant="outline"
                           size="sm"
                           onClick={() =>
+                            window.open(
+                              `/api/antiriciclaggio/${aziendaId}/pdf?tipo=mandato&variante=CAF`,
+                              '_blank'
+                            )
+                          }
+                          className="h-7 text-xs bg-teal-50 hover:bg-teal-100 text-teal-900 border-teal-300 font-bold"
+                          title="Stampa Lettera d'Incarico per Dichiarazioni dei Redditi (Mod. 730 / Mod. Redditi PF), IMU, Assistenza Fiscale CAF, Privacy GDPR e Delega F24"
+                        >
+                          <Printer className="h-3.5 w-3.5 mr-1 text-teal-700" />
+                          Mandato CAF / 730
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
                             window.open(`/api/antiriciclaggio/${aziendaId}/pdf?tipo=f24`, '_blank')
                           }
                           className="h-7 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-emerald-300 font-bold"
