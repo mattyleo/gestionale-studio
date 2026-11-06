@@ -51,9 +51,10 @@ export async function GET(request: Request, { params: _params }: { params: Promi
 const aggiornaFatturaSchema = z.object({
   note: z.string().optional().nullable(),
   noteInterne: z.string().optional().nullable(),
-  modalitaPagamento: z.string().optional(),
-  terminiPagamento: z.number().int().min(0).optional(),
+  modalitaPagamento: z.string().optional().nullable(),
+  terminiPagamento: z.number().int().min(0).optional().nullable(),
   ibanDestinatario: z.string().optional().nullable(),
+  dataScadenza: z.string().optional().nullable(),
   stato: z.enum(['BOZZA', 'DA_APPROVARE', 'PRONTA_EMISSIONE']).optional(),
 })
 
@@ -66,22 +67,45 @@ export async function PUT(request: Request, { params: _params }: { params: Promi
     const fattura = await prisma.invoice.findUnique({ where: { id: params.id } })
     if (!fattura) return NextResponse.json({ error: 'Fattura non trovata' }, { status: 404 })
 
-    if (!['BOZZA', 'DA_APPROVARE', 'PRONTA_EMISSIONE'].includes(fattura.stato)) {
-      return NextResponse.json(
-        { error: 'Le fatture emesse non possono essere modificate' },
-        { status: 400 }
-      )
-    }
+    const isBozza = ['BOZZA', 'DA_APPROVARE', 'PRONTA_EMISSIONE'].includes(fattura.stato)
 
     const body = await request.json()
     const dati = aggiornaFatturaSchema.parse(body)
 
+    // Se la fattura è già emessa/saldata, impedisci di retrocederla a bozza
+    if (!isBozza && dati.stato && dati.stato !== fattura.stato) {
+      return NextResponse.json(
+        { error: 'Non è possibile retrocedere una fattura emessa allo stato di bozza' },
+        { status: 400 }
+      )
+    }
+
+    const updateData: any = {}
+    if (dati.note !== undefined) updateData.note = dati.note
+    if (dati.noteInterne !== undefined) updateData.noteInterne = dati.noteInterne
+    if (dati.modalitaPagamento !== undefined) updateData.modalitaPagamento = dati.modalitaPagamento
+    if (dati.terminiPagamento !== undefined) updateData.terminiPagamento = dati.terminiPagamento
+    if (dati.ibanDestinatario !== undefined) updateData.ibanDestinatario = dati.ibanDestinatario
+    if (isBozza && dati.stato !== undefined) updateData.stato = dati.stato
+
+    if (dati.dataScadenza !== undefined) {
+      if (!dati.dataScadenza || dati.dataScadenza.trim() === '') {
+        updateData.dataScadenza = null
+      } else {
+        const d = new Date(dati.dataScadenza)
+        updateData.dataScadenza = isNaN(d.getTime()) ? null : d
+      }
+    }
+
     const aggiornata = await prisma.invoice.update({
       where: { id: params.id },
-      data: dati,
+      data: updateData,
     })
 
-    return NextResponse.json(aggiornata)
+    return NextResponse.json({
+      ...aggiornata,
+      messaggio: 'Fattura aggiornata con successo',
+    })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Dati non validi', dettagli: error.issues }, { status: 400 })

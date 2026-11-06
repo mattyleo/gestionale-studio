@@ -8,7 +8,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, FileText, Download, Send, CheckCircle2,
   AlertTriangle, Clock, CreditCard, Printer, Ban, Euro,
-  Pencil, Hash
+  Pencil, Hash, Calendar
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -48,11 +48,23 @@ export default function FatturaDettaglioPage() {
   const [inviaEmailAllEmissione, setInviaEmailAllEmissione] = React.useState(true)
   const [metodoEmissione, setMetodoEmissione] = React.useState('bonifico')
   const [riferimentoEmissione, setRiferimentoEmissione] = React.useState('')
+  const [scadenzaEmissione, setScadenzaEmissione] = React.useState('')
+  const [senzaScadenzaEmissione, setSenzaScadenzaEmissione] = React.useState(false)
+
+  // Modifica scadenza e condizioni pagamento
+  const [scadenzaDialog, setScadenzaDialog] = React.useState(false)
+  const [senzaScadenza, setSenzaScadenza] = React.useState(false)
+  const [dataScadenzaEdit, setDataScadenzaEdit] = React.useState('')
+  const [modalitaPagamentoEdit, setModalitaPagamentoEdit] = React.useState('MP05')
+  const [terminiEdit, setTerminiEdit] = React.useState<number>(30)
+  const [salvandoScadenza, setSalvandoScadenza] = React.useState(false)
 
   // Modifica numero fattura emessa
   const [modificaNumeroDialog, setModificaNumeroDialog] = React.useState(false)
   const [nuovoNumeroFattura, setNuovoNumeroFattura] = React.useState('')
   const [nuovaDataFattura, setNuovaDataFattura] = React.useState('')
+  const [nuovaScadenzaFattura, setNuovaScadenzaFattura] = React.useState('')
+  const [senzaScadenzaNumero, setSenzaScadenzaNumero] = React.useState(false)
   const [salvandoNumero, setSalvandoNumero] = React.useState(false)
 
   const caricaFattura = React.useCallback(async () => {
@@ -82,6 +94,13 @@ export default function FatturaDettaglioPage() {
     } catch {
       // fallback
     }
+    if (fattura?.dataScadenza) {
+      setScadenzaEmissione(new Date(fattura.dataScadenza).toISOString().split('T')[0])
+      setSenzaScadenzaEmissione(false)
+    } else {
+      setScadenzaEmissione('')
+      setSenzaScadenzaEmissione(true)
+    }
     setEmettiDialog(true)
   }
 
@@ -98,6 +117,8 @@ export default function FatturaDettaglioPage() {
           inviaEmail: inviaEmailAllEmissione,
           metodoPagamento: metodoEmissione,
           riferimentoPagamento: riferimentoEmissione,
+          senzaScadenza: senzaScadenzaEmissione,
+          dataScadenza: senzaScadenzaEmissione ? null : (scadenzaEmissione || null),
         }),
       })
       const dati = await res.json()
@@ -116,9 +137,73 @@ export default function FatturaDettaglioPage() {
     }
   }
 
+  const apriDialogScadenza = () => {
+    if (fattura?.dataScadenza) {
+      setDataScadenzaEdit(new Date(fattura.dataScadenza).toISOString().split('T')[0])
+      setSenzaScadenza(false)
+    } else {
+      setDataScadenzaEdit('')
+      setSenzaScadenza(true)
+    }
+    setModalitaPagamentoEdit(fattura?.modalitaPagamento || 'MP05')
+    setTerminiEdit(fattura?.terminiPagamento ?? 30)
+    setScadenzaDialog(true)
+  }
+
+  const handleSalvaScadenza = async () => {
+    setSalvandoScadenza(true)
+    try {
+      const res = await fetch(`/api/fatture/${fatturaId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dataScadenza: senzaScadenza ? null : (dataScadenzaEdit || null),
+          modalitaPagamento: modalitaPagamentoEdit,
+          terminiPagamento: senzaScadenza ? 0 : terminiEdit,
+        }),
+      })
+      const dati = await res.json()
+      if (!res.ok) throw new Error(dati.error)
+      toast({
+        title: senzaScadenza ? '✅ Impostato: Nessuna scadenza (A vista)' : '✅ Scadenza aggiornata!',
+        description: senzaScadenza
+          ? 'Il documento riporterà "A vista" e non avrà scadenza.'
+          : `Nuova data di scadenza: ${formatData(dataScadenzaEdit)}`,
+      })
+      setScadenzaDialog(false)
+      caricaFattura()
+    } catch (e: any) {
+      toast({ title: 'Errore salvataggio scadenza', description: e.message, variant: 'destructive' })
+    } finally {
+      setSalvandoScadenza(false)
+    }
+  }
+
+  const applicaPresetScadenza = (giorni: number) => {
+    setSenzaScadenza(false)
+    const base = fattura?.dataDocumento ? new Date(fattura.dataDocumento) : new Date()
+    const target = new Date(base.getTime() + giorni * 24 * 60 * 60 * 1000)
+    setDataScadenzaEdit(target.toISOString().split('T')[0])
+    setTerminiEdit(giorni)
+  }
+
+  const applicaFineMeseScadenza = () => {
+    setSenzaScadenza(false)
+    const base = fattura?.dataDocumento ? new Date(fattura.dataDocumento) : new Date()
+    const fineMese = new Date(base.getFullYear(), base.getMonth() + 1, 0)
+    setDataScadenzaEdit(fineMese.toISOString().split('T')[0])
+  }
+
   const apriDialogModificaNumero = () => {
     setNuovoNumeroFattura(fattura.numero ? String(fattura.numero) : '')
     setNuovaDataFattura(fattura.dataDocumento ? new Date(fattura.dataDocumento).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+    if (fattura.dataScadenza) {
+      setNuovaScadenzaFattura(new Date(fattura.dataScadenza).toISOString().split('T')[0])
+      setSenzaScadenzaNumero(false)
+    } else {
+      setNuovaScadenzaFattura('')
+      setSenzaScadenzaNumero(true)
+    }
     setModificaNumeroDialog(true)
   }
 
@@ -137,6 +222,7 @@ export default function FatturaDettaglioPage() {
           numero: num,
           sezionale: fattura.sezionale || 'FT',
           dataDocumento: nuovaDataFattura || undefined,
+          dataScadenza: senzaScadenzaNumero ? null : (nuovaScadenzaFattura || null),
         }),
       })
       const dati = await res.json()
@@ -345,6 +431,61 @@ export default function FatturaDettaglioPage() {
         )}
       </div>
 
+      {/* Condizioni di Pagamento & Scadenza */}
+      <Card className="bg-slate-50/70 border-slate-200">
+        <CardContent className="pt-4 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs flex-1">
+              <div>
+                <span className="text-gray-500 block">Data Documento</span>
+                <span className="font-semibold text-gray-900 text-sm">
+                  {formatData(fattura.dataDocumento || fattura.createdAt)}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500 block">Scadenza Pagamento</span>
+                {fattura.dataScadenza ? (
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="font-bold text-sm text-gray-900">
+                      {formatData(fattura.dataScadenza)}
+                    </span>
+                    {residuo > 0 && new Date(fattura.dataScadenza) < new Date() && (
+                      <Badge variant="destructive" className="text-[10px] py-0 px-1.5">Scaduta</Badge>
+                    )}
+                  </div>
+                ) : (
+                  <Badge variant="outline" className="mt-0.5 text-xs font-semibold bg-emerald-50 text-emerald-800 border-emerald-300">
+                    A VISTA (Nessuna scadenza)
+                  </Badge>
+                )}
+              </div>
+              <div>
+                <span className="text-gray-500 block">Modalità Pagamento</span>
+                <span className="font-medium text-gray-800 text-sm">
+                  {fattura.modalitaPagamento === 'MP05' ? 'Bonifico (MP05)' : (fattura.modalitaPagamento || 'Bonifico')}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500 block">Termini</span>
+                <span className="font-medium text-gray-800 text-sm">
+                  {fattura.dataScadenza ? `${fattura.terminiPagamento ?? 30} giorni` : 'Rimessa diretta a vista'}
+                </span>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={apriDialogScadenza}
+              className="text-blue-700 border-blue-200 hover:bg-blue-50 hover:text-blue-900 self-start sm:self-center font-medium"
+            >
+              <Calendar className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
+              Modifica Scadenza / Pagamento
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Righe fattura */}
       <Card>
         <CardHeader>
@@ -540,6 +681,46 @@ export default function FatturaDettaglioPage() {
                 <span className="text-gray-500">Documento finale che verrà generato:</span>
                 <span className="font-mono font-bold text-blue-700">
                   FT {numeroPersonalizzato || '—'} / {dataEmissione ? new Date(dataEmissione).getFullYear() : new Date().getFullYear()}
+                </span>
+              </div>
+
+              {/* Scadenza Pagamento all'Emissione */}
+              <div className="pt-2 border-t border-blue-200">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-gray-700">
+                    Scadenza del Pagamento
+                  </Label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-xs text-blue-800 font-medium">
+                    <input
+                      type="checkbox"
+                      checked={senzaScadenzaEmissione}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        setSenzaScadenzaEmissione(checked)
+                        if (checked) setScadenzaEmissione('')
+                        else {
+                          const base = dataEmissione ? new Date(dataEmissione) : new Date()
+                          setScadenzaEmissione(new Date(base.getTime() + 30 * 86400000).toISOString().split('T')[0])
+                        }
+                      }}
+                      className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    A vista (nessuna scadenza)
+                  </label>
+                </div>
+
+                {!senzaScadenzaEmissione && (
+                  <Input
+                    type="date"
+                    className="h-8 text-xs bg-white mt-1.5"
+                    value={scadenzaEmissione}
+                    onChange={(e) => setScadenzaEmissione(e.target.value)}
+                  />
+                )}
+                <span className="text-[10px] text-gray-500 block mt-0.5">
+                  {senzaScadenzaEmissione
+                    ? 'Il documento riporterà "A vista" come scadenza.'
+                    : `Scadenza documento: ${scadenzaEmissione ? formatData(scadenzaEmissione) : '30 giorni'}`}
                 </span>
               </div>
             </div>
@@ -782,6 +963,40 @@ export default function FatturaDettaglioPage() {
               </div>
             </div>
 
+            {/* Modifica Scadenza in rettifica */}
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-gray-700">
+                  Data Scadenza Pagamento
+                </Label>
+                <label className="flex items-center gap-1.5 cursor-pointer text-xs text-blue-800 font-medium">
+                  <input
+                    type="checkbox"
+                    checked={senzaScadenzaNumero}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setSenzaScadenzaNumero(checked)
+                      if (checked) setNuovaScadenzaFattura('')
+                      else {
+                        const base = nuovaDataFattura ? new Date(nuovaDataFattura) : new Date()
+                        setNuovaScadenzaFattura(new Date(base.getTime() + 30 * 86400000).toISOString().split('T')[0])
+                      }
+                    }}
+                    className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  A vista (nessuna scadenza)
+                </label>
+              </div>
+              {!senzaScadenzaNumero && (
+                <Input
+                  type="date"
+                  className="h-8 text-xs bg-white"
+                  value={nuovaScadenzaFattura}
+                  onChange={(e) => setNuovaScadenzaFattura(e.target.value)}
+                />
+              )}
+            </div>
+
             <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-xs flex items-center justify-between">
               <span className="text-gray-500">Nuova dicitura completa:</span>
               <span className="font-mono font-bold text-base text-green-700">
@@ -800,6 +1015,161 @@ export default function FatturaDettaglioPage() {
               className="bg-blue-600 hover:bg-blue-700"
             >
               {salvandoNumero ? 'Salvataggio...' : 'Conferma Nuovo Numero'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Modifica Scadenza e Condizioni di Pagamento */}
+      <Dialog open={scadenzaDialog} onOpenChange={setScadenzaDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              Modifica Scadenza di Pagamento
+            </DialogTitle>
+            <DialogDescription>
+              Imposta una data di scadenza specifica oppure rimuovila per pagamento a vista.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-sm">
+            {/* Opzione Nessuna Scadenza (A VISTA) */}
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={senzaScadenza}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setSenzaScadenza(checked)
+                    if (checked) {
+                      setDataScadenzaEdit('')
+                    } else {
+                      const base = fattura?.dataDocumento ? new Date(fattura.dataDocumento) : new Date()
+                      const defaultTarget = new Date(base.getTime() + 30 * 86400000)
+                      setDataScadenzaEdit(defaultTarget.toISOString().split('T')[0])
+                    }
+                  }}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <span className="font-bold text-gray-900 block text-xs">
+                    Nessuna scadenza (Pagamento A VISTA / Rimessa diretta)
+                  </span>
+                  <span className="text-[11px] text-gray-600 block mt-0.5">
+                    Spunta per non indicare alcuna scadenza. Sull&apos;avviso di parcella e sul documento comparirà &ldquo;A vista&rdquo; al posto della data.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            {/* Scelta Data di Scadenza se attiva */}
+            {!senzaScadenza && (
+              <div className="space-y-2 border border-blue-100 bg-blue-50/40 rounded-lg p-3">
+                <Label htmlFor="data-scad" className="text-xs font-bold text-gray-800">
+                  Data Scadenza Pagamento *
+                </Label>
+                <Input
+                  id="data-scad"
+                  type="date"
+                  className="h-9 text-sm bg-white"
+                  value={dataScadenzaEdit}
+                  onChange={(e) => setDataScadenzaEdit(e.target.value)}
+                />
+
+                {/* Scorciatoie / Preset rapidi */}
+                <div className="pt-1.5">
+                  <span className="text-[11px] text-gray-500 block mb-1 font-medium">Scorciatoie rapide:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => applicaPresetScadenza(0)}
+                      className="px-2 py-1 rounded bg-white hover:bg-gray-100 border text-[11px] text-gray-700"
+                    >
+                      Oggi
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applicaPresetScadenza(15)}
+                      className="px-2 py-1 rounded bg-white hover:bg-gray-100 border text-[11px] text-gray-700"
+                    >
+                      +15 gg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applicaPresetScadenza(30)}
+                      className="px-2 py-1 rounded bg-white hover:bg-gray-100 border text-[11px] text-gray-700"
+                    >
+                      +30 gg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applicaPresetScadenza(60)}
+                      className="px-2 py-1 rounded bg-white hover:bg-gray-100 border text-[11px] text-gray-700"
+                    >
+                      +60 gg
+                    </button>
+                    <button
+                      type="button"
+                      onClick={applicaFineMeseScadenza}
+                      className="px-2 py-1 rounded bg-white hover:bg-gray-100 border text-[11px] text-gray-700"
+                    >
+                      Fine mese
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modalità di pagamento */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-gray-700">Modalità Pagamento</Label>
+                <select
+                  className="w-full h-8 border border-gray-300 rounded px-2 text-xs bg-white"
+                  value={modalitaPagamentoEdit}
+                  onChange={(e) => setModalitaPagamentoEdit(e.target.value)}
+                >
+                  <option value="MP05">Bonifico bancario (MP05)</option>
+                  <option value="MP01">Contanti (MP01)</option>
+                  <option value="MP02">Assegno (MP02)</option>
+                  <option value="MP08">Carta di pagamento (MP08)</option>
+                  <option value="MP12">RIBA / RID (MP12)</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-gray-700">Termini indicativi (gg)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  disabled={senzaScadenza}
+                  className="h-8 text-xs bg-white"
+                  value={senzaScadenza ? 0 : terminiEdit}
+                  onChange={(e) => setTerminiEdit(parseInt(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+
+            {/* Dicitura risultante */}
+            <div className="p-2.5 bg-gray-50 rounded border text-xs flex justify-between items-center">
+              <span className="text-gray-500">Risultato sul PDF e nei calcoli:</span>
+              <span className="font-bold text-blue-700">
+                {senzaScadenza ? 'A VISTA (Nessuna scadenza)' : (dataScadenzaEdit ? formatData(dataScadenzaEdit) : '—')}
+              </span>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScadenzaDialog(false)}>
+              Annulla
+            </Button>
+            <Button
+              onClick={handleSalvaScadenza}
+              disabled={salvandoScadenza}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {salvandoScadenza ? 'Salvataggio…' : 'Salva Scadenza'}
             </Button>
           </DialogFooter>
         </DialogContent>

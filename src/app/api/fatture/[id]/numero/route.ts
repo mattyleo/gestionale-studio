@@ -12,6 +12,7 @@ const modificaNumeroSchema = z.object({
   numero: z.number().int().positive('Il numero fattura deve essere un intero positivo'),
   sezionale: z.string().min(1).max(10).default('FT'),
   dataDocumento: z.string().optional(),
+  dataScadenza: z.string().optional().nullable(),
 })
 
 export async function PUT(request: Request, { params: _params }: { params: Promise<{ id: string }> }) {
@@ -56,9 +57,16 @@ export async function PUT(request: Request, { params: _params }: { params: Promi
 
     const numeroCompleto = `${sezionale} ${dati.numero}/${anno}`
 
-    // Calcola eventuale nuova scadenza se la data è cambiata
-    const termini = fattura.terminiPagamento ?? fattura.company.terminiPagamento ?? 30
-    const scadenza = addDays(dataDoc, termini)
+    // Gestione scadenza
+    let scadenza = fattura.dataScadenza
+    if (dati.dataScadenza !== undefined) {
+      if (!dati.dataScadenza || dati.dataScadenza.trim() === '') {
+        scadenza = null
+      } else {
+        const d = new Date(dati.dataScadenza)
+        scadenza = isNaN(d.getTime()) ? null : d
+      }
+    }
 
     // Esegui in transazione e aggiorna la sequenza contatore se necessario
     const fatturaAggiornata = await prisma.$transaction(async (tx) => {

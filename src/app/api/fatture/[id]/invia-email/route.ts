@@ -46,7 +46,7 @@ export async function GET(
 
     const studioIban = emittente?.iban || 'IT89E0303212804010000063104'
     const dataDoc = formatData(fattura.dataDocumento || fattura.createdAt)
-    const dataScad = formatData(fattura.dataScadenza || new Date(Date.now() + 30 * 86400000))
+    const dataScad = fattura.dataScadenza ? formatData(fattura.dataScadenza) : 'A vista'
     const totaleDoc = formatEuro(fattura.totaleDocumento)
 
     const testo = `Gentile ${fattura.company?.ragioneSociale || 'Cliente'},

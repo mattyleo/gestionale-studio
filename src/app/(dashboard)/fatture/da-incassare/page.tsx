@@ -164,7 +164,7 @@ export default function DaIncassarePage() {
                   <TableCell className="text-sm text-gray-500">{formatData(f.dataDocumento)}</TableCell>
                   <TableCell>
                     <span className={cn('text-sm', f.isScaduta ? 'text-red-600 font-semibold' : 'text-gray-500')}>
-                      {formatData(f.dataScadenza)}
+                      {f.dataScadenza ? formatData(f.dataScadenza) : <Badge variant="outline" className="text-[11px] font-normal text-slate-600 border-slate-300">A vista</Badge>}
                       {f.isScaduta && f.giorniRitardo > 0 && (
                         <span className="ml-1 text-xs">({f.giorniRitardo}gg)</span>
                       )}

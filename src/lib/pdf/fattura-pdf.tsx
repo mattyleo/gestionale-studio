@@ -441,7 +441,7 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
             <Text style={styles.colPayTipo}>Pagamento in unica soluzione</Text>
             <Text style={styles.colPayBanca}>CREDEM</Text>
             <Text style={[styles.colPayIban, { fontSize: 7 }]}>{studioIban}</Text>
-            <Text style={styles.colPayScad}>{formatDate(fattura.dataScadenza || new Date(Date.now() + 30 * 86400000))}</Text>
+            <Text style={styles.colPayScad}>{fattura.dataScadenza ? formatDate(fattura.dataScadenza) : 'A vista'}</Text>
             <Text style={[styles.colPayImp, styles.bold]}>{formatCurrency(totaleDocumento)}</Text>
           </View>
         </View>

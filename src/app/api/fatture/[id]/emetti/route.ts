@@ -46,6 +46,9 @@ export async function POST(request: Request, { params: _params }: { params: Prom
     let inviaEmail = false
     let metodoPagamento = 'bonifico'
     let riferimentoPagamento = ''
+    let dataScadenzaCustom: Date | null | undefined
+    let senzaScadenza = false
+
     try {
       const body = await request.json()
       if (body?.numeroPersonalizzato != null && !isNaN(parseInt(body.numeroPersonalizzato))) {
@@ -65,6 +68,18 @@ export async function POST(request: Request, { params: _params }: { params: Prom
       }
       if (body?.riferimentoPagamento) {
         riferimentoPagamento = body.riferimentoPagamento
+      }
+      if (body?.senzaScadenza === true) {
+        senzaScadenza = true
+        dataScadenzaCustom = null
+      } else if (body?.dataScadenza !== undefined) {
+        if (body.dataScadenza === null || body.dataScadenza === '') {
+          dataScadenzaCustom = null
+          senzaScadenza = true
+        } else {
+          const d = new Date(body.dataScadenza)
+          dataScadenzaCustom = isNaN(d.getTime()) ? null : d
+        }
       }
     } catch {
       // Body vuoto o non json — procedi con sequenza automatica
@@ -148,8 +163,17 @@ export async function POST(request: Request, { params: _params }: { params: Prom
       const numeroCompleto = `FT ${nuovoNumero}/${anno}`
 
       // Calcola scadenza
-      const termini = fattura.terminiPagamento ?? fattura.company.terminiPagamento ?? 30
-      const scadenza = addDays(dataDoc, termini)
+      let scadenza: Date | null = null
+      if (senzaScadenza) {
+        scadenza = null
+      } else if (dataScadenzaCustom !== undefined) {
+        scadenza = dataScadenzaCustom
+      } else if (fattura.dataScadenza) {
+        scadenza = fattura.dataScadenza
+      } else {
+        const termini = fattura.terminiPagamento ?? fattura.company.terminiPagamento ?? 30
+        scadenza = termini > 0 ? addDays(dataDoc, termini) : null
+      }
 
       // Snapshot anagrafici (fotografia immodificabile)
       const snapshotEmittente = {
