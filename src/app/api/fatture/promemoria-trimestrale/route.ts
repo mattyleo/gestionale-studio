@@ -239,11 +239,21 @@ export async function POST(request: Request) {
         const imp = new Decimal(a.importo ? a.importo.toString() : '0')
         const q = new Decimal(a.quantita ? a.quantita.toString() : '1')
         const pu = a.prezzoUnitario ? new Decimal(a.prezzoUnitario.toString()) : imp.div(q).toDecimalPlaces(2)
-        imponibile = imponibile.add(imp)
-
         const dtStr = new Date(a.data).toLocaleDateString('it-IT')
         const srvNome = a.service?.descrizione || a.descrizione || 'Prestazione'
         const descCompleta = `${dtStr} — ${srvNome}${a.descrizione && a.descrizione !== srvNome ? ` (${a.descrizione})` : ''}`
+
+        const isAttArt15 =
+          a.service?.naturaIva === 'N1' ||
+          a.service?.codice === 'SPESE_VIVE' ||
+          descCompleta.toLowerCase().includes('art. 15') ||
+          descCompleta.toLowerCase().includes('art.15') ||
+          descCompleta.toLowerCase().includes('spese vive')
+        const natAtt = isAttArt15 ? 'N1' : (a.service?.naturaIva || 'N2.2')
+
+        if (natAtt !== 'N1') {
+          imponibile = imponibile.add(imp)
+        }
 
         gruppi.push({
           serviceId: a.serviceId,
@@ -254,22 +264,31 @@ export async function POST(request: Request) {
           prezzoUnitario: pu,
           importo: imp,
           aliquotaIva: a.service?.aliquotaIva || '0',
-          naturaIva: a.service?.naturaIva || 'N2.2',
+          naturaIva: natAtt,
         })
       }
 
+      const totaleArt15 = gruppi
+        .filter(g => g.naturaIva === 'N1')
+        .reduce((acc, g) => acc.add(g.importo), new Decimal(0))
+      const isFatturaSoloArt15 = imponibile.isZero() && totaleArt15.gt(0)
+
       const aliquotaCassa = emittente ? new Decimal(emittente.aliquotaCassa.toString()) : new Decimal(4)
-      const totaleCassa = emittente?.rivalsa
+      const totaleCassa = (!isFatturaSoloArt15 && emittente?.rivalsa)
         ? imponibile.mul(aliquotaCassa).div(100).toDecimalPlaces(2)
         : new Decimal(0)
       const imponibileConCassa = imponibile.add(totaleCassa)
       const sogliaBollo = emittente ? new Decimal(emittente.sogliaBollo.toString()) : new Decimal(77.47)
       const importoBollo = emittente ? new Decimal(emittente.importoBollo.toString()) : new Decimal(2)
-      const deveApplicareBollo = (emittente?.bolloVirtuale ?? true) && imponibileConCassa.gt(sogliaBollo)
+      const deveApplicareBollo =
+        !isFatturaSoloArt15 &&
+        imponibile.gt(0) &&
+        (emittente?.bolloVirtuale ?? true) &&
+        imponibileConCassa.gt(sogliaBollo)
       const bollo = deveApplicareBollo ? importoBollo : new Decimal(0)
 
-      // Inserisci riga Bolli 2€ N1 se dovuto
-      const haGiaRigaBollo = gruppi.some(g => g.naturaIva === 'N1' || g.serviceDescrizione.toLowerCase().trim() === 'bolli')
+      // Inserisci riga Bolli 2€ N1 solo se dovuto (e mai su sole spese Art. 15)
+      const haGiaRigaBollo = gruppi.some(g => g.serviceCodice === 'BOLLI' || g.serviceDescrizione.toLowerCase().trim() === 'bolli')
       if (deveApplicareBollo && !haGiaRigaBollo) {
         gruppi.push({
           serviceId: null,
@@ -284,7 +303,7 @@ export async function POST(request: Request) {
         })
       }
 
-      const totaleDocumento = imponibileConCassa.add(bollo)
+      const totaleDocumento = imponibileConCassa.add(totaleArt15).add(bollo)
 
       const bozza = await prisma.$transaction(async (tx) => {
         const nuova = await tx.invoice.create({

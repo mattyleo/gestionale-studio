@@ -225,16 +225,28 @@ export function generaFatturaXML(dati: DatiFattura): string {
     datiGenDoc.ele('Causale').txt(dati.note.substring(0, 200))
   }
 
-  // Bollo virtuale (2,00 € se totale imponibile + cassa > 77,47 € o impostato esplicitamente)
-  const bolloVal = dati.bollo > 0 ? dati.bollo : (dati.imponibile + dati.totaleCassa > 77.47 ? 2.0 : 0)
+  // Verifica se è una fattura di sole spese Art. 15 (esenti da bollo ex art. 5 Tab. B DPR 642/72)
+  const isSoloArt15 = righe.length > 0 && righe.every(
+    r => r.naturaIva === 'N1' ||
+      r.descrizione.toLowerCase().includes('art. 15') ||
+      r.descrizione.toLowerCase().includes('art.15') ||
+      r.descrizione.toLowerCase().includes('spese vive') ||
+      r.descrizione.toLowerCase().includes('sanzione')
+  )
+
+  // Bollo virtuale: nelle fatture ART 15 il bollo non si applica mai
+  const bolloVal = (!isSoloArt15 && dati.imponibile > 0)
+    ? (dati.bollo > 0 ? dati.bollo : (dati.imponibile + dati.totaleCassa > 77.47 ? 2.0 : 0))
+    : 0
+
   if (bolloVal > 0) {
     const bolloEle = datiGenDoc.ele('DatiBollo')
     bolloEle.ele('BolloVirtuale').txt('SI')
     bolloEle.ele('ImportoBollo').txt(formatImporto(bolloVal))
   }
 
-  // Cassa previdenziale (CNPADC TC02 4%)
-  if (dati.totaleCassa > 0 && emittente.cassaPrevidenziale) {
+  // Cassa previdenziale (CNPADC TC02 4%) — solo su compensi imponibili N2.2 (mai su sole spese Art. 15)
+  if (!isSoloArt15 && dati.totaleCassa > 0 && dati.imponibile > 0 && emittente.cassaPrevidenziale) {
     const cassa = datiGenDoc.ele('DatiCassaPrevidenziale')
     cassa.ele('TipoCassa').txt(emittente.cassaPrevidenziale) // TC02
     cassa.ele('AlCassa').txt(formatImporto(emittente.aliquotaCassa)) // 4.00
@@ -247,12 +259,12 @@ export function generaFatturaXML(dati: DatiFattura): string {
   // DatiBeniServizi — righe prestazioni
   const datiBeni = body.ele('DatiBeniServizi')
 
-  // Assicura che la riga "Bolli" 2€ N1 sia presente se il bollo è dovuto
+  // Assicura che la riga "Bolli" 2€ N1 sia presente SOLO se il bollo è dovuto (e mai su sole spese Art. 15)
   const righeFinali = [...righe]
   const haRigaBollo = righeFinali.some(
-    r => r.naturaIva === 'N1' || r.descrizione.toLowerCase().trim() === 'bolli'
+    r => r.descrizione.toLowerCase().trim() === 'bolli'
   )
-  if (!haRigaBollo && bolloVal > 0) {
+  if (!haRigaBollo && bolloVal > 0 && !isSoloArt15) {
     righeFinali.push({
       numero: righeFinali.length + 1,
       descrizione: 'Bolli',
@@ -279,17 +291,19 @@ export function generaFatturaXML(dati: DatiFattura): string {
 
   // DatiRiepilogo IVA (uno per ogni combinazione Aliquota/Natura presente)
   // Per il regime forfettario:
-  // - Natura N2.2: Onorari prestazioni + Cassa Previdenziale CNPADC 4%
+  // - Natura N2.2: Onorari prestazioni + Cassa Previdenziale CNPADC 4% (solo se presenti)
   const righeN2_2 = righeFinali.filter(r => (r.naturaIva || 'N2.2') === 'N2.2')
   const totN2_2 = righeN2_2.reduce((acc, r) => acc + Number(r.importo), 0)
   const imponibileN2_2 = totN2_2 + (dati.totaleCassa || 0)
 
-  const riepilogoN2 = datiBeni.ele('DatiRiepilogo')
-  riepilogoN2.ele('AliquotaIVA').txt('0.00')
-  riepilogoN2.ele('Natura').txt('N2.2')
-  riepilogoN2.ele('ImponibileImporto').txt(formatImporto(imponibileN2_2))
-  riepilogoN2.ele('Imposta').txt('0.00')
-  riepilogoN2.ele('RiferimentoNormativo').txt('Art. 1 c. 58 L. 190/2014 — Regime forfetario')
+  if (imponibileN2_2 > 0) {
+    const riepilogoN2 = datiBeni.ele('DatiRiepilogo')
+    riepilogoN2.ele('AliquotaIVA').txt('0.00')
+    riepilogoN2.ele('Natura').txt('N2.2')
+    riepilogoN2.ele('ImponibileImporto').txt(formatImporto(imponibileN2_2))
+    riepilogoN2.ele('Imposta').txt('0.00')
+    riepilogoN2.ele('RiferimentoNormativo').txt('Art. 1 c. 58 L. 190/2014 — Regime forfetario')
+  }
 
   // - Natura N1: Marca da bollo / spese anticipate escluse art. 15 DPR 633/72
   const righeN1 = righeFinali.filter(r => r.naturaIva === 'N1')

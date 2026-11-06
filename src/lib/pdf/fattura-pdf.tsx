@@ -258,23 +258,51 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
 
   const rawLines = fattura.lines || []
 
+  // Verifica se è una fattura di sole spese anticipate Art. 15 (esenti da bollo ex art. 5 Tab. B DPR 642/72)
+  const isSoloArt15 = rawLines.length > 0 && rawLines.every((l: any) =>
+    l.naturaIva === 'N1' ||
+    l.descrizione?.toLowerCase().includes('art. 15') ||
+    l.descrizione?.toLowerCase().includes('art.15') ||
+    l.descrizione?.toLowerCase().includes('spese vive') ||
+    l.descrizione?.toLowerCase().includes('sanzione')
+  )
+
+  // Calcolo Spese Art. 15 (escluse art. 15 DPR 633/72, escluso riga bolli interna)
+  const totArt15 = rawLines.reduce((acc: number, l: any) => {
+    const isArt15 =
+      (l.naturaIva === 'N1' ||
+      l.descrizione?.toLowerCase().includes('art. 15') ||
+      l.descrizione?.toLowerCase().includes('art.15') ||
+      l.descrizione?.toLowerCase().includes('spese vive') ||
+      l.descrizione?.toLowerCase().includes('sanzione')) &&
+      l.descrizione?.toLowerCase().trim() !== 'bolli'
+    return isArt15 ? acc + Number(l.importo || 0) : acc
+  }, 0)
+
   // Calcoli finanziari
-  const imponibile = Number(fattura.imponibile) || 0
-  const totaleCassa = Number(fattura.totaleCassa) || 0
+  const imponibile = isSoloArt15
+    ? 0
+    : (Number(fattura.imponibile) > 0
+        ? Number(fattura.imponibile)
+        : rawLines.filter((l: any) => l.naturaIva !== 'N1' && !l.descrizione?.toLowerCase().includes('art. 15')).reduce((s: number, l: any) => s + Number(l.importo || 0), 0))
+  const totaleCassa = isSoloArt15 ? 0 : (Number(fattura.totaleCassa) || 0)
   const imponibilePlusCassa = imponibile + totaleCassa
 
   // Regola bollo: se impostato esplicitamente > 0 o se imponibile + cassa > 77.47 e regime forfettario
+  // Nelle fatture ART 15 il bollo non si applica mai (esenzione assoluta art. 5 Tab. B DPR 642/72)
   let bollo = Number(fattura.bollo) || 0
-  if (bollo === 0 && imponibilePlusCassa > 77.47) {
+  if (!isSoloArt15 && imponibile > 0 && bollo === 0 && imponibilePlusCassa > 77.47) {
     bollo = 2.0
+  } else if (isSoloArt15 || imponibile === 0) {
+    bollo = 0
   }
 
-  // Assicura che la riga "Bolli" 2€ N1 sia visibile nella tabella se il bollo è dovuto
+  // Assicura che la riga "Bolli" 2€ N1 sia visibile nella tabella SOLO se il bollo è dovuto (e mai su sole spese Art. 15)
   const hasBolloLine = rawLines.some(
-    (l: any) => l.naturaIva === 'N1' || l.descrizione?.toLowerCase().trim() === 'bolli'
+    (l: any) => l.descrizione?.toLowerCase().trim() === 'bolli'
   )
   const lines = [...rawLines]
-  if (!hasBolloLine && bollo > 0) {
+  if (!hasBolloLine && bollo > 0 && !isSoloArt15) {
     lines.push({
       descrizione: 'Bolli',
       quantita: 1,
@@ -285,18 +313,10 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
     })
   }
 
-  // Calcolo Spese Art. 15 (escluse art. 15 DPR 633/72, es. Bolli N1)
-  const totArt15 = lines.reduce((acc: number, l: any) => {
-    const isArt15 =
-      l.naturaIva === 'N1' ||
-      l.descrizione?.toLowerCase().includes('art. 15') ||
-      l.descrizione?.toLowerCase().includes('spese vive') ||
-      l.descrizione?.toLowerCase().trim() === 'bolli'
-    return isArt15 ? acc + Number(l.importo || 0) : acc
-  }, 0)
-
   const totaleIva = Number(fattura.totaleIva) || 0
-  const totaleDocumento = Number(fattura.totaleDocumento) > 0 ? Number(fattura.totaleDocumento) : (imponibilePlusCassa + totaleIva + bollo)
+  const totaleDocumento = Number(fattura.totaleDocumento) > 0
+    ? Number(fattura.totaleDocumento)
+    : (imponibilePlusCassa + totArt15 + totaleIva + bollo)
 
   const rawNome = emittente.denominazione || 'Dott. Antonio Tuzio'
   const studioNome = rawNome.replace(/Studio Commerciale\s*[-–—]?\s*/i, '').trim() || 'Dott. Antonio Tuzio'
@@ -492,6 +512,11 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
           <Text style={[styles.fiscalDesc, styles.bold, { color: '#0f172a' }]}>
             Operazione non soggetta a ritenuta alla fonte a titolo di acconto ai sensi dell'articolo 1, comma 67, l. n. 190 del 2014 e successive modificazioni.
           </Text>
+          {isSoloArt15 && (
+            <Text style={[styles.fiscalDesc, { marginTop: 2, color: '#1e3a8a' }]}>
+              Spese anticipate in nome e per conto del cliente escluse dalla base imponibile ex art. 15 D.P.R. 633/1972. Documento esente da imposta di bollo ex art. 5 Tabella B D.P.R. 642/1972.
+            </Text>
+          )}
           {fattura.note && (
             <Text style={[styles.fiscalDesc, { marginTop: 3, fontStyle: 'italic' }]}>
               Note: {fattura.note}
@@ -506,10 +531,12 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
             <Text style={[styles.bold, { fontSize: 8.5, marginBottom: 5, color: '#0f172a' }]}>
               Riepilogo IVA
             </Text>
-            <View style={styles.calcRow}>
-              <Text>0% (Natura N2.2 - Forfettario):</Text>
-              <Text>{formatCurrency(imponibilePlusCassa)}</Text>
-            </View>
+            {imponibilePlusCassa > 0 && (
+              <View style={styles.calcRow}>
+                <Text>0% (Natura N2.2 - Forfettario):</Text>
+                <Text>{formatCurrency(imponibilePlusCassa)}</Text>
+              </View>
+            )}
             {totArt15 > 0 && (
               <View style={styles.calcRow}>
                 <Text>0% (Natura N1 - Escluso art. 15):</Text>
@@ -531,23 +558,27 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
             <Text style={[styles.bold, { fontSize: 8.5, marginBottom: 5, color: '#0f172a' }]}>
               Calcolo Fattura
             </Text>
-            <View style={styles.calcRow}>
-              <Text>Imponibile prestazioni:</Text>
-              <Text>{formatCurrency(imponibile)}</Text>
-            </View>
+            {imponibile > 0 && (
+              <View style={styles.calcRow}>
+                <Text>Imponibile prestazioni:</Text>
+                <Text>{formatCurrency(imponibile)}</Text>
+              </View>
+            )}
             {totaleCassa > 0 && (
               <View style={styles.calcRow}>
                 <Text>Cassa Previdenziale (CNPADC 4%):</Text>
                 <Text>{formatCurrency(totaleCassa)}</Text>
               </View>
             )}
-            <View style={styles.calcRow}>
-              <Text>IVA (0%):</Text>
-              <Text>0,00 €</Text>
-            </View>
+            {imponibile > 0 && (
+              <View style={styles.calcRow}>
+                <Text>IVA (0%):</Text>
+                <Text>0,00 €</Text>
+              </View>
+            )}
             {totArt15 > 0 && (
               <View style={styles.calcRow}>
-                <Text>Spese escluse art. 15 (Bolli N1):</Text>
+                <Text>Spese escluse art. 15:</Text>
                 <Text>{formatCurrency(totArt15)}</Text>
               </View>
             )}

@@ -334,16 +334,30 @@ export async function POST(request: Request) {
         const mappaServizi = new Map<string, GruppoServizio>()
 
         for (const att of attivita) {
+          const descAtt = att.service?.descrizione || att.descrizione || 'Prestazione'
+          const codAtt = att.service?.codice || null
+          const isAttArt15 =
+            att.service?.naturaIva === 'N1' ||
+            codAtt === 'SPESE_VIVE' ||
+            descAtt.toLowerCase().includes('art. 15') ||
+            descAtt.toLowerCase().includes('art.15') ||
+            descAtt.toLowerCase().includes('spese vive') ||
+            descAtt.toLowerCase().includes('sanzione amministrativa non dovuta')
+          const natAtt = isAttArt15 ? 'N1' : (att.service?.naturaIva || 'N2.2')
+          const aliqAtt = att.service?.aliquotaIva || '0'
+
           const chiave = att.serviceId || 'NESSUN_SERVIZIO'
           if (!mappaServizi.has(chiave)) {
             mappaServizi.set(chiave, {
               serviceId: att.serviceId,
-              serviceCodice: att.service?.codice || null,
-              serviceDescrizione: att.service?.descrizione || att.descrizione || 'Prestazione',
+              serviceCodice: codAtt,
+              serviceDescrizione: descAtt,
               attivitaIds: [],
               quantita: new Decimal(0),
               prezzoUnitario: att.prezzoUnitario ? new Decimal(att.prezzoUnitario.toString()) : null,
               importo: new Decimal(0),
+              aliquotaIva: aliqAtt,
+              naturaIva: natAtt,
             })
           }
 
@@ -357,41 +371,71 @@ export async function POST(request: Request) {
       } else {
         // Righe dettagliate — una per attività
         for (const att of attivita) {
+          const descAtt = att.descrizione || att.service?.descrizione || 'Prestazione'
+          const codAtt = att.service?.codice || null
+          const isAttArt15 =
+            att.service?.naturaIva === 'N1' ||
+            codAtt === 'SPESE_VIVE' ||
+            descAtt.toLowerCase().includes('art. 15') ||
+            descAtt.toLowerCase().includes('art.15') ||
+            descAtt.toLowerCase().includes('spese vive') ||
+            descAtt.toLowerCase().includes('sanzione amministrativa non dovuta')
+          const natAtt = isAttArt15 ? 'N1' : (att.service?.naturaIva || 'N2.2')
+          const aliqAtt = att.service?.aliquotaIva || '0'
+
           gruppi.push({
             serviceId: att.serviceId,
-            serviceCodice: att.service?.codice || null,
-            serviceDescrizione: att.descrizione || att.service?.descrizione || 'Prestazione',
+            serviceCodice: codAtt,
+            serviceDescrizione: descAtt,
             attivitaIds: [att.id],
             quantita: att.quantita ? new Decimal(att.quantita.toString()) : new Decimal(1),
             prezzoUnitario: att.prezzoUnitario ? new Decimal(att.prezzoUnitario.toString()) : null,
             importo: att.importo ? new Decimal(att.importo.toString()) : new Decimal(0),
+            aliquotaIva: aliqAtt,
+            naturaIva: natAtt,
           })
         }
       }
 
       for (const g of gruppi) {
-        imponibile = imponibile.add(g.importo)
+        if (g.naturaIva !== 'N1') {
+          imponibile = imponibile.add(g.importo)
+        }
       }
     }
+
+    // Calcola totale spese anticipate Art. 15
+    const totaleArt15 = gruppi
+      .filter(g => g.naturaIva === 'N1' && g.serviceCodice !== 'BOLLI')
+      .reduce((acc, g) => acc.add(g.importo), new Decimal(0))
 
     // Carica profilo emittente per configurazione fiscale
     const emittente = await prisma.issuerProfile.findFirst()
 
-    // Calcola cassa previdenziale (esclusivamente su prestazioni soggette a rivalsa/N2.2)
+    // Calcola cassa previdenziale (esclusivamente su prestazioni soggette a rivalsa/N2.2, MAI su Art. 15)
     const aliquotaCassa = emittente ? new Decimal(emittente.aliquotaCassa.toString()) : new Decimal(4)
     const totaleCassa = emittente?.rivalsa
       ? imponibile.mul(aliquotaCassa).div(100).toDecimalPlaces(2)
       : new Decimal(0)
 
-    // Calcola bollo: obbligatorio per legge se imponibile + cassa > 77,47 €
+    // Se la fattura è composta da sole spese Art. 15 (o ha imponibile compensi = 0),
+    // per legge (art. 5 Tab. B DPR 642/72) e per richiesta dello studio il bollo NON si applica mai!
+    const isFatturaSoloArt15 = imponibile.isZero() && totaleArt15.gt(0)
+
+    // Calcola bollo: applicabile SOLO su compensi professionali N2.2 (imponibile + cassa > 77,47 €)
+    // Nelle fatture ART 15 il bollo non si applica mai
     const imponibileConCassa = imponibile.add(totaleCassa)
     const sogliaBollo = emittente ? new Decimal(emittente.sogliaBollo.toString()) : new Decimal(77.47)
     const importoBollo = emittente ? new Decimal(emittente.importoBollo.toString()) : new Decimal(2)
-    const deveApplicareBollo = (emittente?.bolloVirtuale ?? true) && imponibileConCassa.gt(sogliaBollo)
+    const deveApplicareBollo =
+      !isFatturaSoloArt15 &&
+      imponibile.gt(0) &&
+      (emittente?.bolloVirtuale ?? true) &&
+      imponibileConCassa.gt(sogliaBollo)
     const bollo = deveApplicareBollo ? importoBollo : new Decimal(0)
 
-    // Se il bollo è dovuto (> 77,47 €), inserisci la riga "Bolli" 2€ con Natura N1 (escluse art. 15 DPR 633/72)
-    const haGiaRigaBollo = gruppi.some(g => g.naturaIva === 'N1' || g.serviceDescrizione.toLowerCase().trim() === 'bolli')
+    // Se il bollo è dovuto (> 77,47 € su compensi), inserisci la riga "Bolli" 2€ con Natura N1
+    const haGiaRigaBollo = gruppi.some(g => g.serviceCodice === 'BOLLI' || g.serviceDescrizione.toLowerCase().trim() === 'bolli')
     if (deveApplicareBollo && !haGiaRigaBollo) {
       gruppi.push({
         serviceId: null,
@@ -406,7 +450,7 @@ export async function POST(request: Request) {
       })
     }
 
-    const totaleDocumento = imponibileConCassa.add(bollo)
+    const totaleDocumento = imponibileConCassa.add(totaleArt15).add(bollo)
 
     // TRANSAZIONE: crea fattura + righe + aggiorna stato attività
     const bozza = await prisma.$transaction(async (tx) => {

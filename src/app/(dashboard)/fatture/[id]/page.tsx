@@ -546,23 +546,37 @@ export default function FatturaDettaglioPage() {
               .filter((l: any) => l.naturaIva !== 'N1' && l.descrizione?.toLowerCase().trim() !== 'bolli')
               .reduce((acc: number, l: any) => acc + Number(l.importo || 0), 0) || Number(fattura.imponibile || 0)
 
+            const isSoloArt15 = (fattura.lines || []).length > 0 && (fattura.lines || []).every((l: any) =>
+              l.naturaIva === 'N1' ||
+              l.descrizione?.toLowerCase().includes('art. 15') ||
+              l.descrizione?.toLowerCase().includes('art.15') ||
+              l.descrizione?.toLowerCase().includes('spese vive')
+            )
+
             return (
               <div className="mt-4 border-t pt-4 space-y-1.5 ml-auto max-w-xs text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Imponibile prestazioni</span>
-                  <span>{formatEuro(fattura.imponibile)}</span>
-                </div>
+                {isSoloArt15 && (
+                  <div className="text-xs text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200 font-medium mb-2">
+                    Fattura Spese Art. 15 — Esente Bollo (ex art. 5 Tab. B DPR 642/72)
+                  </div>
+                )}
+                {Number(fattura.imponibile) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Imponibile prestazioni</span>
+                    <span>{formatEuro(fattura.imponibile)}</span>
+                  </div>
+                )}
                 {totArt15 > 0 && (
-                  <>
-                    <div className="flex justify-between text-xs text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                      <span>Spese escluse Art. 15 (Bolli N1):</span>
-                      <span className="font-mono font-bold">{formatEuro(totArt15)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-indigo-900 bg-indigo-50/70 px-2 py-0.5 rounded border border-indigo-200">
-                      <span>Ricavi compensi netti:</span>
-                      <span className="font-mono font-bold">{formatEuro(ricaviCompensi)}</span>
-                    </div>
-                  </>
+                  <div className="flex justify-between text-xs text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    <span>Spese anticipate Art. 15:</span>
+                    <span className="font-mono font-bold">{formatEuro(totArt15)}</span>
+                  </div>
+                )}
+                {!isSoloArt15 && totArt15 > 0 && (
+                  <div className="flex justify-between text-xs text-indigo-900 bg-indigo-50/70 px-2 py-0.5 rounded border border-indigo-200">
+                    <span>Ricavi compensi netti:</span>
+                    <span className="font-mono font-bold">{formatEuro(ricaviCompensi)}</span>
+                  </div>
                 )}
                 {Number(fattura.totaleCassa) > 0 && (
                   <div className="flex justify-between">
@@ -571,9 +585,15 @@ export default function FatturaDettaglioPage() {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-gray-600">IVA (0% - N2.2)</span>
+                  <span className="text-gray-600">IVA (0% - {isSoloArt15 ? 'N1' : 'N2.2'})</span>
                   <span className="text-gray-400">0,00 €</span>
                 </div>
+                {Number(fattura.bollo) > 0 && (
+                  <div className="flex justify-between text-xs text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    <span>Bolli (2€ - Natura N1):</span>
+                    <span className="font-mono font-bold">{formatEuro(fattura.bollo)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between font-bold text-base">
                   <span>Totale documento</span>
