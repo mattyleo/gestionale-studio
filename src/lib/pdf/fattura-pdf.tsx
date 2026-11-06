@@ -256,7 +256,7 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
       ? JSON.parse(fattura.snapshotCliente)
       : fattura.snapshotCliente || fattura.company || {}
 
-  const lines = fattura.lines || []
+  const rawLines = fattura.lines || []
 
   // Calcoli finanziari
   const imponibile = Number(fattura.imponibile) || 0
@@ -268,6 +268,32 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
   if (bollo === 0 && imponibilePlusCassa > 77.47) {
     bollo = 2.0
   }
+
+  // Assicura che la riga "Bolli" 2€ N1 sia visibile nella tabella se il bollo è dovuto
+  const hasBolloLine = rawLines.some(
+    (l: any) => l.naturaIva === 'N1' || l.descrizione?.toLowerCase().trim() === 'bolli'
+  )
+  const lines = [...rawLines]
+  if (!hasBolloLine && bollo > 0) {
+    lines.push({
+      descrizione: 'Bolli',
+      quantita: 1,
+      prezzoUnitario: bollo,
+      importo: bollo,
+      aliquotaIva: '0',
+      naturaIva: 'N1',
+    })
+  }
+
+  // Calcolo Spese Art. 15 (escluse art. 15 DPR 633/72, es. Bolli N1)
+  const totArt15 = lines.reduce((acc: number, l: any) => {
+    const isArt15 =
+      l.naturaIva === 'N1' ||
+      l.descrizione?.toLowerCase().includes('art. 15') ||
+      l.descrizione?.toLowerCase().includes('spese vive') ||
+      l.descrizione?.toLowerCase().trim() === 'bolli'
+    return isArt15 ? acc + Number(l.importo || 0) : acc
+  }, 0)
 
   const totaleIva = Number(fattura.totaleIva) || 0
   const totaleDocumento = Number(fattura.totaleDocumento) > 0 ? Number(fattura.totaleDocumento) : (imponibilePlusCassa + totaleIva + bollo)
@@ -466,11 +492,6 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
           <Text style={[styles.fiscalDesc, styles.bold, { color: '#0f172a' }]}>
             Operazione non soggetta a ritenuta alla fonte a titolo di acconto ai sensi dell'articolo 1, comma 67, l. n. 190 del 2014 e successive modificazioni.
           </Text>
-          {bollo > 0 && (
-            <Text style={[styles.fiscalDesc, { marginTop: 2, color: '#1e293b' }]}>
-              Imposta di bollo da 2,00 € assolta in modo virtuale ai sensi del D.M. 17 giugno 2014 (art. 15 D.P.R. 642/1972).
-            </Text>
-          )}
           {fattura.note && (
             <Text style={[styles.fiscalDesc, { marginTop: 3, fontStyle: 'italic' }]}>
               Note: {fattura.note}
@@ -486,20 +507,22 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
               Riepilogo IVA
             </Text>
             <View style={styles.calcRow}>
-              <Text>Aliquota:</Text>
-              <Text>0% (Natura N2.2)</Text>
-            </View>
-            <View style={styles.calcRow}>
-              <Text>Imponibile complessivo:</Text>
+              <Text>0% (Natura N2.2 - Forfettario):</Text>
               <Text>{formatCurrency(imponibilePlusCassa)}</Text>
             </View>
+            {totArt15 > 0 && (
+              <View style={styles.calcRow}>
+                <Text>0% (Natura N1 - Escluso art. 15):</Text>
+                <Text>{formatCurrency(totArt15)}</Text>
+              </View>
+            )}
             <View style={styles.calcRow}>
-              <Text>Imposta totale:</Text>
+              <Text>Imposta totale IVA:</Text>
               <Text>0,00 €</Text>
             </View>
             <View style={[styles.calcRow, { marginTop: 4, borderTop: '0.5pt solid #cbd5e1', paddingTop: 2 }]}>
+              <Text style={{ fontSize: 7, color: '#64748b' }}>Operazioni non soggette ad IVA</Text>
               <Text style={{ fontSize: 7, color: '#64748b' }}>Esente art.1 c.58 L.190/2014</Text>
-              <Text style={{ fontSize: 7, color: '#64748b' }}>Non soggetta</Text>
             </View>
           </View>
 
@@ -512,18 +535,20 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
               <Text>Imponibile prestazioni:</Text>
               <Text>{formatCurrency(imponibile)}</Text>
             </View>
+            {totaleCassa > 0 && (
+              <View style={styles.calcRow}>
+                <Text>Cassa Previdenziale (CNPADC 4%):</Text>
+                <Text>{formatCurrency(totaleCassa)}</Text>
+              </View>
+            )}
             <View style={styles.calcRow}>
-              <Text>Cassa Previdenziale (CNPADC 4%):</Text>
-              <Text>{formatCurrency(totaleCassa)}</Text>
-            </View>
-            <View style={styles.calcRow}>
-              <Text>IVA (0% - N2.2):</Text>
+              <Text>IVA (0%):</Text>
               <Text>0,00 €</Text>
             </View>
-            {bollo > 0 && (
+            {totArt15 > 0 && (
               <View style={styles.calcRow}>
-                <Text>Bollo virtuale (D.M. 17/06/2014):</Text>
-                <Text>{formatCurrency(bollo)}</Text>
+                <Text>Spese escluse art. 15 (Bolli N1):</Text>
+                <Text>{formatCurrency(totArt15)}</Text>
               </View>
             )}
             <View style={styles.calcTotalRow}>

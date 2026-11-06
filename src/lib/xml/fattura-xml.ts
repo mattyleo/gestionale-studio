@@ -225,7 +225,7 @@ export function generaFatturaXML(dati: DatiFattura): string {
     datiGenDoc.ele('Causale').txt(dati.note.substring(0, 200))
   }
 
-  // Bollo virtuale (2,00 € se totale > 77,47 € o impostato)
+  // Bollo virtuale (2,00 € se totale imponibile + cassa > 77,47 € o impostato esplicitamente)
   const bolloVal = dati.bollo > 0 ? dati.bollo : (dati.imponibile + dati.totaleCassa > 77.47 ? 2.0 : 0)
   if (bolloVal > 0) {
     const bolloEle = datiGenDoc.ele('DatiBollo')
@@ -247,9 +247,27 @@ export function generaFatturaXML(dati: DatiFattura): string {
   // DatiBeniServizi — righe prestazioni
   const datiBeni = body.ele('DatiBeniServizi')
 
-  for (const riga of righe) {
+  // Assicura che la riga "Bolli" 2€ N1 sia presente se il bollo è dovuto
+  const righeFinali = [...righe]
+  const haRigaBollo = righeFinali.some(
+    r => r.naturaIva === 'N1' || r.descrizione.toLowerCase().trim() === 'bolli'
+  )
+  if (!haRigaBollo && bolloVal > 0) {
+    righeFinali.push({
+      numero: righeFinali.length + 1,
+      descrizione: 'Bolli',
+      quantita: 1,
+      prezzoUnitario: bolloVal,
+      importo: bolloVal,
+      aliquotaIva: '0',
+      naturaIva: 'N1',
+    })
+  }
+
+  for (let i = 0; i < righeFinali.length; i++) {
+    const riga = righeFinali[i]
     const dettaglio = datiBeni.ele('DettaglioLinee')
-    dettaglio.ele('NumeroLinea').txt(String(riga.numero))
+    dettaglio.ele('NumeroLinea').txt(String(i + 1))
     dettaglio.ele('Descrizione').txt(riga.descrizione.substring(0, 1000))
     dettaglio.ele('Quantita').txt(formatImporto(riga.quantita))
     if (riga.unitaMisura) dettaglio.ele('UnitaMisura').txt(riga.unitaMisura)
@@ -259,14 +277,46 @@ export function generaFatturaXML(dati: DatiFattura): string {
     if (riga.naturaIva) dettaglio.ele('Natura').txt(riga.naturaIva)
   }
 
-  // DatiRiepilogo IVA
-  // SdI calcola: ImponibileImporto = Σ(PrezzoTotale righe) + Σ(ImportoContributoCassa)
-  const riepilogo = datiBeni.ele('DatiRiepilogo')
-  riepilogo.ele('AliquotaIVA').txt('0.00')
-  riepilogo.ele('Natura').txt('N2.2')
-  riepilogo.ele('ImponibileImporto').txt(formatImporto(dati.imponibile + dati.totaleCassa))
-  riepilogo.ele('Imposta').txt('0.00')
-  riepilogo.ele('RiferimentoNormativo').txt('Art. 1 c. 58 L. 190/2014 — Regime forfetario')
+  // DatiRiepilogo IVA (uno per ogni combinazione Aliquota/Natura presente)
+  // Per il regime forfettario:
+  // - Natura N2.2: Onorari prestazioni + Cassa Previdenziale CNPADC 4%
+  const righeN2_2 = righeFinali.filter(r => (r.naturaIva || 'N2.2') === 'N2.2')
+  const totN2_2 = righeN2_2.reduce((acc, r) => acc + Number(r.importo), 0)
+  const imponibileN2_2 = totN2_2 + (dati.totaleCassa || 0)
+
+  const riepilogoN2 = datiBeni.ele('DatiRiepilogo')
+  riepilogoN2.ele('AliquotaIVA').txt('0.00')
+  riepilogoN2.ele('Natura').txt('N2.2')
+  riepilogoN2.ele('ImponibileImporto').txt(formatImporto(imponibileN2_2))
+  riepilogoN2.ele('Imposta').txt('0.00')
+  riepilogoN2.ele('RiferimentoNormativo').txt('Art. 1 c. 58 L. 190/2014 — Regime forfetario')
+
+  // - Natura N1: Marca da bollo / spese anticipate escluse art. 15 DPR 633/72
+  const righeN1 = righeFinali.filter(r => r.naturaIva === 'N1')
+  const totN1 = righeN1.reduce((acc, r) => acc + Number(r.importo), 0)
+  if (totN1 > 0) {
+    const riepilogoN1 = datiBeni.ele('DatiRiepilogo')
+    riepilogoN1.ele('AliquotaIVA').txt('0.00')
+    riepilogoN1.ele('Natura').txt('N1')
+    riepilogoN1.ele('ImponibileImporto').txt(formatImporto(totN1))
+    riepilogoN1.ele('Imposta').txt('0.00')
+    riepilogoN1.ele('RiferimentoNormativo').txt('Escluso art. 15 DPR 633/72')
+  }
+
+  // Altre eventuali nature presenti
+  const altreNature = Array.from(
+    new Set(righeFinali.map(r => r.naturaIva || 'N2.2').filter(n => n !== 'N2.2' && n !== 'N1'))
+  )
+  for (const nat of altreNature) {
+    const righeNat = righeFinali.filter(r => (r.naturaIva || 'N2.2') === nat)
+    const totNat = righeNat.reduce((acc, r) => acc + Number(r.importo), 0)
+    const aliq = righeNat[0]?.aliquotaIva || '0'
+    const riep = datiBeni.ele('DatiRiepilogo')
+    riep.ele('AliquotaIVA').txt(formatImporto(parseFloat(aliq)))
+    riep.ele('Natura').txt(nat)
+    riep.ele('ImponibileImporto').txt(formatImporto(totNat))
+    riep.ele('Imposta').txt('0.00')
+  }
 
   // DatiPagamento
   const datiPagamento = body.ele('DatiPagamento')

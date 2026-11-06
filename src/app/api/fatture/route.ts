@@ -256,6 +256,7 @@ export async function POST(request: Request) {
         const q = new Decimal(r.quantita)
         const p = new Decimal(r.prezzoUnitario)
         const imp = q.mul(p).toDecimalPlaces(2)
+        const nat = r.naturaIva || 'N2.2'
         gruppi.push({
           serviceId: r.serviceId || null,
           serviceCodice: null,
@@ -265,9 +266,12 @@ export async function POST(request: Request) {
           prezzoUnitario: p,
           importo: imp,
           aliquotaIva: r.aliquotaIva || '0',
-          naturaIva: r.naturaIva || 'N2.2',
+          naturaIva: nat,
         })
-        imponibile = imponibile.add(imp)
+        // Solo le righe imponibili (non N1 escluse art. 15) concorrono alla base per Cassa e Ricavi
+        if (nat !== 'N1') {
+          imponibile = imponibile.add(imp)
+        }
       }
     } else {
       // CASO 2: Generazione da attività approvate
@@ -373,19 +377,34 @@ export async function POST(request: Request) {
     // Carica profilo emittente per configurazione fiscale
     const emittente = await prisma.issuerProfile.findFirst()
 
-    // Calcola cassa previdenziale
+    // Calcola cassa previdenziale (esclusivamente su prestazioni soggette a rivalsa/N2.2)
     const aliquotaCassa = emittente ? new Decimal(emittente.aliquotaCassa.toString()) : new Decimal(4)
     const totaleCassa = emittente?.rivalsa
       ? imponibile.mul(aliquotaCassa).div(100).toDecimalPlaces(2)
       : new Decimal(0)
 
-    // Calcola bollo (se imponibile + cassa > soglia)
+    // Calcola bollo: obbligatorio per legge se imponibile + cassa > 77,47 €
     const imponibileConCassa = imponibile.add(totaleCassa)
     const sogliaBollo = emittente ? new Decimal(emittente.sogliaBollo.toString()) : new Decimal(77.47)
     const importoBollo = emittente ? new Decimal(emittente.importoBollo.toString()) : new Decimal(2)
-    const bollo = emittente?.bolloVirtuale && imponibileConCassa.gt(sogliaBollo)
-      ? importoBollo
-      : new Decimal(0)
+    const deveApplicareBollo = (emittente?.bolloVirtuale ?? true) && imponibileConCassa.gt(sogliaBollo)
+    const bollo = deveApplicareBollo ? importoBollo : new Decimal(0)
+
+    // Se il bollo è dovuto (> 77,47 €), inserisci la riga "Bolli" 2€ con Natura N1 (escluse art. 15 DPR 633/72)
+    const haGiaRigaBollo = gruppi.some(g => g.naturaIva === 'N1' || g.serviceDescrizione.toLowerCase().trim() === 'bolli')
+    if (deveApplicareBollo && !haGiaRigaBollo) {
+      gruppi.push({
+        serviceId: null,
+        serviceCodice: 'BOLLI',
+        serviceDescrizione: 'Bolli',
+        attivitaIds: [],
+        quantita: new Decimal(1),
+        prezzoUnitario: importoBollo,
+        importo: importoBollo,
+        aliquotaIva: '0',
+        naturaIva: 'N1',
+      })
+    }
 
     const totaleDocumento = imponibileConCassa.add(bollo)
 

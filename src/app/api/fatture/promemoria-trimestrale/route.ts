@@ -265,7 +265,25 @@ export async function POST(request: Request) {
       const imponibileConCassa = imponibile.add(totaleCassa)
       const sogliaBollo = emittente ? new Decimal(emittente.sogliaBollo.toString()) : new Decimal(77.47)
       const importoBollo = emittente ? new Decimal(emittente.importoBollo.toString()) : new Decimal(2)
-      const bollo = emittente?.bolloVirtuale && imponibileConCassa.gt(sogliaBollo) ? importoBollo : new Decimal(0)
+      const deveApplicareBollo = (emittente?.bolloVirtuale ?? true) && imponibileConCassa.gt(sogliaBollo)
+      const bollo = deveApplicareBollo ? importoBollo : new Decimal(0)
+
+      // Inserisci riga Bolli 2€ N1 se dovuto
+      const haGiaRigaBollo = gruppi.some(g => g.naturaIva === 'N1' || g.serviceDescrizione.toLowerCase().trim() === 'bolli')
+      if (deveApplicareBollo && !haGiaRigaBollo) {
+        gruppi.push({
+          serviceId: null,
+          serviceCodice: 'BOLLI',
+          serviceDescrizione: 'Bolli',
+          attivitaIds: [],
+          quantita: new Decimal(1),
+          prezzoUnitario: importoBollo,
+          importo: importoBollo,
+          aliquotaIva: '0',
+          naturaIva: 'N1',
+        })
+      }
+
       const totaleDocumento = imponibileConCassa.add(bollo)
 
       const bozza = await prisma.$transaction(async (tx) => {

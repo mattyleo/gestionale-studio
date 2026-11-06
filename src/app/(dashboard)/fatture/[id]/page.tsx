@@ -538,22 +538,25 @@ export default function FatturaDettaglioPage() {
                 l.naturaIva === 'N1' ||
                 l.descrizione?.toLowerCase().includes('art. 15') ||
                 l.descrizione?.toLowerCase().includes('spese vive') ||
+                l.descrizione?.toLowerCase().trim() === 'bolli' ||
                 l.descrizione?.toLowerCase().includes('sanzione amministrativa non dovuta')
               return isArt15 ? acc + Number(l.importo || 0) : acc
             }, 0)
-            const ricaviCompensi = Number(fattura.imponibile || 0) - totArt15
+            const ricaviCompensi = (fattura.lines || [])
+              .filter((l: any) => l.naturaIva !== 'N1' && l.descrizione?.toLowerCase().trim() !== 'bolli')
+              .reduce((acc: number, l: any) => acc + Number(l.importo || 0), 0) || Number(fattura.imponibile || 0)
 
             return (
               <div className="mt-4 border-t pt-4 space-y-1.5 ml-auto max-w-xs text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Imponibile totale</span>
+                  <span className="text-gray-600">Imponibile prestazioni</span>
                   <span>{formatEuro(fattura.imponibile)}</span>
                 </div>
                 {totArt15 > 0 && (
                   <>
                     <div className="flex justify-between text-xs text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                      <span>di cui Spese Art. 15 (non ricavo):</span>
-                      <span className="font-mono font-bold">-{formatEuro(totArt15)}</span>
+                      <span>Spese escluse Art. 15 (Bolli N1):</span>
+                      <span className="font-mono font-bold">{formatEuro(totArt15)}</span>
                     </div>
                     <div className="flex justify-between text-xs text-indigo-900 bg-indigo-50/70 px-2 py-0.5 rounded border border-indigo-200">
                       <span>Ricavi compensi netti:</span>
@@ -568,15 +571,9 @@ export default function FatturaDettaglioPage() {
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-gray-600">IVA N2.2</span>
-                  <span className="text-gray-400">Esclusa</span>
+                  <span className="text-gray-600">IVA (0% - N2.2)</span>
+                  <span className="text-gray-400">0,00 €</span>
                 </div>
-                {Number(fattura.bollo) > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Bollo virtuale</span>
-                    <span>{formatEuro(fattura.bollo)}</span>
-                  </div>
-                )}
                 <Separator />
                 <div className="flex justify-between font-bold text-base">
                   <span>Totale documento</span>
@@ -726,19 +723,13 @@ export default function FatturaDettaglioPage() {
             </div>
 
             <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Imponibile</span>
+              <span className="text-gray-500">Imponibile prestazioni</span>
               <span>{formatEuro(fattura.imponibile)}</span>
             </div>
             {Number(fattura.totaleCassa) > 0 && (
               <div className="flex justify-between border-b pb-2">
                 <span className="text-gray-500">Cassa CNPADC 4%</span>
                 <span>{formatEuro(fattura.totaleCassa)}</span>
-              </div>
-            )}
-            {Number(fattura.bollo) > 0 && (
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-500">Bollo virtuale</span>
-                <span>{formatEuro(fattura.bollo)}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-base">
