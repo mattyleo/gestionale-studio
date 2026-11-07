@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { DEFAULT_PROGRAMMI } from '@/lib/programmi-default'
 import { spawn } from 'child_process'
 import path from 'path'
+import fs from 'fs'
 
 export async function POST(
   request: Request,
@@ -72,6 +73,13 @@ export async function POST(
       finalCmd = path.join(homeDir, finalCmd.slice(2))
     }
 
+    // Se su Linux e il file esiste, assicurati che abbia i permessi di esecuzione (chmod +x)
+    if (!isWindows && fs.existsSync(finalCmd)) {
+      try {
+        fs.chmodSync(finalCmd, 0o755)
+      } catch {}
+    }
+
     // Se su Linux e il file termina in .desktop, usa gio launch o gtk-launch
     if (!isWindows && finalCmd.endsWith('.desktop')) {
       finalCmd = `gio launch "${finalCmd}" || gtk-launch "${path.basename(finalCmd, '.desktop')}"`
@@ -97,7 +105,12 @@ export async function POST(
         })
       } else {
         // Su Linux usa bash con variabili grafiche per visualizzare la finestra sul desktop dell'operatore
-        child = spawn('bash', ['-c', `${finalCmd} >/dev/null 2>&1 &`], {
+        let bashCmd = finalCmd
+        // Se il percorso contiene spazi ed è un file/eseguibile (senza pipe/operatori), racchiudilo tra virgolette
+        if (bashCmd.includes(' ') && !bashCmd.startsWith('"') && !bashCmd.startsWith("'") && !bashCmd.includes('||') && !bashCmd.includes('&&')) {
+          bashCmd = `"${bashCmd}"`
+        }
+        child = spawn('bash', ['-c', `${bashCmd} >/dev/null 2>&1 &`], {
           detached: true,
           stdio: 'ignore',
           env: envVars,

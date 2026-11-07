@@ -70,6 +70,9 @@ export async function POST() {
     // ─── LINUX (UBUNTU) SEARCH PATHS ───────────────────────
     const searchMap: Record<string, string[]> = {
       telematico: [
+        path.join(homeDir, 'Scaricati', 'DesktopTelematico-linux64_140', 'DesktopTelematico'),
+        path.join(homeDir, 'Scaricati', 'DesktopTelematico-linux64_140 (2)', 'DesktopTelematico'),
+        path.join(homeDir, 'Scaricati', 'google-chrome-stable_current_amd64', 'DesktopTelematico'),
         path.join(homeDir, 'DesktopTelematico', 'DesktopTelematico'),
         path.join(homeDir, 'DesktopTelematico', 'DesktopTelematico.sh'),
         '/opt/DesktopTelematico/DesktopTelematico',
@@ -81,6 +84,9 @@ export async function POST() {
         path.join(homeDir, 'Desktop', 'DesktopTelematico.desktop'),
       ],
       uniemens: [
+        '/opt/INPS - Controlli Uniemens/inps-controlli-uniemens',
+        path.join(homeDir, 'Scaricati', 'Auto_4.2.0_Linux-x64', 'inps-controlli-uniemens-auto'),
+        path.join(homeDir, 'Scaricati', 'Auto_4.2.0_Linux-x64', 'inps-controlli-uniemens_linux_flat.sh'),
         path.join(homeDir, 'uniemens', 'uniemens'),
         path.join(homeDir, 'uniemens', 'uniemens.sh'),
         '/opt/uniemens/uniemens',
