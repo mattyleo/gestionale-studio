@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   AlertCircle,
   HelpCircle,
+  Search,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,7 +72,30 @@ export default function ProgrammiPage() {
   const [programmi, setProgrammi] = React.useState<any[]>([])
   const [os, setOs] = React.useState<'linux' | 'windows'>('linux')
   const [avviandoId, setAvviandoId] = React.useState<string | null>(null)
+  const [rilevando, setRilevando] = React.useState(false)
   const [filtroCategoria, setFiltroCategoria] = React.useState('Tutte')
+
+  // Auto-rilevamento percorsi sul PC
+  const handleRilevaSoftware = async () => {
+    setRilevando(true)
+    try {
+      const res = await fetch('/api/programmi/rileva', { method: 'POST' })
+      const dati = await res.json()
+      if (dati.successo) {
+        toast({
+          title: dati.trovati?.length > 0 ? '🔍 Rilevamento completato!' : 'Nessun percorso standard trovato',
+          description: dati.messaggio,
+        })
+        await caricaProgrammi()
+      } else {
+        throw new Error(dati.error)
+      }
+    } catch (e: any) {
+      toast({ title: 'Errore rilevamento', description: e.message, variant: 'destructive' })
+    } finally {
+      setRilevando(false)
+    }
+  }
 
   // Edit / Add modal
   const [editModalOpen, setEditModalOpen] = React.useState(false)
@@ -192,6 +216,17 @@ export default function ProgrammiPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleRilevaSoftware}
+            disabled={rilevando}
+            className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+            title="Cerca automaticamente dove sono installati Desktop Telematico e gli altri software sul computer"
+          >
+            {rilevando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 text-blue-600" />}
+            Rileva Software nel PC
+          </Button>
+
           <Link href="/archivi">
             <Button variant="outline" className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4 text-amber-600" />

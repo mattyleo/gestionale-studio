@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { spawn } from 'child_process'
+import path from 'path'
 
 export async function POST(
   request: Request,
@@ -43,20 +44,42 @@ export async function POST(
       })
     }
 
+    // Prepara comando ed espandi tilde (~) o variabili di ambiente
+    const homeDir = process.env.HOME || process.env.USERPROFILE || ''
+    let finalCmd = cmd || ''
+    if (finalCmd.startsWith('~/')) {
+      finalCmd = path.join(homeDir, finalCmd.slice(2))
+    }
+
+    // Se su Linux e il file termina in .desktop, usa gio launch o gtk-launch
+    if (!isWindows && finalCmd.endsWith('.desktop')) {
+      finalCmd = `gio launch "${finalCmd}" || gtk-launch "${path.basename(finalCmd, '.desktop')}"`
+    }
+
+    // Ambiente grafico per Linux
+    const envVars = {
+      ...process.env,
+      DISPLAY: process.env.DISPLAY || ':0',
+      WAYLAND_DISPLAY: process.env.WAYLAND_DISPLAY || 'wayland-0',
+      XAUTHORITY: process.env.XAUTHORITY || (homeDir ? path.join(homeDir, '.Xauthority') : undefined),
+    }
+
     // Esegui comando desktop in background disaccoppiato
     try {
       let child
       if (isWindows) {
         // Su Windows usa start per non bloccare
-        child = spawn('cmd.exe', ['/c', 'start', '""', cmd!], {
+        child = spawn('cmd.exe', ['/c', 'start', '""', finalCmd], {
           detached: true,
           stdio: 'ignore',
+          env: envVars,
         })
       } else {
-        // Su Linux usa nohup o bash
-        child = spawn('sh', ['-c', `${cmd} >/dev/null 2>&1 &`], {
+        // Su Linux usa bash con variabili grafiche per visualizzare la finestra sul desktop dell'operatore
+        child = spawn('bash', ['-c', `${finalCmd} >/dev/null 2>&1 &`], {
           detached: true,
           stdio: 'ignore',
+          env: envVars,
         })
       }
       child.unref()
@@ -64,12 +87,12 @@ export async function POST(
       return NextResponse.json({
         successo: true,
         tipo: 'desktop',
-        messaggio: `Comando di avvio inviato per: ${prog.nome}`,
+        messaggio: `Software avviato con successo sul computer: ${prog.nome}`,
       })
     } catch (launchErr: any) {
       return NextResponse.json({
         successo: false,
-        errore: `Impossibile avviare '${cmd}': verificare che il percorso del programma sia corretto nel sistema.`,
+        errore: `Impossibile avviare '${finalCmd}': verificare che il percorso del programma sia corretto nel sistema.`,
       }, { status: 500 })
     }
   } catch (err: any) {
