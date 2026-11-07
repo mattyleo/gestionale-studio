@@ -736,7 +736,7 @@ export default function TariffarioPage() {
           MODAL: Modifica Servizio Esistente
          ───────────────────────────────────────────────────────────── */}
       <Dialog open={openModifica} onOpenChange={setOpenModifica}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-blue-600" />
@@ -914,7 +914,7 @@ export default function TariffarioPage() {
           MODAL: Nuovo Servizio
          ───────────────────────────────────────────────────────────── */}
       <Dialog open={openNuovo} onOpenChange={setOpenNuovo}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Aggiungi Voce al Tariffario</DialogTitle>
             <DialogDescription>
@@ -1004,7 +1004,7 @@ export default function TariffarioPage() {
           MODAL: Nuova / Modifica Fascia Buste Paga
          ───────────────────────────────────────────────────────────── */}
       <Dialog open={openFascia} onOpenChange={setOpenFascia}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
               {fasciaInModifica ? 'Modifica Scaglione Busta Paga' : 'Nuovo Scaglione Busta Paga'}
@@ -1118,7 +1118,7 @@ export default function TariffarioPage() {
           MODAL: Conferma Eliminazione Servizio
          ───────────────────────────────────────────────────────────── */}
       <Dialog open={!!servizioDaEliminare} onOpenChange={(open) => !open && setServizioDaEliminare(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-red-600 flex items-center gap-2">
               <Trash2 className="h-5 w-5" /> Eliminazione Servizio

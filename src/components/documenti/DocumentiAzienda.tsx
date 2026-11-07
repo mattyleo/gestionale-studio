@@ -258,7 +258,7 @@ export function DocumentiAzienda({ aziendaId }: { aziendaId: string }) {
 
       {/* Dialog Upload */}
       <Dialog open={uploadDialog} onOpenChange={(o) => { setUploadDialog(o); if (!o) resetForm() }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Carica documento</DialogTitle>
           </DialogHeader>

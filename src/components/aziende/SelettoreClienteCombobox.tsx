@@ -178,7 +178,7 @@ export function SelettoreClienteCombobox({
   }
 
   return (
-    <div ref={containerRef} className={cn('relative w-full', className)}>
+    <div ref={containerRef} className={cn('relative w-full min-w-0', className)}>
       {/* Box di visualizzazione / input di ricerca */}
       {aziendaSelezionata && !aperto ? (
         <div
@@ -189,21 +189,21 @@ export function SelettoreClienteCombobox({
             }
           }}
           className={cn(
-            'flex items-center justify-between gap-2 px-3 py-2 border rounded-md bg-white text-sm cursor-pointer transition-colors shadow-sm',
+            'flex items-center justify-between gap-2 px-3 py-2 border rounded-md bg-white text-sm cursor-pointer transition-colors shadow-sm w-full min-w-0 overflow-hidden',
             disabled ? 'bg-gray-100 cursor-not-allowed opacity-75' : 'hover:border-blue-400 hover:bg-blue-50/20 border-gray-300'
           )}
         >
-          <div className="flex items-center gap-2 overflow-hidden">
+          <div className="flex items-center gap-2 overflow-hidden min-w-0 flex-1">
             {aziendaSelezionata.tipoSoggetto === 'PERSONA_FISICA' ? (
               <User className="h-4 w-4 text-emerald-600 shrink-0" />
             ) : (
               <Building2 className="h-4 w-4 text-blue-600 shrink-0" />
             )}
-            <span className="font-semibold text-gray-900 truncate">
+            <span className="font-semibold text-gray-900 truncate shrink min-w-0">
               {aziendaSelezionata.ragioneSociale}
             </span>
             {aziendaSelezionata.comune && (
-              <span className="text-xs text-gray-400 truncate hidden sm:inline">
+              <span className="text-xs text-gray-400 truncate shrink-0 hidden sm:inline">
                 ({aziendaSelezionata.comune})
               </span>
             )}

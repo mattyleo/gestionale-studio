@@ -115,7 +115,7 @@ export function ImportaArubaModal({ trigger, onSuccess }: ImportaArubaModalProps
         )}
       </DialogTrigger>
 
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl text-gray-900">
             <FileArchive className="h-5 w-5 text-orange-600" />

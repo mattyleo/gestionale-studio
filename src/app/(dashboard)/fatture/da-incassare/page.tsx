@@ -197,7 +197,7 @@ export default function DaIncassarePage() {
 
       {/* Dialog pagamento */}
       <Dialog open={pagamentoDialog} onOpenChange={setPagamentoDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Registra pagamento</DialogTitle>
             <DialogDescription>

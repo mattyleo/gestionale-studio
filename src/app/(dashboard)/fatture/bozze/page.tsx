@@ -355,7 +355,7 @@ export default function BozzePage() {
 
       {/* Dialog Genera Bozza */}
       <Dialog open={generaDialog} onOpenChange={setGeneraDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Genera bozza di fattura</DialogTitle>
             <DialogDescription>
@@ -374,35 +374,35 @@ export default function BozzePage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between flex-wrap gap-1">
-                <Label>Periodo attività</Label>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                <Label className="text-xs font-semibold text-gray-700">Periodo attività</Label>
                 <div className="flex items-center gap-1 flex-wrap">
-                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('anno')}>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('anno')}>
                     Anno
                   </Button>
                   <span className="text-gray-300">·</span>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('questo_mese')}>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-blue-600 hover:text-blue-800" onClick={() => impostaPresetPeriodo('questo_mese')}>
                     Mese
                   </Button>
                   <span className="text-gray-300">·</span>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q1')} title="1° Trimestre (Gen - Mar)">
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q1')} title="1° Trimestre (Gen - Mar)">
                     Q1
                   </Button>
                   <span className="text-gray-300">·</span>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q2')} title="2° Trimestre (Apr - Giu)">
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q2')} title="2° Trimestre (Apr - Giu)">
                     Q2
                   </Button>
                   <span className="text-gray-300">·</span>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q3')} title="3° Trimestre (Lug - Set)">
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q3')} title="3° Trimestre (Lug - Set)">
                     Q3
                   </Button>
                   <span className="text-gray-300">·</span>
-                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q4')} title="4° Trimestre (Ott - Dic)">
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-[11px] px-1.5 text-indigo-600 hover:text-indigo-800 font-semibold" onClick={() => impostaPresetPeriodo('q4')} title="4° Trimestre (Ott - Dic)">
                     Q4
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <span className="text-xs text-gray-500">Dal</span>
                   <Input type="date" value={periodoDal} onChange={e => setPeriodoDal(e.target.value)} />
@@ -464,7 +464,7 @@ export default function BozzePage() {
 
       {/* Dialog Nuova Fattura Manuale (Bypass Attività) */}
       <Dialog open={openNuovaFattura} onOpenChange={setOpenNuovaFattura}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5 text-blue-600" />

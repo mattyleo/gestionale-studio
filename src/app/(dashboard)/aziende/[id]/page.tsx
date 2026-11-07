@@ -1363,7 +1363,7 @@ export default function AziendaDettaglioPage() {
           MODAL: Nuova / Modifica Tariffa Concordata Cliente
          ───────────────────────────────────────────────────────────── */}
       <Dialog open={openTariffaModal} onOpenChange={setOpenTariffaModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {tariffaInModifica ? 'Modifica Tariffa Concordata' : 'Nuova Tariffa per il Cliente'}

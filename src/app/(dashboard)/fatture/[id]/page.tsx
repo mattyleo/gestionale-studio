@@ -844,7 +844,7 @@ export default function FatturaDettaglioPage() {
 
       {/* Dialog Emissione */}
       <Dialog open={emettiDialog} onOpenChange={setEmettiDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Conferma emissione fattura</DialogTitle>
             <DialogDescription>
@@ -854,7 +854,7 @@ export default function FatturaDettaglioPage() {
           <div className="space-y-3 text-sm py-2">
             <div className="flex justify-between border-b pb-2">
               <span className="text-gray-500">Cliente</span>
-              <span className="font-medium">{fattura.company?.ragioneSociale}</span>
+              <span className="font-medium text-right truncate max-w-[280px]">{fattura.company?.ragioneSociale}</span>
             </div>
 
             {/* Configurazione numero e data fattura */}
@@ -1046,7 +1046,7 @@ export default function FatturaDettaglioPage() {
 
       {/* Dialog Pagamento */}
       <Dialog open={pagamentoDialog} onOpenChange={setPagamentoDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Registra pagamento</DialogTitle>
             <DialogDescription>
@@ -1130,7 +1130,7 @@ export default function FatturaDettaglioPage() {
 
       {/* Dialog Modifica Numero Fattura Emessa */}
       <Dialog open={modificaNumeroDialog} onOpenChange={setModificaNumeroDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-blue-600" />
@@ -1239,7 +1239,7 @@ export default function FatturaDettaglioPage() {
 
       {/* Dialog Modifica Scadenza e Condizioni di Pagamento */}
       <Dialog open={scadenzaDialog} onOpenChange={setScadenzaDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-blue-600" />

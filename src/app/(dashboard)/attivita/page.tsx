@@ -611,7 +611,7 @@ export default function AttivitaPage() {
 
       {/* Dialog Nuova Attività */}
       <Dialog open={openNuova} onOpenChange={setOpenNuova}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Nuova Prestazione / Attività</DialogTitle>
             <DialogDescription>
@@ -739,7 +739,7 @@ export default function AttivitaPage() {
 
       {/* Dialog Modifica Attività */}
       <Dialog open={openModifica} onOpenChange={setOpenModifica}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="h-5 w-5 text-blue-600" />
