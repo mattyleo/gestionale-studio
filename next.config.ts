@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Build standalone per Docker o distribuzioni portabili
-  output: 'standalone',
   // Impostazioni per la produzione
   poweredByHeader: false,
   

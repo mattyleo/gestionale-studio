@@ -96,27 +96,8 @@ mkdir -p uploads backups
 chmod +x *.sh || true
 
 # Crea icona lanciatore Desktop per Ubuntu
-DESKTOP_DIR="$HOME/Desktop"
-if [ ! -d "$DESKTOP_DIR" ]; then
-    DESKTOP_DIR="$HOME/Scrivania"
-fi
-
-if [ -d "$DESKTOP_DIR" ]; then
-    cat <<EOF > "$DESKTOP_DIR/gestionale-studio.desktop"
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Gestionale Studio
-Comment=Gestionale Attività e Fatturazione Dott. Antonio Tuzio
-Exec=$DIR/avvia-ubuntu.sh
-Icon=accessories-calculator
-Terminal=true
-Categories=Office;Finance;
-EOF
-    chmod +x "$DESKTOP_DIR/gestionale-studio.desktop"
-    # Consenti il lancio su GNOME se disponibile
-    gio set "$DESKTOP_DIR/gestionale-studio.desktop" metadata::trusted true 2>/dev/null || true
-    echo "[OK] Icona creata sulla Scrivania: $DESKTOP_DIR/gestionale-studio.desktop"
+if [ -f "./crea-icona-desktop.sh" ]; then
+    ./crea-icona-desktop.sh || true
 fi
 
 echo ""

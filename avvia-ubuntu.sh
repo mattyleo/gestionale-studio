@@ -23,9 +23,9 @@ echo ""
 echo "[2/2] Apertura del browser su http://localhost:3000..."
 sleep 2
 if command -v xdg-open &> /dev/null; then
-    xdg-open "http://localhost:3000" &
+    xdg-open "http://localhost:3000" >/dev/null 2>&1 &
 elif command -v sensible-browser &> /dev/null; then
-    sensible-browser "http://localhost:3000" &
+    sensible-browser "http://localhost:3000" >/dev/null 2>&1 &
 fi
 
 echo ""
@@ -41,4 +41,8 @@ echo "   Per terminare il programma premi CTRL + C."
 echo "======================================================================="
 echo ""
 
-npm run start || npm run dev
+if [ -f ".next/standalone/server.js" ]; then
+    NODE_ENV=production node .next/standalone/server.js
+else
+    npm run start || npm run dev
+fi
