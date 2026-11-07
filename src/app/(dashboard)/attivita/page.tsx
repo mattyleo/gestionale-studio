@@ -35,6 +35,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { SelettoreClienteCombobox } from '@/components/aziende/SelettoreClienteCombobox'
 import { formatEuro, formatData, statoWorkEntryLabel, cn } from '@/lib/utils'
+import { getDescrizioneNatura } from '@/lib/codici-iva'
 import { useToast } from '@/hooks/use-toast'
 
 export default function AttivitaPage() {
@@ -515,7 +516,12 @@ export default function AttivitaPage() {
                         </TableCell>
                         <TableCell className="text-sm">
                           {a.service ? (
-                            <span>{a.service.descrizione}</span>
+                            <div>
+                              <div className="font-medium text-gray-900">{a.service.descrizione}</div>
+                              <div className="text-[11px] text-gray-500 font-mono">
+                                Natura IVA: {getDescrizioneNatura(a.service.naturaIva || 'N2.2')}
+                              </div>
+                            </div>
                           ) : (
                             <span className="text-gray-400 italic">Non specificato</span>
                           )}

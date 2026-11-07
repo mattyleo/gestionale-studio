@@ -46,7 +46,7 @@ import {
 } from '@/components/ui/select'
 import { formatEuro } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
-import { CODICI_IVA } from '@/lib/codici-iva'
+import { CODICI_IVA, getDescrizioneNatura } from '@/lib/codici-iva'
 
 interface ServizioItem {
   id: string
@@ -585,8 +585,13 @@ export default function TariffarioPage() {
                             <span className="text-xs text-gray-400 font-normal italic">Su preventivo</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-xs font-mono text-gray-500">
-                          {s.naturaIva || 'N2.2'} {s.aliquotaIva ? `(${s.aliquotaIva}%)` : '(0%)'}
+                        <TableCell className="text-xs">
+                          <div className="font-mono font-medium text-gray-800">
+                            {s.naturaIva || 'N2.2'} {s.aliquotaIva ? `(${s.aliquotaIva}%)` : '(0%)'}
+                          </div>
+                          <div className="text-[11px] text-gray-500 max-w-xs truncate" title={getDescrizioneNatura(s.naturaIva || 'N2.2')}>
+                            {getDescrizioneNatura(s.naturaIva || 'N2.2')}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant={s.attivo ? 'success' : 'secondary'} className="text-[11px]">

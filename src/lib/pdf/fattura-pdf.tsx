@@ -10,6 +10,7 @@ import {
   StyleSheet,
   renderToBuffer,
 } from '@react-pdf/renderer'
+import { getDescrizioneNatura } from '@/lib/codici-iva'
 
 const styles = StyleSheet.create({
   page: {
@@ -447,7 +448,12 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
               return (
                 <View key={idx} style={styles.tableRow} wrap={false}>
                   <Text style={styles.colNr}>{idx + 1}</Text>
-                  <Text style={styles.colDesc}>{line.descrizione}</Text>
+                  <View style={styles.colDesc}>
+                    <Text>{line.descrizione}</Text>
+                    <Text style={{ fontSize: 6.5, color: '#64748b', marginTop: 1 }}>
+                      {getDescrizioneNatura(nat)}
+                    </Text>
+                  </View>
                   <Text style={styles.colQty}>{formatNumber(line.quantita)}</Text>
                   <Text style={styles.colPrice}>{formatCurrency(line.prezzoUnitario)}</Text>
                   <Text style={[styles.colAmount, styles.bold]}>{formatCurrency(line.importo)}</Text>
@@ -459,7 +465,12 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
           ) : (
             <View style={styles.tableRow} wrap={false}>
               <Text style={styles.colNr}>1</Text>
-              <Text style={styles.colDesc}>Prestazioni professionali</Text>
+              <View style={styles.colDesc}>
+                <Text>Prestazioni professionali</Text>
+                <Text style={{ fontSize: 6.5, color: '#64748b', marginTop: 1 }}>
+                  {getDescrizioneNatura('N2.2')}
+                </Text>
+              </View>
               <Text style={styles.colQty}>1</Text>
               <Text style={styles.colPrice}>{formatCurrency(imponibile)}</Text>
               <Text style={[styles.colAmount, styles.bold]}>{formatCurrency(imponibile)}</Text>
@@ -533,13 +544,13 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
             </Text>
             {imponibilePlusCassa > 0 && (
               <View style={styles.calcRow}>
-                <Text>0% (Natura N2.2 - Forfettario):</Text>
+                <Text>0% (Natura N2.2 - Non soggette - Forfettario):</Text>
                 <Text>{formatCurrency(imponibilePlusCassa)}</Text>
               </View>
             )}
             {totArt15 > 0 && (
               <View style={styles.calcRow}>
-                <Text>0% (Natura N1 - Escluso art. 15):</Text>
+                <Text>0% (Natura N1 - Escluso ex art. 15 DPR 633/72):</Text>
                 <Text>{formatCurrency(totArt15)}</Text>
               </View>
             )}

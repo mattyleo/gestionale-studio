@@ -263,3 +263,32 @@ export const CODICI_IVA: CodiceIva[] = [
 ]
 
 export const CODICE_IVA_DEFAULT = '0% - N2.2'
+
+/**
+ * Restituisce il titolo breve della natura IVA (es. "N2.2 - Non soggette - altri casi (Regime Forfettario)")
+ */
+export function getDescrizioneNatura(natura?: string | null): string {
+  if (!natura) return 'N2.2 - Non soggette (Regime Forfettario)'
+  const norm = natura.trim().toUpperCase()
+  if (norm === 'N2' || norm === 'N2.2') return 'N2.2 - Non soggette (Regime Forfettario)'
+  if (norm === 'N1') return 'N1 - Escluse ex art. 15 DPR 633/72'
+  const found = CODICI_IVA.find((c) => c.natura === norm || c.codice.includes(norm))
+  return found?.titoloBreve || norm
+}
+
+/**
+ * Restituisce la descrizione estesa o il riferimento normativo della natura IVA
+ */
+export function getDescrizioneEstesaNatura(natura?: string | null): string {
+  if (!natura) return 'Operazione non soggetta ad IVA ai sensi dell\'art. 1 commi 54-89 L. 190/2014'
+  const norm = natura.trim().toUpperCase()
+  if (norm === 'N2' || norm === 'N2.2') {
+    return 'Non soggette ad IVA - altri casi (operazione in regime forfettario L. 190/2014)'
+  }
+  if (norm === 'N1') {
+    return 'Escluso dalla base imponibile IVA ex Art. 15 DPR 633/72'
+  }
+  const found = CODICI_IVA.find((c) => c.natura === norm || c.codice.includes(norm))
+  return found?.descrizione || found?.normativa || norm
+}
+

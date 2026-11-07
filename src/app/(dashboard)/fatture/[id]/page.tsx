@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatEuro, formatData, statoInvoiceLabel, statoInvoiceBadgeColor } from '@/lib/utils'
+import { getDescrizioneNatura } from '@/lib/codici-iva'
 import { useToast } from '@/hooks/use-toast'
 import { InviaEmailModal } from '@/components/fatture/InviaEmailModal'
 
@@ -497,6 +498,7 @@ export default function FatturaDettaglioPage() {
               <TableRow>
                 <TableHead className="w-8">N°</TableHead>
                 <TableHead>Descrizione</TableHead>
+                <TableHead className="w-56">Natura IVA</TableHead>
                 <TableHead className="text-right w-20">Q.tà</TableHead>
                 <TableHead className="text-right w-28">Prezzo unit.</TableHead>
                 <TableHead className="text-right w-28">Importo</TableHead>
@@ -509,18 +511,33 @@ export default function FatturaDettaglioPage() {
                   riga.descrizione?.toLowerCase().includes('art. 15') ||
                   riga.descrizione?.toLowerCase().includes('spese vive') ||
                   riga.descrizione?.toLowerCase().includes('sanzione amministrativa non dovuta')
+                const isBolli = riga.descrizione?.toLowerCase().trim() === 'bolli'
+                const nat = riga.naturaIva || 'N2.2'
                 return (
                   <TableRow key={riga.id} className={isArt15 ? 'bg-amber-50/40' : ''}>
                     <TableCell className="text-gray-500">{riga.ordinamento}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span>{riga.descrizione}</span>
-                        {isArt15 && (
-                          <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-800 border-amber-300">
-                            Art. 15 DPR 633/72 (Escluso dai ricavi)
-                          </Badge>
-                        )}
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-gray-900">{riga.descrizione}</span>
+                        <span className="text-[11px] text-gray-500">
+                          {isArt15
+                            ? 'Spesa anticipata esclusa dalla base imponibile ex art. 15 DPR 633/72'
+                            : isBolli
+                            ? 'Imposta di bollo assolta di legge (Natura N2)'
+                            : 'Prestazione professionale in regime forfettario L. 190/2014'}
+                        </span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {isArt15 ? (
+                        <Badge variant="outline" className="text-[11px] bg-amber-50 text-amber-800 border-amber-300">
+                          N1 - Escluso Art. 15
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[11px] bg-blue-50 text-blue-800 border-blue-200">
+                          {getDescrizioneNatura(nat)}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">{Number(riga.quantita).toFixed(2)}</TableCell>
                     <TableCell className="text-right">{formatEuro(riga.prezzoUnitario)}</TableCell>
