@@ -80,15 +80,21 @@ export default function ProgrammiPage() {
     setRilevando(true)
     try {
       const res = await fetch('/api/programmi/rileva', { method: 'POST' })
-      const dati = await res.json()
-      if (dati.successo) {
+      let dati: any
+      try {
+        dati = await res.json()
+      } catch {
+        throw new Error(`Risposta server non valida (HTTP ${res.status})`)
+      }
+
+      if (dati?.successo) {
         toast({
           title: dati.trovati?.length > 0 ? '🔍 Rilevamento completato!' : 'Nessun percorso standard trovato',
           description: dati.messaggio,
         })
         await caricaProgrammi()
       } else {
-        throw new Error(dati.error)
+        throw new Error(dati?.error || dati?.messaggio || `Errore rilevamento (HTTP ${res.status})`)
       }
     } catch (e: any) {
       toast({ title: 'Errore rilevamento', description: e.message, variant: 'destructive' })

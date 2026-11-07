@@ -20,9 +20,10 @@ export async function POST() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
 
-  const isWindows = process.platform === 'win32'
-  const homeDir = process.env.HOME || process.env.USERPROFILE || ''
-  const trovati: DetectedProgram[] = []
+  try {
+    const isWindows = process.platform === 'win32'
+    const homeDir = process.env.HOME || process.env.USERPROFILE || ''
+    const trovati: DetectedProgram[] = []
 
   if (isWindows) {
     // ─── WINDOWS SEARCH PATHS ──────────────────────────────
@@ -134,41 +135,52 @@ export async function POST() {
     }
   }
 
-  // Aggiorna automaticamente i percorsi nella tabella database StudioProgram
-  let aggiornati = 0
-  const programmiDb = await prisma.studioProgram.findMany()
+    // Aggiorna automaticamente i percorsi nella tabella database StudioProgram se presente
+    let aggiornati = 0
+    try {
+      const programmiDb = await prisma.studioProgram.findMany()
 
-  for (const t of trovati) {
-    const match = programmiDb.find((p) => {
-      const n = p.nome.toLowerCase()
-      if (t.nomeKey === 'telematico') return n.includes('telematico') || n.includes('entratel')
-      if (t.nomeKey === 'uniemens') return n.includes('uniemens') || n.includes('inps')
-      if (t.nomeKey === 'redditi') return n.includes('redditi')
-      if (t.nomeKey === 'lipe') return n.includes('lipe')
-      if (t.nomeKey === 'cu') return n.includes('certificazione unica') || n.includes('cu')
-      if (t.nomeKey === 'f24') return n.includes('f24')
-      return false
-    })
+      for (const t of trovati) {
+        const match = programmiDb.find((p) => {
+          const n = p.nome.toLowerCase()
+          if (t.nomeKey === 'telematico') return n.includes('telematico') || n.includes('entratel')
+          if (t.nomeKey === 'uniemens') return n.includes('uniemens') || n.includes('inps')
+          if (t.nomeKey === 'redditi') return n.includes('redditi')
+          if (t.nomeKey === 'lipe') return n.includes('lipe')
+          if (t.nomeKey === 'cu') return n.includes('certificazione unica') || n.includes('cu')
+          if (t.nomeKey === 'f24') return n.includes('f24')
+          return false
+        })
 
-    if (match) {
-      const dataUpdate = isWindows
-        ? { comandoWindows: t.percorsoTrovato }
-        : { comandoLinux: t.percorsoTrovato }
+        if (match) {
+          const dataUpdate = isWindows
+            ? { comandoWindows: t.percorsoTrovato }
+            : { comandoLinux: t.percorsoTrovato }
 
-      await prisma.studioProgram.update({
-        where: { id: match.id },
-        data: dataUpdate,
-      })
-      aggiornati++
+          await prisma.studioProgram.update({
+            where: { id: match.id },
+            data: dataUpdate,
+          })
+          aggiornati++
+        }
+      }
+    } catch (dbErr: any) {
+      console.warn('Aggiornamento database rilevamento saltato (tabella non pronta):', dbErr.message)
     }
-  }
 
-  return NextResponse.json({
-    successo: true,
-    trovati,
-    aggiornati,
-    messaggio: trovati.length > 0
-      ? `Rilevati ${trovati.length} programmi installati sul computer e configurati con successo!`
-      : 'Nessun programma rilevato nei percorsi standard. È possibile impostare il percorso manualmente dal tasto Configura.',
-  })
+    return NextResponse.json({
+      successo: true,
+      trovati,
+      aggiornati,
+      messaggio: trovati.length > 0
+        ? `Rilevati ${trovati.length} programmi installati sul computer e configurati con successo!`
+        : 'Nessun programma rilevato nei percorsi standard. È possibile impostare il percorso manualmente dal tasto Configura.',
+    })
+  } catch (err: any) {
+    console.error('Errore rilevamento programmi:', err)
+    return NextResponse.json({
+      successo: false,
+      error: err.message || 'Errore durante il rilevamento dei programmi',
+    }, { status: 500 })
+  }
 }
