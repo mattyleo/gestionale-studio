@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Impostazioni per la produzione
   poweredByHeader: false,
+  outputFileTracingRoot: path.join(__dirname),
   
   // Immagini esterne permesse (logo emittente, ecc.)
   images: {

@@ -51,6 +51,15 @@ echo ""
 # il ciclo riavvia automaticamente l'applicazione con la nuova versione aggiornata.
 # ─────────────────────────────────────────────────────────────
 while true; do
+    # Verifica che la build di produzione esista; se manca, compilala automaticamente
+    if [ ! -d ".next" ] || [ ! -f ".next/BUILD_ID" ]; then
+        echo ""
+        echo "[INFO] Build di produzione mancante in .next. Compilazione automatica in corso..."
+        npm run build
+        echo "[OK] Compilazione completata con successo."
+        echo ""
+    fi
+
     echo "[INFO] Avvio server Gestionale Studio in produzione..."
     if [ -f ".next/standalone/server.js" ]; then
         NODE_ENV=production node .next/standalone/server.js
