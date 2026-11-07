@@ -41,8 +41,32 @@ echo "   Per terminare il programma premi CTRL + C."
 echo "======================================================================="
 echo ""
 
-if [ -f ".next/standalone/server.js" ]; then
-    NODE_ENV=production node .next/standalone/server.js
-else
-    npm run start || npm run dev
-fi
+# ─────────────────────────────────────────────────────────────
+# Ciclo di esecuzione continuo:
+# Se il server viene riavviato (es. dopo aver cliccato "Aggiorna" dal gestionale),
+# il ciclo riavvia automaticamente l'applicazione con la nuova versione aggiornata.
+# ─────────────────────────────────────────────────────────────
+while true; do
+    echo "[INFO] Avvio server Gestionale Studio in produzione..."
+    if [ -f ".next/standalone/server.js" ]; then
+        NODE_ENV=production node .next/standalone/server.js
+    else
+        npm run start
+    fi
+    EXIT_CODE=$?
+    
+    # Se interrotto dall'utente con CTRL+C (exit code 130), esci definitivamente
+    if [ $EXIT_CODE -eq 130 ]; then
+        echo ""
+        echo "======================================================================="
+        echo "          Gestionale terminato dall'utente (CTRL+C)."
+        echo "======================================================================="
+        break
+    fi
+
+    echo ""
+    echo "======================================================================="
+    echo "  Riavvio del gestionale in corso (nuova versione applicata)..."
+    echo "======================================================================="
+    sleep 2
+done

@@ -126,30 +126,38 @@ export default function ImpostazioniPage() {
   const [verificandoAggiornamenti, setVerificandoAggiornamenti] = React.useState(false)
   const [applicandoAggiornamento, setApplicandoAggiornamento] = React.useState(false)
   const [dettagliAggiornamento, setDettagliAggiornamento] = React.useState<string[]>([])
+  const [contoRiavvio, setContoRiavvio] = React.useState<number | null>(null)
 
-  const controllaAggiornamenti = async () => {
+  const controllaAggiornamenti = React.useCallback(async (silenzioso = false) => {
     setVerificandoAggiornamenti(true)
     try {
       const res = await fetch('/api/sistema/aggiornamento')
       const dati = await res.json()
       setStatoAggiornamento(dati)
-      if (dati.aggiornamentoDisponibile) {
-        toast({
-          title: '🚀 Aggiornamento disponibile!',
-          description: `Trovati ${dati.nuoviCommit} commit di aggiornamento disponibili.`,
-        })
-      } else if (dati.configurato && !dati.offline) {
-        toast({ title: '✅ Sistema aggiornato', description: 'Stai già utilizzando l\'ultima versione disponibile.' })
+      if (!silenzioso) {
+        if (dati.aggiornamentoDisponibile) {
+          toast({
+            title: '🚀 Aggiornamento disponibile!',
+            description: `Trovati ${dati.nuoviCommit} commit di aggiornamento disponibili.`,
+          })
+        } else if (dati.configurato && !dati.offline) {
+          toast({ title: '✅ Sistema aggiornato', description: 'Stai già utilizzando l\'ultima versione disponibile.' })
+        } else if (dati.offline) {
+          toast({ title: 'Avviso rete', description: dati.avviso || 'Impossibile verificare GitHub.', variant: 'destructive' })
+        }
       }
     } catch {
-      toast({ title: 'Errore', description: 'Impossibile verificare gli aggiornamenti', variant: 'destructive' })
+      if (!silenzioso) {
+        toast({ title: 'Errore', description: 'Impossibile verificare gli aggiornamenti', variant: 'destructive' })
+      }
     } finally {
       setVerificandoAggiornamenti(false)
     }
-  }
+  }, [toast])
 
   const applicaAggiornamento = async () => {
     setApplicandoAggiornamento(true)
+    setContoRiavvio(null)
     setDettagliAggiornamento(['Avvio download aggiornamento da GitHub...'])
     try {
       const res = await fetch('/api/sistema/aggiornamento', { method: 'POST' })
@@ -160,13 +168,30 @@ export default function ImpostazioniPage() {
       setDettagliAggiornamento(dati.dettagli || ['Aggiornamento completato con successo!'])
       toast({
         title: '🎉 Aggiornamento completato!',
-        description: 'Il gestionale è stato aggiornato. Ricarica la pagina per applicare le novità.',
+        description: dati.riavvio
+          ? 'Il gestionale si sta riavviando con la nuova versione. Riconnessione automatica in corso...'
+          : 'Il gestionale è stato aggiornato. Ricarica la pagina per applicare le novità.',
       })
-      setTimeout(() => {
-        window.location.reload()
-      }, 3000)
+
+      if (dati.riavvio) {
+        let secondi = 6
+        setContoRiavvio(secondi)
+        const timer = setInterval(() => {
+          secondi -= 1
+          setContoRiavvio(secondi)
+          if (secondi <= 0) {
+            clearInterval(timer)
+            window.location.reload()
+          }
+        }, 1000)
+      } else {
+        setTimeout(() => {
+          window.location.reload()
+        }, 3000)
+      }
     } catch (e: any) {
-      toast({ title: 'Errore aggiornamento', description: e.message, variant: 'destructive' })
+      toast({ title: 'Errore aggiornamento', description: e.message || 'Si è verificato un errore.', variant: 'destructive' })
+      setDettagliAggiornamento(prev => [...prev, `❌ ERRORE: ${e.message}`])
     } finally {
       setApplicandoAggiornamento(false)
     }
@@ -224,7 +249,8 @@ export default function ImpostazioniPage() {
 
   React.useEffect(() => {
     caricaDati()
-  }, [caricaDati])
+    controllaAggiornamenti(true)
+  }, [caricaDati, controllaAggiornamenti])
 
   const handleSalvaSmtp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1108,7 +1134,7 @@ export default function ImpostazioniPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={controllaAggiornamenti}
+                  onClick={() => controllaAggiornamenti(false)}
                   disabled={verificandoAggiornamenti || applicandoAggiornamento}
                 >
                   {verificandoAggiornamenti ? (
@@ -1178,8 +1204,31 @@ export default function ImpostazioniPage() {
                 </div>
               </div>
 
+              {/* Se c'è conto alla rovescia di riavvio */}
+              {contoRiavvio !== null && (
+                <div className="p-6 border-2 border-emerald-300 bg-emerald-50 rounded-xl space-y-3">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-7 w-7 text-emerald-600 flex-shrink-0 animate-bounce" />
+                    <div>
+                      <h4 className="text-lg font-bold text-emerald-950">
+                        🎉 Aggiornamento completato con successo!
+                      </h4>
+                      <p className="text-sm text-emerald-800 mt-1">
+                        Il server si sta riavviando con la nuova versione compilata. Riconnessione automatica in corso tra <strong>{contoRiavvio} secondi</strong>...
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full bg-emerald-200 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-emerald-600 h-full transition-all duration-1000"
+                      style={{ width: `${Math.max(0, 100 - (contoRiavvio / 6) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Se c'è aggiornamento disponibile */}
-              {statoAggiornamento?.aggiornamentoDisponibile && (
+              {statoAggiornamento?.aggiornamentoDisponibile && contoRiavvio === null && (
                 <div className="p-5 border-2 border-blue-200 bg-blue-50/60 rounded-xl space-y-4">
                   <div className="flex items-start gap-3">
                     <ArrowUpCircle className="h-6 w-6 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -1197,7 +1246,7 @@ export default function ImpostazioniPage() {
                     <Button
                       onClick={applicaAggiornamento}
                       disabled={applicandoAggiornamento}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 shadow-sm"
                     >
                       {applicandoAggiornamento ? (
                         <>
@@ -1212,6 +1261,42 @@ export default function ImpostazioniPage() {
                       )}
                     </Button>
                   </div>
+                </div>
+              )}
+
+              {/* Se il sistema è già aggiornato */}
+              {!statoAggiornamento?.aggiornamentoDisponibile && statoAggiornamento?.configurato && !statoAggiornamento?.offline && contoRiavvio === null && (
+                <div className="p-4 border border-emerald-200 bg-emerald-50/50 rounded-xl flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-950">
+                        Il gestionale è aggiornato all'ultima versione di produzione
+                      </p>
+                      <p className="text-xs text-emerald-700">
+                        Nessun nuovo commit su GitHub. Se hai fatto modifiche manuali o vuoi riallineare i file, puoi forzare la reinstallazione.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={applicaAggiornamento}
+                    disabled={applicandoAggiornamento}
+                    className="border-emerald-300 text-emerald-800 hover:bg-emerald-100 whitespace-nowrap"
+                  >
+                    {applicandoAggiornamento ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        In corso...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                        Riallinea / Reinstalla
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
 
