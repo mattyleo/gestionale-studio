@@ -133,6 +133,110 @@ export async function POST() {
         }
       }
     }
+
+    // ─── SCANSIONE DINAMICA LAUNCHER .desktop SU LINUX ──────────────
+    const desktopDirs = [
+      path.join(homeDir, '.local', 'share', 'applications'),
+      '/usr/share/applications',
+      '/usr/local/share/applications',
+      path.join(homeDir, 'Scrivania'),
+      path.join(homeDir, 'Desktop'),
+    ]
+
+    for (const dDir of desktopDirs) {
+      if (fs.existsSync(dDir)) {
+        try {
+          const files = fs.readdirSync(dDir).filter(f => f.endsWith('.desktop'))
+          for (const f of files) {
+            const fullP = path.join(dDir, f)
+            try {
+              const content = fs.readFileSync(fullP, 'utf8')
+              const execMatch = content.match(/^Exec=(.+)$/m)
+              const nameMatch = content.match(/^Name=(.+)$/m)
+              const textToMatch = `${f} ${nameMatch?.[1] || ''} ${execMatch?.[1] || ''}`.toLowerCase()
+              const execCmd = execMatch ? execMatch[1].trim() : fullP
+
+              if ((textToMatch.includes('telematico') || textToMatch.includes('entratel')) && !trovati.some(t => t.nomeKey === 'telematico')) {
+                trovati.push({ nomeKey: 'telematico', percorsoTrovato: execCmd, tipo: 'desktop_entry' })
+              }
+              if ((textToMatch.includes('uniemens') || textToMatch.includes('inps')) && !trovati.some(t => t.nomeKey === 'uniemens')) {
+                trovati.push({ nomeKey: 'uniemens', percorsoTrovato: execCmd, tipo: 'desktop_entry' })
+              }
+              if (textToMatch.includes('redditi') && !trovati.some(t => t.nomeKey === 'redditi')) {
+                trovati.push({ nomeKey: 'redditi', percorsoTrovato: execCmd, tipo: 'desktop_entry' })
+              }
+              if (textToMatch.includes('lipe') && !trovati.some(t => t.nomeKey === 'lipe')) {
+                trovati.push({ nomeKey: 'lipe', percorsoTrovato: execCmd, tipo: 'desktop_entry' })
+              }
+              if ((textToMatch.includes('cu') || textToMatch.includes('certificazione unica')) && !trovati.some(t => t.nomeKey === 'cu')) {
+                trovati.push({ nomeKey: 'cu', percorsoTrovato: execCmd, tipo: 'desktop_entry' })
+              }
+              if (textToMatch.includes('f24') && !trovati.some(t => t.nomeKey === 'f24')) {
+                trovati.push({ nomeKey: 'f24', percorsoTrovato: execCmd, tipo: 'desktop_entry' })
+              }
+            } catch {}
+          }
+        } catch {}
+      }
+    }
+
+    // ─── SCANSIONE ATTIVA FILESYSTEM (find) SE ANCORA NON TROVATI ──
+    const chiaviMancanti = ['telematico', 'uniemens', 'redditi', 'lipe', 'cu', 'f24'].filter(
+      k => !trovati.some(t => t.nomeKey === k)
+    )
+
+    if (chiaviMancanti.length > 0) {
+      try {
+        const findOut = execSync(
+          `find "${homeDir}" /opt /usr/local -maxdepth 4 \\( -iname "*telematico*" -o -iname "*uniemens*" -o -iname "*redditi*" -o -iname "*lipe*" -o -iname "*f24*" \\) 2>/dev/null | head -n 40`,
+          { encoding: 'utf8', timeout: 5000 }
+        )
+        const righeFind = findOut.split('\n').map(r => r.trim()).filter(Boolean)
+        for (const p of righeFind) {
+          const pl = p.toLowerCase()
+          // Ignora archivi, log e directory
+          if (pl.endsWith('.log') || pl.endsWith('.zip') || pl.endsWith('.tar.gz') || pl.endsWith('.txt')) continue
+          try {
+            const stat = fs.statSync(p)
+            if (stat.isDirectory()) {
+              // Se è una cartella (es. ~/DesktopTelematico), controlla se dentro c'è un eseguibile con lo stesso nome o .sh
+              const base = path.basename(p)
+              const cand1 = path.join(p, base)
+              const cand2 = path.join(p, `${base}.sh`)
+              const cand3 = path.join(p, 'run.sh')
+              const cand4 = path.join(p, `${base}.desktop`)
+              for (const cand of [cand1, cand2, cand3, cand4]) {
+                if (fs.existsSync(cand)) {
+                  if (pl.includes('telematico') && !trovati.some(t => t.nomeKey === 'telematico')) {
+                    trovati.push({ nomeKey: 'telematico', percorsoTrovato: cand, tipo: 'eseguibile' })
+                  } else if (pl.includes('uniemens') && !trovati.some(t => t.nomeKey === 'uniemens')) {
+                    trovati.push({ nomeKey: 'uniemens', percorsoTrovato: cand, tipo: 'eseguibile' })
+                  }
+                  break
+                }
+              }
+              continue
+            }
+          } catch {}
+
+          if ((pl.includes('telematico') || pl.includes('entratel')) && !trovati.some(t => t.nomeKey === 'telematico')) {
+            trovati.push({ nomeKey: 'telematico', percorsoTrovato: p, tipo: p.endsWith('.sh') ? 'script' : 'eseguibile' })
+          }
+          if ((pl.includes('uniemens') || pl.includes('inps')) && !trovati.some(t => t.nomeKey === 'uniemens')) {
+            trovati.push({ nomeKey: 'uniemens', percorsoTrovato: p, tipo: p.endsWith('.sh') ? 'script' : 'eseguibile' })
+          }
+          if (pl.includes('redditi') && !trovati.some(t => t.nomeKey === 'redditi')) {
+            trovati.push({ nomeKey: 'redditi', percorsoTrovato: p, tipo: p.endsWith('.sh') ? 'script' : 'eseguibile' })
+          }
+          if (pl.includes('lipe') && !trovati.some(t => t.nomeKey === 'lipe')) {
+            trovati.push({ nomeKey: 'lipe', percorsoTrovato: p, tipo: p.endsWith('.sh') ? 'script' : 'eseguibile' })
+          }
+          if (pl.includes('f24') && !trovati.some(t => t.nomeKey === 'f24')) {
+            trovati.push({ nomeKey: 'f24', percorsoTrovato: p, tipo: p.endsWith('.sh') ? 'script' : 'eseguibile' })
+          }
+        }
+      } catch {}
+    }
   }
 
     // Aggiorna automaticamente i percorsi nella tabella database StudioProgram se presente
