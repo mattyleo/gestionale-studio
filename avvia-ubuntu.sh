@@ -51,6 +51,12 @@ echo ""
 # il ciclo riavvia automaticamente l'applicazione con la nuova versione aggiornata.
 # ─────────────────────────────────────────────────────────────
 while true; do
+    # Verifica che le dipendenze di build esistano
+    if [ ! -d "node_modules/@tailwindcss/postcss" ]; then
+        echo "[INFO] Moduli di compilazione mancanti. Installazione in corso..."
+        npm install --include=dev
+    fi
+
     # Verifica che la build di produzione esista; se manca, compilala automaticamente
     if [ ! -d ".next" ] || [ ! -f ".next/BUILD_ID" ]; then
         echo ""
