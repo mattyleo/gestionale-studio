@@ -8,7 +8,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, FileText, Download, Send, CheckCircle2,
   AlertTriangle, Clock, CreditCard, Printer, Ban, Euro,
-  Pencil, Hash, Calendar
+  Pencil, Hash, Calendar, Plus, Trash2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -20,10 +20,13 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { formatEuro, formatData, statoInvoiceLabel, statoInvoiceBadgeColor } from '@/lib/utils'
-import { getDescrizioneNatura } from '@/lib/codici-iva'
+import { formatEuro, formatData, statoInvoiceLabel, statoInvoiceBadgeColor, cn } from '@/lib/utils'
+import { CODICI_IVA, getDescrizioneNatura } from '@/lib/codici-iva'
 import { useToast } from '@/hooks/use-toast'
 import { InviaEmailModal } from '@/components/fatture/InviaEmailModal'
 
@@ -67,6 +70,126 @@ export default function FatturaDettaglioPage() {
   const [nuovaScadenzaFattura, setNuovaScadenzaFattura] = React.useState('')
   const [senzaScadenzaNumero, setSenzaScadenzaNumero] = React.useState(false)
   const [salvandoNumero, setSalvandoNumero] = React.useState(false)
+
+  // Modifica ed aggiunta righe fattura (stile Aruba Foto 2)
+  const [openModificaRiga, setOpenModificaRiga] = React.useState(false)
+  const [openAggiungiRiga, setOpenAggiungiRiga] = React.useState(false)
+  const [salvandoRiga, setSalvandoRiga] = React.useState(false)
+  const [formRiga, setFormRiga] = React.useState<{
+    id?: string
+    descrizione: string
+    quantita: string
+    prezzoUnitario: string
+    naturaIva: string
+  }>({
+    descrizione: '',
+    quantita: '1',
+    prezzoUnitario: '',
+    naturaIva: 'N2.2',
+  })
+
+  const apriModificaRiga = (riga: any) => {
+    const isBollo =
+      riga.descrizione?.toLowerCase().includes('bolli') ||
+      riga.descrizione?.toLowerCase().includes('bollo')
+    const desc = isBollo ? 'addebito bolli' : riga.descrizione
+    setFormRiga({
+      id: riga.id,
+      descrizione: desc,
+      quantita: String(Number(riga.quantita || 1)),
+      prezzoUnitario: String(Number(riga.prezzoUnitario || 0)),
+      naturaIva: riga.naturaIva || 'N2.2',
+    })
+    setOpenModificaRiga(true)
+  }
+
+  const apriNuovaRiga = () => {
+    setFormRiga({
+      descrizione: '',
+      quantita: '1',
+      prezzoUnitario: '',
+      naturaIva: 'N2.2',
+    })
+    setOpenAggiungiRiga(true)
+  }
+
+  const handleSalvaModificaRiga = async () => {
+    if (!formRiga.descrizione.trim()) {
+      toast({ title: 'Descrizione obbligatoria', variant: 'destructive' })
+      return
+    }
+    const q = parseFloat(formRiga.quantita) || 1
+    const p = parseFloat(formRiga.prezzoUnitario) || 0
+    setSalvandoRiga(true)
+    try {
+      const res = await fetch(`/api/fatture/${fatturaId}/righe`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: formRiga.id,
+          descrizione: formRiga.descrizione.trim(),
+          quantita: q,
+          prezzoUnitario: p,
+          naturaIva: formRiga.naturaIva,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Errore salvataggio riga')
+      toast({ title: '✅ Riga aggiornata con successo' })
+      setOpenModificaRiga(false)
+      caricaFattura()
+    } catch (e: any) {
+      toast({ title: 'Errore', description: e.message, variant: 'destructive' })
+    } finally {
+      setSalvandoRiga(false)
+    }
+  }
+
+  const handleCreaNuovaRiga = async () => {
+    if (!formRiga.descrizione.trim()) {
+      toast({ title: 'Descrizione obbligatoria', variant: 'destructive' })
+      return
+    }
+    const q = parseFloat(formRiga.quantita) || 1
+    const p = parseFloat(formRiga.prezzoUnitario) || 0
+    setSalvandoRiga(true)
+    try {
+      const res = await fetch(`/api/fatture/${fatturaId}/righe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          descrizione: formRiga.descrizione.trim(),
+          quantita: q,
+          prezzoUnitario: p,
+          naturaIva: formRiga.naturaIva,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Errore creazione riga')
+      toast({ title: '✅ Nuova riga aggiunta alla bozza' })
+      setOpenAggiungiRiga(false)
+      caricaFattura()
+    } catch (e: any) {
+      toast({ title: 'Errore', description: e.message, variant: 'destructive' })
+    } finally {
+      setSalvandoRiga(false)
+    }
+  }
+
+  const handleEliminaRiga = async (riga: any) => {
+    if (!confirm(`Sei sicuro di voler eliminare la riga "${riga.descrizione}"?`)) return
+    try {
+      const res = await fetch(`/api/fatture/${fatturaId}/righe?lineId=${riga.id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Errore eliminazione riga')
+      toast({ title: '✅ Riga eliminata' })
+      caricaFattura()
+    } catch (e: any) {
+      toast({ title: 'Errore', description: e.message, variant: 'destructive' })
+    }
+  }
 
   const caricaFattura = React.useCallback(async () => {
     if (!fatturaId) return
@@ -487,66 +610,132 @@ export default function FatturaDettaglioPage() {
         </CardContent>
       </Card>
 
-      {/* Righe fattura */}
+      {/* Sezione PRODOTTI E SERVIZI (Righe fattura) — layout conforme ad Aruba e Dott. Tuzio (Foto 2) */}
       <Card>
-        <CardHeader>
-          <CardTitle>Righe fattura</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-base font-bold text-gray-900 uppercase tracking-wide">
+              Prodotti e Servizi
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Dettaglio delle prestazioni professionali, spese anticipate ed eventuali bolli
+            </CardDescription>
+          </div>
+          {isBozza && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={apriNuovaRiga}
+              className="text-blue-700 border-blue-200 hover:bg-blue-50 text-xs font-medium"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1 text-blue-600" />
+              Aggiungi Riga
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8">N°</TableHead>
-                <TableHead>Descrizione</TableHead>
-                <TableHead className="w-56">Natura IVA</TableHead>
-                <TableHead className="text-right w-20">Q.tà</TableHead>
-                <TableHead className="text-right w-28">Prezzo unit.</TableHead>
-                <TableHead className="text-right w-28">Importo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {fattura.lines?.map((riga: any) => {
-                const isArt15 =
-                  riga.naturaIva === 'N1' ||
-                  riga.descrizione?.toLowerCase().includes('art. 15') ||
-                  riga.descrizione?.toLowerCase().includes('spese vive') ||
-                  riga.descrizione?.toLowerCase().includes('sanzione amministrativa non dovuta')
-                const isBolli = riga.descrizione?.toLowerCase().trim() === 'bolli'
-                const nat = riga.naturaIva || 'N2.2'
-                return (
-                  <TableRow key={riga.id} className={isArt15 ? 'bg-amber-50/40' : ''}>
-                    <TableCell className="text-gray-500">{riga.ordinamento}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-medium text-gray-900">{riga.descrizione}</span>
-                        <span className="text-[11px] text-gray-500">
-                          {isArt15
-                            ? 'Spesa anticipata esclusa dalla base imponibile ex art. 15 DPR 633/72'
-                            : isBolli
-                            ? 'Imposta di bollo assolta di legge (Natura N2)'
-                            : 'Prestazione professionale in regime forfettario L. 190/2014'}
+          <div className="rounded-md border border-gray-200 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-slate-100">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-12 text-center font-bold text-gray-800 text-xs">NR</TableHead>
+                  <TableHead className="font-bold text-gray-800 text-xs">DESCRIZIONE</TableHead>
+                  <TableHead className="text-right w-28 font-bold text-gray-800 text-xs">QUANTITA&apos;</TableHead>
+                  <TableHead className="text-right w-36 font-bold text-gray-800 text-xs">PREZZO (IVA INCLUSA)</TableHead>
+                  <TableHead className="text-right w-36 font-bold text-gray-800 text-xs">IMPORTO (IVA INCLUSA)</TableHead>
+                  <TableHead className="text-center w-16 font-bold text-gray-800 text-xs">IVA</TableHead>
+                  <TableHead className="text-center w-24 font-bold text-gray-800 text-xs">NATURA IVA</TableHead>
+                  {isBozza && <TableHead className="w-20 text-right font-bold text-gray-800 text-xs">AZIONI</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {fattura.lines?.map((riga: any, idx: number) => {
+                  const isArt15 =
+                    riga.naturaIva === 'N1' ||
+                    riga.descrizione?.toLowerCase().includes('art. 15') ||
+                    riga.descrizione?.toLowerCase().includes('art.15') ||
+                    riga.descrizione?.toLowerCase().includes('spese vive')
+                  const isBolli =
+                    riga.descrizione?.toLowerCase().includes('bolli') ||
+                    riga.descrizione?.toLowerCase().includes('bollo')
+                  const descVisualizzata = isBolli ? 'addebito bolli' : riga.descrizione
+                  const partiDesc = String(descVisualizzata || '').split('\n').filter(Boolean)
+                  const primaRiga = partiDesc[0] || 'Prestazione'
+                  const righeDettaglio = partiDesc.slice(1)
+                  const nat = isArt15 ? 'N1' : (riga.naturaIva || 'N2.2')
+                  const qtyStr = isBolli
+                    ? '1,0'
+                    : `${Number(riga.quantita || 1).toFixed(1).replace('.', ',')} NR`
+
+                  return (
+                    <TableRow key={riga.id} className={cn('hover:bg-slate-50/70', isArt15 && 'bg-amber-50/30')}>
+                      <TableCell className="text-center text-xs font-medium text-gray-600">
+                        {idx + 1}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900 text-sm">{primaRiga}</span>
+                          {righeDettaglio.map((rd, rIdx) => (
+                            <span key={rIdx} className="text-xs text-gray-600 font-mono mt-0.5">
+                              {rd}
+                            </span>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-mono text-gray-800">
+                        {qtyStr}
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-mono text-gray-800">
+                        {formatEuro(riga.prezzoUnitario)}
+                      </TableCell>
+                      <TableCell className="text-right text-xs font-mono font-bold text-gray-900">
+                        {formatEuro(riga.importo)}
+                      </TableCell>
+                      <TableCell className="text-center text-xs font-mono text-gray-700">
+                        0 %
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className={cn(
+                          'inline-flex items-center justify-center font-mono font-bold text-xs px-2 py-0.5 rounded',
+                          isArt15
+                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                            : 'bg-slate-100 text-slate-800 border border-slate-300'
+                        )}>
+                          {nat}
                         </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {isArt15 ? (
-                        <Badge variant="outline" className="text-[11px] bg-amber-50 text-amber-800 border-amber-300">
-                          N1 - Escluso Art. 15
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-[11px] bg-blue-50 text-blue-800 border-blue-200">
-                          {getDescrizioneNatura(nat)}
-                        </Badge>
+                      </TableCell>
+                      {isBozza && (
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                              onClick={() => apriModificaRiga(riga)}
+                              title="Modifica descrizione, importo o natura"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            {!isBolli && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleEliminaRiga(riga)}
+                                title="Elimina riga dalla bozza"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
                       )}
-                    </TableCell>
-                    <TableCell className="text-right">{Number(riga.quantita).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{formatEuro(riga.prezzoUnitario)}</TableCell>
-                    <TableCell className="text-right font-medium">{formatEuro(riga.importo)}</TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
 
           {/* Riepilogo */}
           {(() => {
@@ -1198,6 +1387,198 @@ export default function FatturaDettaglioPage() {
               className="bg-blue-600 hover:bg-blue-700"
             >
               {salvandoScadenza ? 'Salvataggio…' : 'Salva Scadenza'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Modifica Riga Documento (Stile Aruba Foto 2) */}
+      <Dialog open={openModificaRiga} onOpenChange={setOpenModificaRiga}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Modifica Riga Documento</DialogTitle>
+            <DialogDescription>
+              Personalizza la descrizione, quantità, prezzo o natura IVA della prestazione (supporta testi su più righe come Cod.tipo/Cod.valore).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="mod-riga-desc">Descrizione *</Label>
+              <textarea
+                id="mod-riga-desc"
+                rows={3}
+                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                placeholder="es. Unico PF 2026 Forfetari gestione annuale 2025&#10;Cod.tipo: 6D, Cod.valore: 6D"
+                value={formRiga.descrizione}
+                onChange={(e) => setFormRiga({ ...formRiga, descrizione: e.target.value })}
+              />
+              <span className="text-[11px] text-gray-500">
+                Puoi andare a capo per inserire codici di gestione, dettagli o note aggiuntive.
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="mod-riga-qty">Quantità *</Label>
+                <Input
+                  id="mod-riga-qty"
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  value={formRiga.quantita}
+                  onChange={(e) => setFormRiga({ ...formRiga, quantita: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="mod-riga-prezzo">Prezzo Unitario (€) *</Label>
+                <Input
+                  id="mod-riga-prezzo"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formRiga.prezzoUnitario}
+                  onChange={(e) => setFormRiga({ ...formRiga, prezzoUnitario: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="mod-riga-natura">Natura IVA / Trattamento Fiscale</Label>
+              <Select
+                value={formRiga.naturaIva}
+                onValueChange={(v) => setFormRiga({ ...formRiga, naturaIva: v })}
+              >
+                <SelectTrigger id="mod-riga-natura" className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="N2.2">N2.2 - Non soggette (Regime Forfettario L. 190/2014)</SelectItem>
+                  <SelectItem value="N1">N1 - Escluso ex Art. 15 DPR 633/72 (Spese anticipate)</SelectItem>
+                  <SelectItem value="N2.1">N2.1 - Non soggette ad IVA (artt. Da 7 a 7-septies)</SelectItem>
+                  <SelectItem value="N3.1">N3.1 - Non imponibili (esportazioni)</SelectItem>
+                  <SelectItem value="N4">N4 - Operazioni Esenti ex art. 10</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Anteprima calcolo riga */}
+            {parseFloat(formRiga.quantita) > 0 && parseFloat(formRiga.prezzoUnitario) >= 0 && (
+              <div className="p-2.5 bg-slate-50 border rounded text-xs flex justify-between items-center">
+                <span className="text-gray-600">Importo totale riga calcolato:</span>
+                <span className="font-mono font-bold text-slate-900 text-sm">
+                  {formatEuro((parseFloat(formRiga.quantita) || 0) * (parseFloat(formRiga.prezzoUnitario) || 0))}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenModificaRiga(false)}>
+              Annulla
+            </Button>
+            <Button
+              onClick={handleSalvaModificaRiga}
+              disabled={salvandoRiga}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {salvandoRiga ? 'Salvataggio…' : 'Salva Modifiche'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Aggiungi Riga Documento */}
+      <Dialog open={openAggiungiRiga} onOpenChange={setOpenAggiungiRiga}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Aggiungi Nuova Riga al Documento</DialogTitle>
+            <DialogDescription>
+              Inserisci una prestazione, compenso o anticipazione spese direttamente nella bozza.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-riga-desc">Descrizione *</Label>
+              <textarea
+                id="new-riga-desc"
+                rows={3}
+                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                placeholder="es. Pratica dilazione - rateazione UNIRISCOSSIONE"
+                value={formRiga.descrizione}
+                onChange={(e) => setFormRiga({ ...formRiga, descrizione: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="new-riga-qty">Quantità *</Label>
+                <Input
+                  id="new-riga-qty"
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  value={formRiga.quantita}
+                  onChange={(e) => setFormRiga({ ...formRiga, quantita: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="new-riga-prezzo">Prezzo Unitario (€) *</Label>
+                <Input
+                  id="new-riga-prezzo"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  value={formRiga.prezzoUnitario}
+                  onChange={(e) => setFormRiga({ ...formRiga, prezzoUnitario: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="new-riga-natura">Natura IVA / Trattamento Fiscale</Label>
+              <Select
+                value={formRiga.naturaIva}
+                onValueChange={(v) => setFormRiga({ ...formRiga, naturaIva: v })}
+              >
+                <SelectTrigger id="new-riga-natura" className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="N2.2">N2.2 - Non soggette (Regime Forfettario L. 190/2014)</SelectItem>
+                  <SelectItem value="N1">N1 - Escluso ex Art. 15 DPR 633/72 (Spese anticipate)</SelectItem>
+                  <SelectItem value="N2.1">N2.1 - Non soggette ad IVA (artt. Da 7 a 7-septies)</SelectItem>
+                  <SelectItem value="N3.1">N3.1 - Non imponibili (esportazioni)</SelectItem>
+                  <SelectItem value="N4">N4 - Operazioni Esenti ex art. 10</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Anteprima calcolo riga */}
+            {parseFloat(formRiga.quantita) > 0 && parseFloat(formRiga.prezzoUnitario) >= 0 && (
+              <div className="p-2.5 bg-slate-50 border rounded text-xs flex justify-between items-center">
+                <span className="text-gray-600">Importo totale riga calcolato:</span>
+                <span className="font-mono font-bold text-slate-900 text-sm">
+                  {formatEuro((parseFloat(formRiga.quantita) || 0) * (parseFloat(formRiga.prezzoUnitario) || 0))}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenAggiungiRiga(false)}>
+              Annulla
+            </Button>
+            <Button
+              onClick={handleCreaNuovaRiga}
+              disabled={salvandoRiga}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {salvandoRiga ? 'Aggiunta…' : 'Aggiungi Riga'}
             </Button>
           </DialogFooter>
         </DialogContent>

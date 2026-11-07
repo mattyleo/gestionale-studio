@@ -287,13 +287,17 @@ export async function POST(request: Request) {
         imponibileConCassa.gt(sogliaBollo)
       const bollo = deveApplicareBollo ? importoBollo : new Decimal(0)
 
-      // Inserisci riga Bolli 2€ N2 (N2.2) solo se dovuto (e mai su sole spese Art. 15)
-      const haGiaRigaBollo = gruppi.some(g => g.serviceCodice === 'BOLLI' || g.serviceDescrizione.toLowerCase().trim() === 'bolli')
+      // Inserisci riga addebito bolli 2€ N2 (N2.2) solo se dovuto (e mai su sole spese Art. 15)
+      const haGiaRigaBollo = gruppi.some(
+        g => g.serviceCodice === 'BOLLI' ||
+          g.serviceDescrizione.toLowerCase().includes('bolli') ||
+          g.serviceDescrizione.toLowerCase().includes('bollo')
+      )
       if (deveApplicareBollo && !haGiaRigaBollo) {
         gruppi.push({
           serviceId: null,
           serviceCodice: 'BOLLI',
-          serviceDescrizione: 'Bolli',
+          serviceDescrizione: 'addebito bolli',
           attivitaIds: [],
           quantita: new Decimal(1),
           prezzoUnitario: importoBollo,

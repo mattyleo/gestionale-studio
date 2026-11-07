@@ -132,13 +132,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   // Colonne Prodotti & Servizi
-  colNr: { width: '5%', textAlign: 'center' },
-  colDesc: { width: '45%' },
-  colQty: { width: '10%', textAlign: 'right' },
+  colNr: { width: '4%', textAlign: 'center' },
+  colDesc: { width: '42%' },
+  colQty: { width: '12%', textAlign: 'right' },
   colPrice: { width: '15%', textAlign: 'right' },
   colAmount: { width: '15%', textAlign: 'right' },
   colIva: { width: '5%', textAlign: 'center' },
-  colNatura: { width: '5%', textAlign: 'center' },
+  colNatura: { width: '7%', textAlign: 'center' },
   // Colonne Metodo Pagamento
   colPayRata: { width: '8%', textAlign: 'center' },
   colPayMod: { width: '14%' },
@@ -298,14 +298,14 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
     bollo = 0
   }
 
-  // Assicura che la riga "Bolli" 2€ N2 sia visibile nella tabella SOLO se il bollo è dovuto (e mai su sole spese Art. 15)
+  // Assicura che la riga "addebito bolli" 2€ N2 sia visibile nella tabella SOLO se il bollo è dovuto (e mai su sole spese Art. 15)
   const hasBolloLine = rawLines.some(
-    (l: any) => l.descrizione?.toLowerCase().trim() === 'bolli'
+    (l: any) => l.descrizione?.toLowerCase().includes('bolli') || l.descrizione?.toLowerCase().includes('bollo')
   )
   const lines = [...rawLines]
   if (!hasBolloLine && bollo > 0 && !isSoloArt15) {
     lines.push({
-      descrizione: 'Bolli',
+      descrizione: 'addebito bolli',
       quantita: 1,
       prezzoUnitario: bollo,
       importo: bollo,
@@ -434,31 +434,42 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
           <View style={styles.tableHeader} fixed>
             <Text style={styles.colNr}>NR</Text>
             <Text style={styles.colDesc}>DESCRIZIONE</Text>
-            <Text style={styles.colQty}>QUANTITÀ</Text>
-            <Text style={styles.colPrice}>PREZZO</Text>
-            <Text style={styles.colAmount}>IMPORTO</Text>
+            <Text style={styles.colQty}>QUANTITA'</Text>
+            <Text style={styles.colPrice}>PREZZO (IVA INCLUSA)</Text>
+            <Text style={styles.colAmount}>IMPORTO (IVA INCLUSA)</Text>
             <Text style={styles.colIva}>IVA</Text>
-            <Text style={styles.colNatura}>NATURA</Text>
+            <Text style={styles.colNatura}>NATURA IVA</Text>
           </View>
 
           {lines.length > 0 ? (
             lines.map((line: any, idx: number) => {
-              const aliq = line.aliquotaIva ?? '0'
+              const aliq = line.aliquotaIva ? `${parseFloat(line.aliquotaIva)} %` : '0 %'
               const nat = line.naturaIva ?? 'N2.2'
+              const isBollo = line.descrizione?.toLowerCase().includes('bolli') || line.descrizione?.toLowerCase().includes('bollo')
+              const desc = isBollo ? 'addebito bolli' : line.descrizione
+              const partiDesc = String(desc || '').split('\n').filter(Boolean)
+              const primaRiga = partiDesc[0] || 'Prestazione'
+              const righeDettaglio = partiDesc.slice(1)
+              const qtyStr = isBollo
+                ? '1,0'
+                : `${Number(line.quantita || 1).toFixed(1).replace('.', ',')} NR`
+
               return (
                 <View key={idx} style={styles.tableRow} wrap={false}>
                   <Text style={styles.colNr}>{idx + 1}</Text>
                   <View style={styles.colDesc}>
-                    <Text>{line.descrizione}</Text>
-                    <Text style={{ fontSize: 6.5, color: '#64748b', marginTop: 1 }}>
-                      {getDescrizioneNatura(nat)}
-                    </Text>
+                    <Text>{primaRiga}</Text>
+                    {righeDettaglio.map((rd, rIdx) => (
+                      <Text key={rIdx} style={{ fontSize: 6.8, color: '#475569', marginTop: 1 }}>
+                        {rd}
+                      </Text>
+                    ))}
                   </View>
-                  <Text style={styles.colQty}>{formatNumber(line.quantita)}</Text>
+                  <Text style={styles.colQty}>{qtyStr}</Text>
                   <Text style={styles.colPrice}>{formatCurrency(line.prezzoUnitario)}</Text>
                   <Text style={[styles.colAmount, styles.bold]}>{formatCurrency(line.importo)}</Text>
-                  <Text style={styles.colIva}>{aliq}%</Text>
-                  <Text style={styles.colNatura}>{nat}</Text>
+                  <Text style={styles.colIva}>{aliq}</Text>
+                  <Text style={[styles.colNatura, styles.bold]}>{nat}</Text>
                 </View>
               )
             })
@@ -467,15 +478,12 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
               <Text style={styles.colNr}>1</Text>
               <View style={styles.colDesc}>
                 <Text>Prestazioni professionali</Text>
-                <Text style={{ fontSize: 6.5, color: '#64748b', marginTop: 1 }}>
-                  {getDescrizioneNatura('N2.2')}
-                </Text>
               </View>
-              <Text style={styles.colQty}>1</Text>
+              <Text style={styles.colQty}>1,0 NR</Text>
               <Text style={styles.colPrice}>{formatCurrency(imponibile)}</Text>
               <Text style={[styles.colAmount, styles.bold]}>{formatCurrency(imponibile)}</Text>
-              <Text style={styles.colIva}>0%</Text>
-              <Text style={styles.colNatura}>N2.2</Text>
+              <Text style={styles.colIva}>0 %</Text>
+              <Text style={[styles.colNatura, styles.bold]}>N2.2</Text>
             </View>
           )}
         </View>
