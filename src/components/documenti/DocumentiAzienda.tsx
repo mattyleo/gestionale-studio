@@ -165,9 +165,16 @@ export function DocumentiAzienda({ aziendaId }: { aziendaId: string }) {
         <p className="text-sm text-gray-500">
           {documenti.length === 0 ? 'Nessun documento caricato' : `${documenti.length} documento${documenti.length !== 1 ? 'i' : ''}`}
         </p>
-        <Button size="sm" onClick={() => setUploadDialog(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Carica documento
-        </Button>
+        <div className="flex items-center gap-2">
+          <a href="/archivi">
+            <Button size="sm" variant="outline">
+              📁 Archivio Completo Studio
+            </Button>
+          </a>
+          <Button size="sm" onClick={() => setUploadDialog(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Carica documento
+          </Button>
+        </div>
       </div>
 
       {/* Lista documenti */}
@@ -209,6 +216,11 @@ export function DocumentiAzienda({ aziendaId }: { aziendaId: string }) {
                   <Badge variant="secondary" className="text-xs py-0">
                     {tipoDocLabel(doc.tipoDoc)}
                   </Badge>
+                  {doc.codiceUnivoco && (
+                    <Badge variant="outline" className="text-[10px] py-0 font-mono text-blue-800 bg-blue-50 border-blue-200">
+                      {doc.codiceUnivoco}
+                    </Badge>
+                  )}
                   <span className="text-xs text-gray-400">{formatBytes(doc.dimensione)}</span>
                 </div>
                 {doc.scadenza && (

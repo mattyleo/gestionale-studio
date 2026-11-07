@@ -22,6 +22,8 @@ import {
   FileText,
   Truck,
   ShieldCheck,
+  FolderArchive,
+  Monitor,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -68,6 +70,8 @@ export function Sidebar({ bozzeBadge = 0, daIncassareBadge = 0 }: SidebarProps) 
       ],
     },
     { href: '/pagamenti', label: 'Pagamenti', icon: CreditCard },
+    { href: '/archivi', label: 'Archivio Documenti', icon: FolderArchive },
+    { href: '/programmi', label: 'Programmi Studio', icon: Monitor },
     { href: '/report', label: 'Report', icon: BarChart2 },
     { href: '/impostazioni', label: 'Impostazioni', icon: Settings },
   ];

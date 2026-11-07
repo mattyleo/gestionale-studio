@@ -89,11 +89,29 @@ export async function POST(
     const buffer = Buffer.from(await file.arrayBuffer())
     await writeFile(percorsoFile, buffer)
 
+    // Genera codice alfanumerico univoco per cliente
+    const sigla = azienda.ragioneSociale.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase().padEnd(4, 'X')
+    const dataStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    const randHex = Math.random().toString(36).substring(2, 6).toUpperCase()
+    const codiceUnivoco = `DOC-${sigla}-${dataStr}-${randHex}`
+
+    // Mappa tipoDoc a cartella
+    let cartella = 'Altro'
+    if (['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria'].includes(tipoDoc)) {
+      cartella = 'documenti_identita'
+    } else if (['visura_camerale', 'visura_catastale'].includes(tipoDoc)) {
+      cartella = 'visure_catasto'
+    } else if (tipoDoc.includes('contratto') || tipoDoc.includes('delega') || tipoDoc.includes('privacy')) {
+      cartella = 'contratti_incarichi'
+    }
+
     // Salva metadati nel DB
     const doc = await prisma.companyDocument.create({
       data: {
         companyId: params.id,
         uploadedBy: (session.user as any).id,
+        codiceUnivoco,
+        cartella,
         nomeFile: file.name,
         nomeStorage,
         tipoDoc,

@@ -242,28 +242,55 @@ model Company {
 }
 
 // ─────────────────────────────────────────────
-// DOCUMENTI AZIENDA (carte d'identità, PDF, ecc.)
+// DOCUMENTI AZIENDA & ARCHIVIO CLIENTE (visure, C.I., catastali, ecc.)
 // ─────────────────────────────────────────────
 
 model CompanyDocument {
-  id          String   @id @default(cuid())
-  companyId   String
-  uploadedBy  String?
-  nomeFile    String                // nome originale del file
-  nomeStorage String                // nome con cui è salvato su disco
-  tipoDoc     String   @default("altro") // "carta_identita" | "passaporto" | "visura" | "contratto" | "altro"
-  mimeType    String
-  dimensione  Int                   // bytes
-  note        String?
-  scadenza    DateTime? @db.Date    // scadenza documento (es. CI)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String    @id @default(cuid())
+  companyId        String
+  uploadedBy       String?
+  codiceUnivoco    String?   @unique // es. "DOC-BORG-20261107-7K9A"
+  cartella         String    @default("Altro") // "Documenti Identità" | "Visure & Catasto" | "Dichiarazioni Fiscali" | "F24 & Pagamenti" | "Contratti" | "LIPE & IVA" | "Terreni e Fabbricati" | "Altro"
+  nomeFile         String                // nome originale del file
+  nomeStorage      String                // nome con cui è salvato su disco
+  percorsoRelativo String?               // percorso relativo cartella es. "BORG_PRODUCTIONS/Visure/..."
+  tipoDoc          String    @default("altro") // "carta_identita" | "passaporto" | "patente" | "visura_camerale" | "visura_catastale" | "terreni_fabbricati" | "dichiarazione_redditi" | "f24" | "lipe" | "contratto" | "altro"
+  mimeType         String
+  dimensione       Int                   // bytes
+  note             String?
+  scadenza         DateTime? @db.Date    // scadenza documento (es. CI)
+  annoCompetenza   Int?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  company    Company @relation(fields: [companyId], references: [id])
-  uploadedByUser User? @relation("DocumentUploader", fields: [uploadedBy], references: [id])
+  company        Company @relation(fields: [companyId], references: [id])
+  uploadedByUser User?   @relation("DocumentUploader", fields: [uploadedBy], references: [id])
 
   @@index([companyId])
+  @@index([cartella])
+  @@index([tipoDoc])
   @@map("company_documents")
+}
+
+// ─────────────────────────────────────────────
+// PROGRAMMI ESTERNI DELLO STUDIO (Desktop Telematico, UniEMens, ecc.)
+// ─────────────────────────────────────────────
+
+model StudioProgram {
+  id             String   @id @default(cuid())
+  nome           String   // es. "Desktop Telematico"
+  descrizione    String?  // es. "Entratel e FileInternet - Agenzia delle Entrate"
+  categoria      String   @default("Fiscale") // "Fiscale" | "Previdenziale" | "Lavoro" | "Catasto" | "Altro"
+  icona          String?  @default("Monitor")
+  comandoLinux   String?  // comando o percorso eseguibile Linux
+  comandoWindows String?  // percorso eseguibile Windows
+  webUrl         String?  // URL portale web alternativo
+  ordinamento    Int      @default(0)
+  attivo         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("studio_programs")
 }
 
 model CompanyContact {
