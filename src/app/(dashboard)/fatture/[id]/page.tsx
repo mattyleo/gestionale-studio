@@ -590,7 +590,7 @@ export default function FatturaDettaglioPage() {
                 </div>
                 {Number(fattura.bollo) > 0 && (
                   <div className="flex justify-between text-xs text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                    <span>Bolli (2€ - Natura N1):</span>
+                    <span>Bolli (2€ - Natura N2):</span>
                     <span className="font-mono font-bold">{formatEuro(fattura.bollo)}</span>
                   </div>
                 )}

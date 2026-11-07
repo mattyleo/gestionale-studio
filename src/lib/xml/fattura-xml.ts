@@ -259,7 +259,7 @@ export function generaFatturaXML(dati: DatiFattura): string {
   // DatiBeniServizi — righe prestazioni
   const datiBeni = body.ele('DatiBeniServizi')
 
-  // Assicura che la riga "Bolli" 2€ N1 sia presente SOLO se il bollo è dovuto (e mai su sole spese Art. 15)
+  // Assicura che la riga "Bolli" 2€ N2.2 sia presente SOLO se il bollo è dovuto (e mai su sole spese Art. 15)
   const righeFinali = [...righe]
   const haRigaBollo = righeFinali.some(
     r => r.descrizione.toLowerCase().trim() === 'bolli'
@@ -272,7 +272,7 @@ export function generaFatturaXML(dati: DatiFattura): string {
       prezzoUnitario: bolloVal,
       importo: bolloVal,
       aliquotaIva: '0',
-      naturaIva: 'N1',
+      naturaIva: 'N2.2',
     })
   }
 

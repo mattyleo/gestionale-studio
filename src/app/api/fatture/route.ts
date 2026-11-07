@@ -434,7 +434,7 @@ export async function POST(request: Request) {
       imponibileConCassa.gt(sogliaBollo)
     const bollo = deveApplicareBollo ? importoBollo : new Decimal(0)
 
-    // Se il bollo è dovuto (> 77,47 € su compensi), inserisci la riga "Bolli" 2€ con Natura N1
+    // Se il bollo è dovuto (> 77,47 € su compensi), inserisci la riga "Bolli" 2€ con Natura N2 (N2.2)
     const haGiaRigaBollo = gruppi.some(g => g.serviceCodice === 'BOLLI' || g.serviceDescrizione.toLowerCase().trim() === 'bolli')
     if (deveApplicareBollo && !haGiaRigaBollo) {
       gruppi.push({
@@ -446,7 +446,7 @@ export async function POST(request: Request) {
         prezzoUnitario: importoBollo,
         importo: importoBollo,
         aliquotaIva: '0',
-        naturaIva: 'N1',
+        naturaIva: 'N2.2',
       })
     }
 

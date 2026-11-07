@@ -297,7 +297,7 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
     bollo = 0
   }
 
-  // Assicura che la riga "Bolli" 2€ N1 sia visibile nella tabella SOLO se il bollo è dovuto (e mai su sole spese Art. 15)
+  // Assicura che la riga "Bolli" 2€ N2 sia visibile nella tabella SOLO se il bollo è dovuto (e mai su sole spese Art. 15)
   const hasBolloLine = rawLines.some(
     (l: any) => l.descrizione?.toLowerCase().trim() === 'bolli'
   )
@@ -309,7 +309,7 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
       prezzoUnitario: bollo,
       importo: bollo,
       aliquotaIva: '0',
-      naturaIva: 'N1',
+      naturaIva: 'N2.2',
     })
   }
 
@@ -580,6 +580,12 @@ const FatturaDocument = ({ fattura }: { fattura: any }) => {
               <View style={styles.calcRow}>
                 <Text>Spese escluse art. 15:</Text>
                 <Text>{formatCurrency(totArt15)}</Text>
+              </View>
+            )}
+            {bollo > 0 && (
+              <View style={styles.calcRow}>
+                <Text>Bolli (Natura N2):</Text>
+                <Text>{formatCurrency(bollo)}</Text>
               </View>
             )}
             <View style={styles.calcTotalRow}>

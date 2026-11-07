@@ -565,7 +565,7 @@ export default function BozzePage() {
                 </div>
                 {bolloStima > 0 && (
                   <div className="flex justify-between text-slate-700">
-                    <span>Bolli (2€ - Natura N1):</span>
+                    <span>Bolli (2€ - Natura N2):</span>
                     <span className="font-medium">{formatEuro(bolloStima)}</span>
                   </div>
                 )}

@@ -118,7 +118,7 @@ assert(!xmlB2B.includes('<Ritenuta>NO</Ritenuta>'), 'Nessun tag illegale <Ritenu
 assert(!xmlB2B.includes('<NaturaIVA>'), 'Nessun tag errato <NaturaIVA>')
 assert(xmlB2B.includes('<BolloVirtuale>SI</BolloVirtuale>'), 'Bollo virtuale SI presente')
 assert(xmlB2B.includes('<ImportoBollo>2.00</ImportoBollo>'), 'Importo bollo 2.00 presente')
-assert(xmlB2B.includes('<ImponibileImporto>124.80</ImponibileImporto>'), 'ImponibileImporto riepilogo = 120 + 4.80 = 124.80 (quadratura SdI)')
+assert(xmlB2B.includes('<ImponibileImporto>126.80</ImponibileImporto>'), 'ImponibileImporto riepilogo N2.2 = 120 + 4.80 + 2.00 = 126.80 (quadratura SdI con bollo N2.2)')
 assert(xmlB2B.includes('<ImportoTotaleDocumento>126.80</ImportoTotaleDocumento>'), 'ImportoTotaleDocumento = 126.80')
 
 // ─── TEST 4: Generazione XML B2C (Privato Persona Fisica solo CF) ─
