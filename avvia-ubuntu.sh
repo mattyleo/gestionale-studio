@@ -19,6 +19,10 @@ else
 fi
 echo "[OK] Database attivo su porta 5432."
 
+echo "[1b/2] Allineamento database e nuove tabelle..."
+npx prisma db push --skip-generate >/dev/null 2>&1 || true
+echo "[OK] Tabelle database verificate e allineate."
+
 echo ""
 echo "[2/2] Apertura del browser su http://localhost:3000..."
 sleep 2

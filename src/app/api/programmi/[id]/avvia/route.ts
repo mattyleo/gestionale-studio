@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { DEFAULT_PROGRAMMI } from '@/lib/programmi-default'
 import { spawn } from 'child_process'
 import path from 'path'
 
@@ -17,9 +18,29 @@ export async function POST(
   if (!session) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
 
   try {
-    const prog = await prisma.studioProgram.findUnique({
-      where: { id: params.id },
-    })
+    let prog: {
+      nome: string
+      comandoWindows: string | null
+      comandoLinux: string | null
+      webUrl: string | null
+    } | null = null
+
+    if (params.id.startsWith('default-')) {
+      const idx = parseInt(params.id.replace('default-', ''), 10)
+      if (!isNaN(idx) && DEFAULT_PROGRAMMI[idx]) {
+        prog = DEFAULT_PROGRAMMI[idx]
+      }
+    }
+
+    if (!prog) {
+      try {
+        prog = await prisma.studioProgram.findUnique({
+          where: { id: params.id },
+        })
+      } catch (dbErr) {
+        // Ignora errore DB se tabella non pronta
+      }
+    }
 
     if (!prog) {
       return NextResponse.json({ error: 'Programma non trovato' }, { status: 404 })

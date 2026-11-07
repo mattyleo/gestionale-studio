@@ -5,77 +5,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-
-const DEFAULT_PROGRAMMI = [
-  {
-    nome: 'Desktop Telematico (Entratel / FileInternet)',
-    descrizione: 'Software ufficiale Agenzia delle Entrate per invio telematico dichiarazioni fiscali, F24 e atti',
-    categoria: 'Fiscale',
-    icona: 'Monitor',
-    comandoLinux: 'desktoptelematico',
-    comandoWindows: 'C:\\DesktopTelematico\\DesktopTelematico.exe',
-    webUrl: 'https://telematici.agenziaentrate.gov.it/',
-    ordinamento: 1,
-  },
-  {
-    nome: 'INPS Controlli UniEMens',
-    descrizione: 'Software INPS di controllo, validazione formale e squadratura dei flussi mensili UniEMens',
-    categoria: 'Previdenziale',
-    icona: 'Users',
-    comandoLinux: 'uniemens',
-    comandoWindows: 'C:\\INPS\\UniEMens\\uniemens.bat',
-    webUrl: 'https://www.inps.it/it/it/servizi-e-ricerca/servizi-per/aziende-e-consulenti.html',
-    ordinamento: 2,
-  },
-  {
-    nome: 'Dichiarazioni dei Redditi (Redditi PF / SP / SC / 730)',
-    descrizione: 'Pacchetto ministeriale per la compilazione e il calcolo delle dichiarazioni dei redditi annuali',
-    categoria: 'Fiscale',
-    icona: 'FileSpreadsheet',
-    comandoLinux: 'redditionline',
-    comandoWindows: 'C:\\RedditiOnline\\redditi.exe',
-    webUrl: 'https://www.agenziaentrate.gov.it/portale/dichiarazioni-e-comunicazioni',
-    ordinamento: 3,
-  },
-  {
-    nome: 'Comunicazioni LIPE (Liquidazioni IVA)',
-    descrizione: 'Modulo per la preparazione e il controllo delle comunicazioni liquidazioni periodiche IVA trimestrali',
-    categoria: 'Fiscale',
-    icona: 'Receipt',
-    comandoLinux: 'lipe',
-    comandoWindows: 'C:\\LIPE\\lipe.exe',
-    webUrl: 'https://ivaservizi.agenziaentrate.gov.it/portale/',
-    ordinamento: 4,
-  },
-  {
-    nome: 'Certificazione Unica (CU)',
-    descrizione: 'Software ministeriale per la compilazione e trasmissione delle Certificazioni Uniche lavoratori e autonomi',
-    categoria: 'Fiscale',
-    icona: 'Award',
-    comandoLinux: 'cu',
-    comandoWindows: 'C:\\CU\\cu.exe',
-    webUrl: 'https://www.agenziaentrate.gov.it/portale/certificazione-unica',
-    ordinamento: 5,
-  },
-  {
-    nome: 'Compilazione Modelli F24',
-    descrizione: 'Software F24 Online per deleghe di pagamento unificato tributi e contributi con F24 telematico',
-    categoria: 'Fiscale',
-    icona: 'CreditCard',
-    comandoLinux: 'f24online',
-    comandoWindows: 'C:\\F24Online\\f24.exe',
-    webUrl: 'https://telematici.agenziaentrate.gov.it/',
-    ordinamento: 6,
-  },
-  {
-    nome: 'Sister - Territorio & Catasto',
-    descrizione: 'Portale Agenzia delle Entrate per visure catastali, ipotecarie, mappe e planimetrie terreni e fabbricati',
-    categoria: 'Catasto',
-    icona: 'Landmark',
-    webUrl: 'https://sister.agenziaentrate.gov.it/',
-    ordinamento: 7,
-  },
-]
+import { DEFAULT_PROGRAMMI } from '@/lib/programmi-default'
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -102,8 +32,24 @@ export async function GET() {
       sistemaOperativo: process.platform === 'win32' ? 'windows' : 'linux',
     })
   } catch (err: any) {
-    console.error('Errore GET /api/programmi:', err)
-    return NextResponse.json({ error: 'Errore durante il recupero dei programmi' }, { status: 500 })
+    console.warn('Tabella studio_programs non ancora presente o errore DB, fallback su programmi predefiniti:', err.message)
+    // Fallback immediato: restituisce i programmi predefiniti con ID virtuali
+    const fallbackList = DEFAULT_PROGRAMMI.map((p, idx) => ({
+      id: `default-${idx}`,
+      ...p,
+      comandoLinux: p.comandoLinux || null,
+      comandoWindows: p.comandoWindows || null,
+      webUrl: p.webUrl || null,
+      ordinamento: p.ordinamento,
+      attivo: true,
+    }))
+
+    return NextResponse.json({
+      successo: true,
+      programmi: fallbackList,
+      sistemaOperativo: process.platform === 'win32' ? 'windows' : 'linux',
+      modalitaFallback: true,
+    })
   }
 }
 
