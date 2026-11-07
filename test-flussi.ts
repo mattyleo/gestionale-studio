@@ -118,6 +118,10 @@ assert(!xmlB2B.includes('<Ritenuta>NO</Ritenuta>'), 'Nessun tag illegale <Ritenu
 assert(!xmlB2B.includes('<NaturaIVA>'), 'Nessun tag errato <NaturaIVA>')
 assert(xmlB2B.includes('<BolloVirtuale>SI</BolloVirtuale>'), 'Bollo virtuale SI presente')
 assert(xmlB2B.includes('<ImportoBollo>2.00</ImportoBollo>'), 'Importo bollo 2.00 presente')
+assert(xmlB2B.indexOf('<DatiBollo>') < xmlB2B.indexOf('<ImportoTotaleDocumento>'), 'DatiBollo precede ImportoTotaleDocumento da sequenza XSD AdE')
+assert(xmlB2B.indexOf('<DatiBollo>') < xmlB2B.indexOf('<Causale>'), 'DatiBollo precede Causale da sequenza XSD AdE')
+assert(xmlB2B.indexOf('<DatiCassaPrevidenziale>') < xmlB2B.indexOf('<ImportoTotaleDocumento>'), 'DatiCassaPrevidenziale precede ImportoTotaleDocumento da sequenza XSD AdE')
+assert(xmlB2B.includes('<RiferimentoNormativo>Art. 1 c. 58 L. 190/2014 - Regime forfetario</RiferimentoNormativo>'), 'RiferimentoNormativo conforme a String100LatinType senza caratteri speciali')
 assert(xmlB2B.includes('<ImponibileImporto>126.80</ImponibileImporto>'), 'ImponibileImporto riepilogo N2.2 = 120 + 4.80 + 2.00 = 126.80 (quadratura SdI con bollo N2.2)')
 assert(xmlB2B.includes('<ImportoTotaleDocumento>126.80</ImportoTotaleDocumento>'), 'ImportoTotaleDocumento = 126.80')
 

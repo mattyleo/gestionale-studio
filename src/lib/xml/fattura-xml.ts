@@ -69,6 +69,25 @@ export interface DatiFattura {
 }
 
 /**
+ * Pulisce una stringa per i tipi LatinType di FatturaPA (es. String100LatinType, String200LatinType).
+ * Sostituisce caratteri tipografici speciali (trattini lunghi em-dash, virgolette curve) con ASCII standard,
+ * rimuove ritorni a capo (\r, \n, \t) e limita la lunghezza massima.
+ */
+export function cleanLatinString(str: string, maxLen = 100): string {
+  if (!str) return ''
+  return str
+    .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015]/g, '-') // dash / em-dash / en-dash -> '-'
+    .replace(/[\u2018\u2019\u201A\u201B]/g, "'")             // single quotes -> "'"
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')             // double quotes -> '"'
+    .replace(/[\u2026]/g, '...')                             // ellipsis -> '...'
+    .replace(/[\r\n\t]+/g, ' ')                               // a capo / tab -> spazio
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g, '')                   // caratteri ammessi in BasicLatin e Latin-1 Supplement
+    .replace(/\s+/g, ' ')                                     // collassa spazi multipli
+    .trim()
+    .substring(0, maxLen)
+}
+
+/**
  * Formatta una data in formato FatturaPA: YYYY-MM-DD
  */
 function formatDataXml(d: Date): string {
@@ -214,16 +233,6 @@ export function generaFatturaXML(dati: DatiFattura): string {
   datiGenDoc.ele('Divisa').txt('EUR')
   datiGenDoc.ele('Data').txt(formatDataXml(dati.dataDocumento))
   datiGenDoc.ele('Numero').txt(String(dati.numero))
-  datiGenDoc.ele('ImportoTotaleDocumento').txt(formatImporto(dati.totaleDocumento))
-
-  // Causale obbligatoria regime forfettario da normativa
-  const causaleForfettario =
-    "Operazione non soggetta a ritenuta alla fonte a titolo di acconto ai sensi dell'articolo 1, comma 67, l. n. 190 del 2014 e successive modificazioni"
-  datiGenDoc.ele('Causale').txt(causaleForfettario.substring(0, 200))
-
-  if (dati.note && dati.note.trim() !== causaleForfettario) {
-    datiGenDoc.ele('Causale').txt(dati.note.substring(0, 200))
-  }
 
   // Verifica se è una fattura di sole spese Art. 15 (esenti da bollo ex art. 5 Tab. B DPR 642/72)
   const isSoloArt15 = righe.length > 0 && righe.every(
@@ -239,13 +248,14 @@ export function generaFatturaXML(dati: DatiFattura): string {
     ? (dati.bollo > 0 ? dati.bollo : (dati.imponibile + dati.totaleCassa > 77.47 ? 2.0 : 0))
     : 0
 
+  // 1. DatiBollo (DEVE precedere DatiCassaPrevidenziale, ImportoTotaleDocumento e Causale da schema XSD AdE)
   if (bolloVal > 0) {
     const bolloEle = datiGenDoc.ele('DatiBollo')
     bolloEle.ele('BolloVirtuale').txt('SI')
     bolloEle.ele('ImportoBollo').txt(formatImporto(bolloVal))
   }
 
-  // Cassa previdenziale (CNPADC TC02 4%) — solo su compensi imponibili N2.2 (mai su sole spese Art. 15)
+  // 2. DatiCassaPrevidenziale (DEVE precedere ImportoTotaleDocumento e Causale da schema XSD AdE)
   if (!isSoloArt15 && dati.totaleCassa > 0 && dati.imponibile > 0 && emittente.cassaPrevidenziale) {
     const cassa = datiGenDoc.ele('DatiCassaPrevidenziale')
     cassa.ele('TipoCassa').txt(emittente.cassaPrevidenziale) // TC02
@@ -254,6 +264,18 @@ export function generaFatturaXML(dati: DatiFattura): string {
     cassa.ele('ImponibileCassa').txt(formatImporto(dati.imponibile))
     cassa.ele('AliquotaIVA').txt('0.00')
     cassa.ele('Natura').txt('N2.2')
+  }
+
+  // 3. ImportoTotaleDocumento (deve precedere Causale)
+  datiGenDoc.ele('ImportoTotaleDocumento').txt(formatImporto(dati.totaleDocumento))
+
+  // 4. Causale (dopo ImportoTotaleDocumento da schema XSD AdE)
+  const causaleForfettario =
+    "Operazione non soggetta a ritenuta alla fonte a titolo di acconto ai sensi dell'articolo 1, comma 67, l. n. 190 del 2014 e successive modificazioni"
+  datiGenDoc.ele('Causale').txt(cleanLatinString(causaleForfettario, 200))
+
+  if (dati.note && dati.note.trim() && dati.note.trim() !== causaleForfettario) {
+    datiGenDoc.ele('Causale').txt(cleanLatinString(dati.note, 200))
   }
 
   // DatiBeniServizi — righe prestazioni
@@ -280,9 +302,9 @@ export function generaFatturaXML(dati: DatiFattura): string {
     const riga = righeFinali[i]
     const dettaglio = datiBeni.ele('DettaglioLinee')
     dettaglio.ele('NumeroLinea').txt(String(i + 1))
-    dettaglio.ele('Descrizione').txt(riga.descrizione.substring(0, 1000))
+    dettaglio.ele('Descrizione').txt(cleanLatinString(riga.descrizione, 1000))
     dettaglio.ele('Quantita').txt(formatImporto(riga.quantita))
-    if (riga.unitaMisura) dettaglio.ele('UnitaMisura').txt(riga.unitaMisura)
+    if (riga.unitaMisura) dettaglio.ele('UnitaMisura').txt(cleanLatinString(riga.unitaMisura, 10))
     dettaglio.ele('PrezzoUnitario').txt(formatImporto(riga.prezzoUnitario))
     dettaglio.ele('PrezzoTotale').txt(formatImporto(riga.importo))
     dettaglio.ele('AliquotaIVA').txt(formatImporto(parseFloat(riga.aliquotaIva || '0')))
@@ -302,7 +324,7 @@ export function generaFatturaXML(dati: DatiFattura): string {
     riepilogoN2.ele('Natura').txt('N2.2')
     riepilogoN2.ele('ImponibileImporto').txt(formatImporto(imponibileN2_2))
     riepilogoN2.ele('Imposta').txt('0.00')
-    riepilogoN2.ele('RiferimentoNormativo').txt('Art. 1 c. 58 L. 190/2014 — Regime forfetario')
+    riepilogoN2.ele('RiferimentoNormativo').txt(cleanLatinString('Art. 1 c. 58 L. 190/2014 - Regime forfetario', 100))
   }
 
   // - Natura N1: Marca da bollo / spese anticipate escluse art. 15 DPR 633/72
@@ -314,7 +336,7 @@ export function generaFatturaXML(dati: DatiFattura): string {
     riepilogoN1.ele('Natura').txt('N1')
     riepilogoN1.ele('ImponibileImporto').txt(formatImporto(totN1))
     riepilogoN1.ele('Imposta').txt('0.00')
-    riepilogoN1.ele('RiferimentoNormativo').txt('Escluso art. 15 DPR 633/72')
+    riepilogoN1.ele('RiferimentoNormativo').txt(cleanLatinString('Escluso art. 15 DPR 633/72', 100))
   }
 
   // Altre eventuali nature presenti
@@ -386,6 +408,40 @@ export function validaFatturaXML(xml: string): string[] {
   const matchTotale = xml.match(/<ImportoTotaleDocumento>([\d.]+)<\/ImportoTotaleDocumento>/)
   if (matchTotale && parseFloat(matchTotale[1]) === 0) {
     errori.push('ImportoTotaleDocumento è zero')
+  }
+
+  // Verifica sequenza XSD AdE in DatiGeneraliDocumento:
+  // DatiBollo e DatiCassaPrevidenziale DEVONO precedere ImportoTotaleDocumento e Causale
+  const posBollo = xml.indexOf('<DatiBollo>')
+  const posCassa = xml.indexOf('<DatiCassaPrevidenziale>')
+  const posTotale = xml.indexOf('<ImportoTotaleDocumento>')
+  const posCausale = xml.indexOf('<Causale>')
+
+  if (posBollo !== -1 && posTotale !== -1 && posBollo > posTotale) {
+    errori.push('Sequenza XSD non valida: DatiBollo deve precedere ImportoTotaleDocumento')
+  }
+  if (posBollo !== -1 && posCausale !== -1 && posBollo > posCausale) {
+    errori.push('Sequenza XSD non valida: DatiBollo deve precedere Causale')
+  }
+  if (posCassa !== -1 && posTotale !== -1 && posCassa > posTotale) {
+    errori.push('Sequenza XSD non valida: DatiCassaPrevidenziale deve precedere ImportoTotaleDocumento')
+  }
+  if (posCassa !== -1 && posCausale !== -1 && posCassa > posCausale) {
+    errori.push('Sequenza XSD non valida: DatiCassaPrevidenziale deve precedere Causale')
+  }
+
+  // Verifica vincoli String100LatinType su RiferimentoNormativo (no em-dash \u2014, no ritorni a capo)
+  const matchRif = xml.match(/<RiferimentoNormativo>([\s\S]*?)<\/RiferimentoNormativo>/g)
+  if (matchRif) {
+    for (const rif of matchRif) {
+      const val = rif.replace(/<\/?RiferimentoNormativo>/g, '')
+      if (val.length > 100) {
+        errori.push(`RiferimentoNormativo supera 100 caratteri (${val.length})`)
+      }
+      if (/[^\x20-\x7E\xA0-\xFF]/.test(val)) {
+        errori.push(`RiferimentoNormativo contiene caratteri non ammessi da String100LatinType: "${val}"`)
+      }
+    }
   }
 
   return errori
