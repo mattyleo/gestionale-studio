@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { eseguiRegolarizzazioneCNDCEC, calcolaZonaERischioBot } from '@/lib/antiriciclaggio-engine'
+import { assureDbSchemaAligned } from '@/lib/db-align'
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions)
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
   const zonaFiltro = searchParams.get('zona') || 'TUTTE' // 'TUTTE' | 'ZONA_1' | 'ZONA_2' | 'ZONA_3'
 
   try {
+    await assureDbSchemaAligned()
     // Auto-regolarizzazione al primo accesso se nessun cliente ha ancora i tag di Zona
     try {
       const giaConZona = await prisma.company.count({

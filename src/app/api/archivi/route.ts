@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { assureDbSchemaAligned } from '@/lib/db-align'
 import { CATEGORIE_ARCHIVIO, ARCHIVI_BASE_DIR, getCartellaCliente } from '@/lib/archivi'
 import fs from 'fs'
 import path from 'path'
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
   if (!session) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
 
   try {
+    await assureDbSchemaAligned()
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('q')?.trim() || ''
 

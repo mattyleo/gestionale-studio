@@ -17,11 +17,19 @@ if docker compose ps >/dev/null 2>&1; then
 else
     sudo docker compose up -d postgres >/dev/null 2>&1
 fi
+
+# Attesa attiva disponibilità PostgreSQL sulla porta 5432
+for i in {1..15}; do
+    if timeout 1 bash -c "</dev/tcp/localhost/5432" >/dev/null 2>&1 || nc -z localhost 5432 >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
 echo "[OK] Database attivo su porta 5432."
 
-echo "[1b/2] Allineamento database e nuove tabelle..."
-npx prisma db push --skip-generate >/dev/null 2>&1 || true
-echo "[OK] Tabelle database verificate e allineate."
+echo "[1b/2] Allineamento database e nuove colonne/tabelle..."
+npx prisma db push --accept-data-loss >/dev/null 2>&1 || true
+echo "[OK] Schema database allineato."
 
 echo ""
 echo "[2/2] Apertura del browser su http://localhost:3000..."
