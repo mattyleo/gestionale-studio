@@ -693,7 +693,9 @@ export function AntiriciclaggioDettaglioModal({
                 {/* Box Upload Rapido PDF Documento Identità */}
                 {(() => {
                   const docIdentita = azienda?.documents?.find((d: any) =>
-                    ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria'].includes(d.tipoDoc)
+                    ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria', 'documenti_identita', 'ci'].includes((d.tipoDoc || '').toLowerCase()) ||
+                    d.cartella === 'documenti_identita' ||
+                    (d.nomeFile && /(identit|patente|passaporto|ci_)/i.test(d.nomeFile))
                   )
                   return (
                     <div className="sm:col-span-4 p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between flex-wrap gap-2">
@@ -955,11 +957,24 @@ export function AntiriciclaggioDettaglioModal({
               {(() => {
                 const docs: any[] = Array.isArray(azienda?.documents) ? azienda.documents : []
                 const docId = docs.find((d) =>
-                  ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria'].includes(d.tipoDoc)
+                  ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria', 'documenti_identita', 'ci'].includes((d.tipoDoc || '').toLowerCase()) ||
+                  d.cartella === 'documenti_identita' ||
+                  (d.nomeFile && /(identit|patente|passaporto|ci_)/i.test(d.nomeFile))
                 )
-                const docVisura = docs.find((d) => d.tipoDoc === 'visura')
-                const docAv4 = docs.find((d) => d.tipoDoc === 'av4_firmato')
-                const docPrivacy = docs.find((d) => d.tipoDoc === 'privacy_firmata' || d.tipoDoc === 'mandato')
+                const docVisura = docs.find((d) =>
+                  ['visura', 'visura_camerale', 'visura_catastale', 'visure_catasto'].includes((d.tipoDoc || '').toLowerCase()) ||
+                  d.cartella === 'visure_catasto' ||
+                  (d.nomeFile && /(visura|camerale|catastale)/i.test(d.nomeFile))
+                )
+                const docAv4 = docs.find((d) =>
+                  ['av4_firmato', 'av4', 'dichiarazione_av4'].includes((d.tipoDoc || '').toLowerCase()) ||
+                  (d.nomeFile && /(av4|av\.4)/i.test(d.nomeFile))
+                )
+                const docPrivacy = docs.find((d) =>
+                  ['privacy_firmata', 'mandato', 'contratto', 'privacy'].includes((d.tipoDoc || '').toLowerCase()) ||
+                  d.cartella === 'contratti_incarichi' ||
+                  (d.nomeFile && /(privacy|mandato|incarico)/i.test(d.nomeFile))
+                )
 
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

@@ -7,11 +7,11 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { readFile, unlink } from 'fs/promises'
 import { join } from 'path'
-import { existsSync } from 'fs'
+import fs, { existsSync } from 'fs'
 
 const UPLOAD_DIR = join(process.cwd(), 'uploads', 'aziende')
 
-// GET — scarica il file
+// GET — scarica o visualizza il file (cerca sia in uploads/aziende che in storage/archivi)
 export async function GET(
   request: Request,
   { params: _params }: { params: Promise<{ id: string; docId: string }> }
@@ -26,7 +26,39 @@ export async function GET(
 
   if (!doc) return NextResponse.json({ error: 'Documento non trovato' }, { status: 404 })
 
-  const percorso = join(UPLOAD_DIR, params.id, doc.nomeStorage)
+  // Cerca il file prima nella cartella classica uploads/aziende, poi in storage/archivi
+  let percorso = join(UPLOAD_DIR, params.id, doc.nomeStorage)
+  if (!existsSync(percorso) && doc.percorsoRelativo) {
+    const percorsoArchivi = join(process.cwd(), 'storage', 'archivi', doc.percorsoRelativo)
+    if (existsSync(percorsoArchivi)) {
+      percorso = percorsoArchivi
+    }
+  }
+
+  // Se ancora non esiste, cerca in tutta la directory storage/archivi per nomeStorage o codiceUnivoco
+  if (!existsSync(percorso)) {
+    const archiviBase = join(process.cwd(), 'storage', 'archivi')
+    if (existsSync(archiviBase)) {
+      const cercaRicorsivo = (dir: string): string | null => {
+        const entries = fs.readdirSync(dir, { withFileTypes: true })
+        for (const entry of entries) {
+          const full = join(dir, entry.name)
+          if (entry.isDirectory()) {
+            const res = cercaRicorsivo(full)
+            if (res) return res
+          } else if (entry.name === doc.nomeStorage || (doc.codiceUnivoco && entry.name.includes(doc.codiceUnivoco))) {
+            return full
+          }
+        }
+        return null
+      }
+      try {
+        const trovato = cercaRicorsivo(archiviBase)
+        if (trovato) percorso = trovato
+      } catch {}
+    }
+  }
+
   if (!existsSync(percorso)) {
     return NextResponse.json({ error: 'File non trovato su disco' }, { status: 404 })
   }

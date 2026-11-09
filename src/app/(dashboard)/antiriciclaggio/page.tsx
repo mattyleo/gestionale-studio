@@ -73,7 +73,7 @@ export default function AntiriciclaggioPage() {
   const [statoFascicolo, setStatoFascicolo] = React.useState('TUTTI')
   const [rischio, setRischio] = React.useState('TUTTI')
   const [statoDocumento, setStatoDocumento] = React.useState('TUTTI')
-  const [soloPiva, setSoloPiva] = React.useState(true)
+  const [soloPiva, setSoloPiva] = React.useState(false)
   const [zonaFiltro, setZonaFiltro] = React.useState<'TUTTE' | 'ZONA_3' | 'ZONA_2' | 'ZONA_1'>('TUTTE')
 
   // Modal fascicolo
@@ -783,10 +783,19 @@ export default function AntiriciclaggioPage() {
                         {(() => {
                           const docs: any[] = Array.isArray(az.documents) ? az.documents : []
                           const hasDocIdPdf = docs.some((d) =>
-                            ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria'].includes(d.tipoDoc)
+                            ['carta_identita', 'passaporto', 'patente', 'tessera_sanitaria', 'documenti_identita', 'ci'].includes((d.tipoDoc || '').toLowerCase()) ||
+                            d.cartella === 'documenti_identita' ||
+                            (d.nomeFile && /(identit|patente|passaporto|ci_)/i.test(d.nomeFile))
                           )
-                          const hasVisuraPdf = docs.some((d) => d.tipoDoc === 'visura')
-                          const hasAv4Pdf = docs.some((d) => d.tipoDoc === 'av4_firmato')
+                          const hasVisuraPdf = docs.some((d) =>
+                            ['visura', 'visura_camerale', 'visura_catastale', 'visure_catasto'].includes((d.tipoDoc || '').toLowerCase()) ||
+                            d.cartella === 'visure_catasto' ||
+                            (d.nomeFile && /(visura|camerale|catastale)/i.test(d.nomeFile))
+                          )
+                          const hasAv4Pdf = docs.some((d) =>
+                            ['av4_firmato', 'av4', 'dichiarazione_av4'].includes((d.tipoDoc || '').toLowerCase()) ||
+                            (d.nomeFile && /(av4|av\.4)/i.test(d.nomeFile))
+                          )
 
                           return (
                             <div className="space-y-1">

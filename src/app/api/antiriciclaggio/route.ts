@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const statoFascicolo = searchParams.get('statoFascicolo') || 'TUTTI'
   const rischio = searchParams.get('rischio') || 'TUTTI'
   const filtroDoc = searchParams.get('statoDocumento') || 'TUTTI'
-  const soloConPartitaIva = searchParams.get('soloPiva') !== 'false'
+  const soloConPartitaIva = searchParams.get('soloPiva') === 'true'
   const zonaFiltro = searchParams.get('zona') || 'TUTTE' // 'TUTTE' | 'ZONA_1' | 'ZONA_2' | 'ZONA_3'
 
   try {

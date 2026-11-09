@@ -23,6 +23,11 @@ export async function POST() {
   try {
     const isWindows = process.platform === 'win32'
     const homeDir = process.env.HOME || process.env.USERPROFILE || ''
+    const candidateHomeDirs = Array.from(new Set([
+      homeDir,
+      '/home/antonio',
+      process.env.USERPROFILE || '',
+    ].filter(Boolean)))
     const trovati: DetectedProgram[] = []
 
   if (isWindows) {
@@ -68,55 +73,63 @@ export async function POST() {
     }
   } else {
     // ─── LINUX (UBUNTU) SEARCH PATHS ───────────────────────
-    const searchMap: Record<string, string[]> = {
+    const linuxSearchPaths: Record<string, string[]> = {
       telematico: [
-        path.join(homeDir, 'Scaricati', 'DesktopTelematico-linux64_140', 'DesktopTelematico'),
-        path.join(homeDir, 'Scaricati', 'DesktopTelematico-linux64_140 (2)', 'DesktopTelematico'),
-        path.join(homeDir, 'Scaricati', 'google-chrome-stable_current_amd64', 'DesktopTelematico'),
-        path.join(homeDir, 'DesktopTelematico', 'DesktopTelematico'),
-        path.join(homeDir, 'DesktopTelematico', 'DesktopTelematico.sh'),
         '/opt/DesktopTelematico/DesktopTelematico',
         '/opt/DesktopTelematico/DesktopTelematico.sh',
         '/usr/local/bin/desktoptelematico',
         '/usr/bin/desktoptelematico',
-        path.join(homeDir, '.local', 'share', 'applications', 'DesktopTelematico.desktop'),
-        path.join(homeDir, 'Scrivania', 'DesktopTelematico.desktop'),
-        path.join(homeDir, 'Desktop', 'DesktopTelematico.desktop'),
       ],
       uniemens: [
         '/opt/INPS - Controlli Uniemens/inps-controlli-uniemens',
-        path.join(homeDir, 'Scaricati', 'Auto_4.2.0_Linux-x64', 'inps-controlli-uniemens-auto'),
-        path.join(homeDir, 'Scaricati', 'Auto_4.2.0_Linux-x64', 'inps-controlli-uniemens_linux_flat.sh'),
-        path.join(homeDir, 'uniemens', 'uniemens'),
-        path.join(homeDir, 'uniemens', 'uniemens.sh'),
         '/opt/uniemens/uniemens',
         '/opt/uniemens/uniemens.sh',
         '/usr/local/bin/uniemens',
-        path.join(homeDir, '.local', 'share', 'applications', 'uniemens.desktop'),
       ],
-      redditi: [
-        path.join(homeDir, 'redditi', 'redditionline'),
-        path.join(homeDir, 'redditi', 'redditi.sh'),
-        '/opt/redditi/redditi',
-      ],
-      lipe: [
-        path.join(homeDir, 'lipe', 'lipe'),
-        path.join(homeDir, 'lipe', 'lipe.sh'),
-        '/opt/lipe/lipe',
-      ],
-      cu: [
-        path.join(homeDir, 'cu', 'cu'),
-        path.join(homeDir, 'cu', 'cu.sh'),
-        '/opt/cu/cu',
-      ],
-      f24: [
-        path.join(homeDir, 'f24online', 'f24online'),
-        path.join(homeDir, 'f24online', 'f24.sh'),
-        '/opt/f24online/f24online',
-      ],
+      redditi: ['/opt/redditi/redditi'],
+      lipe: ['/opt/lipe/lipe'],
+      cu: ['/opt/cu/cu'],
+      f24: ['/opt/f24online/f24online'],
     }
 
-    for (const [key, paths] of Object.entries(searchMap)) {
+    // Aggiungi percorsi utente per ogni possibile home directory
+    for (const h of candidateHomeDirs) {
+      linuxSearchPaths.telematico.unshift(
+        path.join(h, 'Scaricati', 'DesktopTelematico-linux64_140 (2)', 'DesktopTelematico'),
+        path.join(h, 'Scaricati', 'DesktopTelematico-linux64_140', 'DesktopTelematico'),
+        path.join(h, 'Scaricati', 'google-chrome-stable_current_amd64', 'DesktopTelematico'),
+        path.join(h, 'DesktopTelematico', 'DesktopTelematico'),
+        path.join(h, 'DesktopTelematico', 'DesktopTelematico.sh'),
+        path.join(h, '.local', 'share', 'applications', 'DesktopTelematico.desktop'),
+        path.join(h, 'Scrivania', 'DesktopTelematico.desktop'),
+        path.join(h, 'Desktop', 'DesktopTelematico.desktop')
+      )
+      linuxSearchPaths.uniemens.unshift(
+        path.join(h, 'Scaricati', 'Auto_4.2.0_Linux-x64', 'inps-controlli-uniemens-auto'),
+        path.join(h, 'Scaricati', 'Auto_4.2.0_Linux-x64', 'inps-controlli-uniemens_linux_flat.sh'),
+        path.join(h, 'uniemens', 'uniemens'),
+        path.join(h, 'uniemens', 'uniemens.sh'),
+        path.join(h, '.local', 'share', 'applications', 'uniemens.desktop')
+      )
+      linuxSearchPaths.redditi.unshift(
+        path.join(h, 'redditi', 'redditionline'),
+        path.join(h, 'redditi', 'redditi.sh')
+      )
+      linuxSearchPaths.lipe.unshift(
+        path.join(h, 'lipe', 'lipe'),
+        path.join(h, 'lipe', 'lipe.sh')
+      )
+      linuxSearchPaths.cu.unshift(
+        path.join(h, 'cu', 'cu'),
+        path.join(h, 'cu', 'cu.sh')
+      )
+      linuxSearchPaths.f24.unshift(
+        path.join(h, 'f24online', 'f24online'),
+        path.join(h, 'f24online', 'f24.sh')
+      )
+    }
+
+    for (const [key, paths] of Object.entries(linuxSearchPaths)) {
       for (const p of paths) {
         if (fs.existsSync(p)) {
           let tipo: 'eseguibile' | 'script' | 'desktop_entry' = 'eseguibile'
@@ -141,13 +154,17 @@ export async function POST() {
     }
 
     // ─── SCANSIONE DINAMICA LAUNCHER .desktop SU LINUX ──────────────
-    const desktopDirs = [
-      path.join(homeDir, '.local', 'share', 'applications'),
+    const desktopDirs: string[] = [
       '/usr/share/applications',
       '/usr/local/share/applications',
-      path.join(homeDir, 'Scrivania'),
-      path.join(homeDir, 'Desktop'),
     ]
+    for (const h of candidateHomeDirs) {
+      desktopDirs.push(
+        path.join(h, '.local', 'share', 'applications'),
+        path.join(h, 'Scrivania'),
+        path.join(h, 'Desktop')
+      )
+    }
 
     for (const dDir of desktopDirs) {
       if (fs.existsSync(dDir)) {
@@ -193,30 +210,41 @@ export async function POST() {
 
     if (chiaviMancanti.length > 0) {
       try {
+        const searchRoots = Array.from(new Set([...candidateHomeDirs, '/opt', '/usr/local'])).filter(d => fs.existsSync(d))
+        const rootsStr = searchRoots.map(r => `"${r}"`).join(' ')
         const findOut = execSync(
-          `find "${homeDir}" /opt /usr/local -maxdepth 4 \\( -iname "*telematico*" -o -iname "*uniemens*" -o -iname "*redditi*" -o -iname "*lipe*" -o -iname "*f24*" \\) 2>/dev/null | head -n 40`,
+          `find ${rootsStr} -maxdepth 4 \\( -iname "*telematico*" -o -iname "*uniemens*" -o -iname "*redditi*" -o -iname "*lipe*" -o -iname "*f24*" \\) 2>/dev/null | head -n 60`,
           { encoding: 'utf8', timeout: 5000 }
         )
         const righeFind = findOut.split('\n').map(r => r.trim()).filter(Boolean)
         for (const p of righeFind) {
           const pl = p.toLowerCase()
-          // Ignora archivi, log e directory
-          if (pl.endsWith('.log') || pl.endsWith('.zip') || pl.endsWith('.tar.gz') || pl.endsWith('.txt')) continue
+          // Ignora archivi, librerie, log, file di configurazione e immagini
+          if (/\.(log|zip|tar\.gz|txt|jar|ini|so|dll|xml|properties|class|png|jpg|jpeg|svg|md|json|gz|html|css|js|ts)$/i.test(pl)) continue
           try {
             const stat = fs.statSync(p)
             if (stat.isDirectory()) {
-              // Se è una cartella (es. ~/DesktopTelematico), controlla se dentro c'è un eseguibile con lo stesso nome o .sh
+              // Se è una cartella, controlla se dentro c'è un eseguibile specifico
               const base = path.basename(p)
-              const cand1 = path.join(p, base)
-              const cand2 = path.join(p, `${base}.sh`)
-              const cand3 = path.join(p, 'run.sh')
-              const cand4 = path.join(p, `${base}.desktop`)
-              for (const cand of [cand1, cand2, cand3, cand4]) {
-                if (fs.existsSync(cand)) {
-                  if (pl.includes('telematico') && !trovati.some(t => t.nomeKey === 'telematico')) {
-                    trovati.push({ nomeKey: 'telematico', percorsoTrovato: cand, tipo: 'eseguibile' })
-                  } else if (pl.includes('uniemens') && !trovati.some(t => t.nomeKey === 'uniemens')) {
-                    trovati.push({ nomeKey: 'uniemens', percorsoTrovato: cand, tipo: 'eseguibile' })
+              const candidatiDentro = [
+                path.join(p, 'DesktopTelematico'),
+                path.join(p, 'DesktopTelematico.sh'),
+                path.join(p, 'inps-controlli-uniemens-auto'),
+                path.join(p, 'inps-controlli-uniemens_linux_flat.sh'),
+                path.join(p, 'uniemens'),
+                path.join(p, 'uniemens.sh'),
+                path.join(p, base),
+                path.join(p, `${base}.sh`),
+                path.join(p, 'run.sh'),
+                path.join(p, `${base}.desktop`),
+              ]
+              for (const cand of candidatiDentro) {
+                if (fs.existsSync(cand) && !fs.statSync(cand).isDirectory()) {
+                  const cl = cand.toLowerCase()
+                  if (cl.includes('telematico') && !trovati.some(t => t.nomeKey === 'telematico')) {
+                    trovati.push({ nomeKey: 'telematico', percorsoTrovato: cand, tipo: cand.endsWith('.sh') ? 'script' : 'eseguibile' })
+                  } else if ((cl.includes('uniemens') || cl.includes('inps')) && !trovati.some(t => t.nomeKey === 'uniemens')) {
+                    trovati.push({ nomeKey: 'uniemens', percorsoTrovato: cand, tipo: cand.endsWith('.sh') ? 'script' : 'eseguibile' })
                   }
                   break
                 }

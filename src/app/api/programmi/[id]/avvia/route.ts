@@ -72,6 +72,12 @@ export async function POST(
     if (finalCmd.startsWith('~/')) {
       finalCmd = path.join(homeDir, finalCmd.slice(2))
     }
+    if (!isWindows && !fs.existsSync(finalCmd) && fs.existsSync('/home/antonio')) {
+      const fallbackAntonio = finalCmd.replace(homeDir, '/home/antonio')
+      if (fs.existsSync(fallbackAntonio)) {
+        finalCmd = fallbackAntonio
+      }
+    }
 
     // Se su Linux e il file esiste, assicurati che abbia i permessi di esecuzione (chmod +x)
     if (!isWindows && fs.existsSync(finalCmd)) {

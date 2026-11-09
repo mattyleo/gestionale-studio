@@ -4,7 +4,7 @@ import path from "path";
 const nextConfig: NextConfig = {
   // Impostazioni per la produzione
   poweredByHeader: false,
-  outputFileTracingRoot: path.join(__dirname),
+  outputFileTracingRoot: path.resolve(process.cwd()),
   
   // Immagini esterne permesse (logo emittente, ecc.)
   images: {
