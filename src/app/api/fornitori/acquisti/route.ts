@@ -40,7 +40,7 @@ export async function GET(req: Request) {
         supplier: true,
       },
       orderBy: { dataDocumento: 'desc' },
-      take: 100,
+      take: 500,
     })
 
     const totaleImporto = fatture.reduce((acc, f) => acc + Number(f.totaleDocumento), 0)

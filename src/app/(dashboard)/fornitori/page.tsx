@@ -3,6 +3,7 @@
 // Gestione Fornitori e Fatture di Acquisto (Passive) dello Studio Professionale
 
 import * as React from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   Truck,
   Plus,
@@ -68,7 +69,15 @@ const CATEGORIE_PREDEFINITE = [
 
 export default function FornitoriPage() {
   const { toast } = useToast()
-  const [activeTab, setActiveTab] = React.useState('fornitori')
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const [activeTab, setActiveTab] = React.useState(tabParam === 'acquisti' ? 'acquisti' : 'fornitori')
+
+  React.useEffect(() => {
+    if (tabParam === 'acquisti') {
+      setActiveTab('acquisti')
+    }
+  }, [tabParam])
 
   // --- STATO TAB FORNITORI ---
   const [fornitori, setFornitori] = React.useState<any[]>([])
@@ -107,7 +116,7 @@ export default function FornitoriPage() {
   const [acquisti, setAcquisti] = React.useState<any[]>([])
   const [loadingAcquisti, setLoadingAcquisti] = React.useState(false)
   const [cercaAcquisto, setCercaAcquisto] = React.useState('')
-  const [annoAcquisti, setAnnoAcquisti] = React.useState<string>(new Date().getFullYear().toString())
+  const [annoAcquisti, setAnnoAcquisti] = React.useState<string>('TUTTI')
   const [statsAcquisti, setStatsAcquisti] = React.useState({
     totaleImporto: 0,
     totaleImponibile: 0,
@@ -168,7 +177,8 @@ export default function FornitoriPage() {
 
   React.useEffect(() => {
     caricaFornitori()
-  }, [caricaFornitori])
+    caricaAcquisti()
+  }, [caricaFornitori, caricaAcquisti])
 
   React.useEffect(() => {
     if (activeTab === 'acquisti') {
@@ -634,6 +644,8 @@ export default function FornitoriPage() {
                       <SelectItem value="2026">2026</SelectItem>
                       <SelectItem value="2025">2025</SelectItem>
                       <SelectItem value="2024">2024</SelectItem>
+                      <SelectItem value="2023">2023</SelectItem>
+                      <SelectItem value="2022">2022</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

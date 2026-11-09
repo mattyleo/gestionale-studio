@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   FolderArchive,
   Monitor,
+  ShoppingBag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +48,7 @@ export function Sidebar({ bozzeBadge = 0, daIncassareBadge = 0 }: SidebarProps) 
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   React.useEffect(() => {
-    if (pathname.startsWith('/fatture')) {
+    if (pathname.startsWith('/fatture') || (pathname === '/fornitori' && typeof window !== 'undefined' && window.location.search.includes('tab=acquisti'))) {
       setFattureOpen(true);
     }
   }, [pathname]);
@@ -67,6 +68,7 @@ export function Sidebar({ bozzeBadge = 0, daIncassareBadge = 0 }: SidebarProps) 
         { href: '/fatture/bozze', label: 'Bozze', icon: FileEdit, badge: bozzeBadge },
         { href: '/fatture/da-incassare', label: 'Da incassare', icon: Clock, badge: daIncassareBadge },
         { href: '/fatture/incassate', label: 'Incassate', icon: CheckCircle },
+        { href: '/fornitori?tab=acquisti', label: "Fatture d'Acquisto", icon: ShoppingBag },
       ],
     },
     { href: '/pagamenti', label: 'Pagamenti', icon: CreditCard },
