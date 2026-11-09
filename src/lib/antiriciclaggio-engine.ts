@@ -369,9 +369,14 @@ export async function eseguiRegolarizzazioneCNDCEC() {
 
     const isEntePaCaf = ragSocUpper.includes('CAF CGN') || az.tipoSoggetto === 'PA'
 
-    const primaFatturaData = az.invoices[0]?.dataDocumento
-      ? new Date(az.invoices[0].dataDocumento)
-      : new Date(az.createdAt || `${annoCorrente}-01-15`)
+    const rawDataDoc = az.invoices[0]?.dataDocumento
+    const rawCreatedAt = az.createdAt
+    let primaFatturaData = new Date(annoCorrente, 0, 15)
+    if (rawDataDoc && !isNaN(new Date(rawDataDoc).getTime())) {
+      primaFatturaData = new Date(rawDataDoc)
+    } else if (rawCreatedAt && !isNaN(new Date(rawCreatedAt).getTime())) {
+      primaFatturaData = new Date(rawCreatedAt)
+    }
 
     return {
       az,
@@ -393,42 +398,46 @@ export async function eseguiRegolarizzazioneCNDCEC() {
     // ZONA 1: Privato senza P.IVA (730, Redditi PF, IMU, Libretto Famiglia INPS, NASpI, Maternità, Dimissioni)
     const datiAuto = arricchisciDatiClienteBot(az)
     if (!haPiva && !isSuccessione) {
-      await prisma.company.update({
-        where: { id: az.id },
-        data: {
-          tipoSoggetto: 'PERSONA_FISICA',
-          settoreAttivita: 'CAF',
-          antiriciclaggioObbligo: false,
-          antiriciclaggioStato: 'REGOLARE',
-          antiriciclaggioRischio: 'BASSO',
-          antiriciclaggioPunteggio: 1,
-          legaleRappresentante: datiAuto.rapprNome,
-          cfRappresentante: datiAuto.cfPersona,
-          dataNascitaRappr: datiAuto.dataNascitaDate,
-          luogoNascitaRappr: datiAuto.luogoNascita,
-          antiriciclaggioPrestazione:
-            lineeTesto.includes('imu')
-              ? '[ZONA 1 - ESENTE] Elaborazione conteggi IMU e assistenza tributaria locale (Persona Fisica)'
-              : lineeTesto.includes('inps') || lineeTesto.includes('libretto')
-              ? '[ZONA 1 - ESENTE] Pratiche previdenziali INPS / Libretto di Famiglia / Dimissioni / NASpI'
-              : '[ZONA 1 - ESENTE] Elaborazione e trasmissione Modello 730 / Modello Redditi PF e assistenza fiscale CAF',
-          antiriciclaggioNote:
-            'BOT ZONA 1 (ESENTE DA AVC ex Tab. 1 Regola Tecnica n. 2 CNDCEC): Soggetto privato senza P.IVA. Non occorre comporre la scheda di rischio cliente. Resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e l\'attivazione dell\'adeguata verifica qualora emergano sospetti di riciclaggio o dubbi sull\'identità.',
-        },
-      })
+      try {
+        await prisma.company.update({
+          where: { id: az.id },
+          data: {
+            tipoSoggetto: 'PERSONA_FISICA',
+            settoreAttivita: 'CAF',
+            antiriciclaggioObbligo: false,
+            antiriciclaggioStato: 'REGOLARE',
+            antiriciclaggioRischio: 'BASSO',
+            antiriciclaggioPunteggio: 1,
+            legaleRappresentante: datiAuto.rapprNome,
+            cfRappresentante: datiAuto.cfPersona,
+            dataNascitaRappr: datiAuto.dataNascitaDate && !isNaN(datiAuto.dataNascitaDate.getTime()) ? datiAuto.dataNascitaDate : null,
+            luogoNascitaRappr: datiAuto.luogoNascita,
+            antiriciclaggioPrestazione:
+              lineeTesto.includes('imu')
+                ? '[ZONA 1 - ESENTE] Elaborazione conteggi IMU e assistenza tributaria locale (Persona Fisica)'
+                : lineeTesto.includes('inps') || lineeTesto.includes('libretto')
+                ? '[ZONA 1 - ESENTE] Pratiche previdenziali INPS / Libretto di Famiglia / Dimissioni / NASpI'
+                : '[ZONA 1 - ESENTE] Elaborazione e trasmissione Modello 730 / Modello Redditi PF e assistenza fiscale CAF',
+            antiriciclaggioNote:
+              'BOT ZONA 1 (ESENTE DA AVC ex Tab. 1 Regola Tecnica n. 2 CNDCEC): Soggetto privato senza P.IVA. Non occorre comporre la scheda di rischio cliente. Resta fermo l\'obbligo di Segnalazione di Operazioni Sospette (SOS) e l\'attivazione dell\'adeguata verifica qualora emergano sospetti di riciclaggio o dubbi sull\'identità.',
+          },
+        })
+      } catch (errZ1) {
+        console.warn(`Errore aggiornamento ZONA 1 cliente ${az.id}:`, errZ1)
+      }
       zona1Count++
       continue
     }
 
     // Soggetti con P.IVA o Pratiche di Successione (ZONA 2 o ZONA 3)
-    const numFascicolo = `ARC-${primaFatturaData.getFullYear()}-${String(contatoreFascicolo).padStart(3, '0')}`
+    const pfYear = !isNaN(primaFatturaData.getFullYear()) ? primaFatturaData.getFullYear() : annoCorrente
+    const pfMonth = !isNaN(primaFatturaData.getMonth()) ? primaFatturaData.getMonth() : 0
+    const pfDay = !isNaN(primaFatturaData.getDate()) ? primaFatturaData.getDate() : 1
+
+    const numFascicolo = `ARC-${pfYear}-${String(contatoreFascicolo).padStart(3, '0')}`
     contatoreFascicolo++
 
-    const dataScadenzaRevisione = new Date(
-      primaFatturaData.getFullYear() + 3,
-      primaFatturaData.getMonth(),
-      primaFatturaData.getDate()
-    )
+    const dataScadenzaRevisione = new Date(pfYear + 3, pfMonth, pfDay)
 
     const haConsulenzaOStraordinaria =
       lineeTesto.includes('consulenza') ||
@@ -520,32 +529,47 @@ export async function eseguiRegolarizzazioneCNDCEC() {
     const titolareDefault = datiAuto.titolareEffettivo
     const cfTitolareDefault = datiAuto.cfPersona
 
-    await prisma.company.update({
-      where: { id: az.id },
-      data: {
-        partitaIva: datiAuto.pivaNorm || az.partitaIva,
-        codiceFiscale: datiAuto.cfNorm || az.codiceFiscale,
-        tipoSoggetto: tipoSogg,
-        settoreAttivita: settore,
-        antiriciclaggioObbligo: true,
-        antiriciclaggioFascicolo: numFascicolo,
-        antiriciclaggioDataVerifica: az.antiriciclaggioDataVerifica || primaFatturaData,
-        antiriciclaggioDataScadenza: az.antiriciclaggioDataScadenza || dataScadenzaRevisione,
-        antiriciclaggioRischio: 'BASSO',
-        antiriciclaggioPunteggio: punteggio,
-        antiriciclaggioPrestazione: prestazione,
-        antiriciclaggioTitolareEffettivo: titolareDefault,
-        antiriciclaggioCfTitolareEffettivo: cfTitolareDefault,
-        legaleRappresentante: datiAuto.rapprNome,
-        cfRappresentante: datiAuto.cfPersona,
-        dataNascitaRappr: datiAuto.dataNascitaDate,
-        luogoNascitaRappr: datiAuto.luogoNascita,
-        antiriciclaggioStato: 'REGOLARE',
-        antiriciclaggioNote: motivazione,
-      },
-    })
+    const validDataVerifica = az.antiriciclaggioDataVerifica && !isNaN(new Date(az.antiriciclaggioDataVerifica).getTime())
+      ? new Date(az.antiriciclaggioDataVerifica)
+      : primaFatturaData
 
-    aggiornateObbligate++
+    const validDataScadenza = az.antiriciclaggioDataScadenza && !isNaN(new Date(az.antiriciclaggioDataScadenza).getTime())
+      ? new Date(az.antiriciclaggioDataScadenza)
+      : dataScadenzaRevisione
+
+    const validDataNascita = datiAuto.dataNascitaDate && !isNaN(datiAuto.dataNascitaDate.getTime())
+      ? datiAuto.dataNascitaDate
+      : null
+
+    try {
+      await prisma.company.update({
+        where: { id: az.id },
+        data: {
+          partitaIva: datiAuto.pivaNorm || az.partitaIva,
+          codiceFiscale: datiAuto.cfNorm || az.codiceFiscale,
+          tipoSoggetto: tipoSogg,
+          settoreAttivita: settore,
+          antiriciclaggioObbligo: true,
+          antiriciclaggioFascicolo: numFascicolo,
+          antiriciclaggioDataVerifica: validDataVerifica,
+          antiriciclaggioDataScadenza: validDataScadenza,
+          antiriciclaggioRischio: 'BASSO',
+          antiriciclaggioPunteggio: punteggio,
+          antiriciclaggioPrestazione: prestazione,
+          antiriciclaggioTitolareEffettivo: titolareDefault,
+          antiriciclaggioCfTitolareEffettivo: cfTitolareDefault,
+          legaleRappresentante: datiAuto.rapprNome,
+          cfRappresentante: datiAuto.cfPersona,
+          dataNascitaRappr: validDataNascita,
+          luogoNascitaRappr: datiAuto.luogoNascita,
+          antiriciclaggioStato: 'REGOLARE',
+          antiriciclaggioNote: motivazione,
+        },
+      })
+      aggiornateObbligate++
+    } catch (errUpd) {
+      console.warn(`Errore aggiornamento ZONA 2/3 cliente ${az.id}:`, errUpd)
+    }
   }
 
   return {

@@ -22,14 +22,18 @@ export async function GET(request: Request) {
 
   try {
     // Auto-regolarizzazione al primo accesso se nessun cliente ha ancora i tag di Zona
-    const giaConZona = await prisma.company.count({
-      where: {
-        archiviata: false,
-        antiriciclaggioPrestazione: { contains: 'ZONA' },
-      },
-    })
-    if (giaConZona === 0) {
-      await eseguiRegolarizzazioneCNDCEC()
+    try {
+      const giaConZona = await prisma.company.count({
+        where: {
+          archiviata: false,
+          antiriciclaggioPrestazione: { contains: 'ZONA' },
+        },
+      })
+      if (giaConZona === 0) {
+        await eseguiRegolarizzazioneCNDCEC()
+      }
+    } catch (regErr: any) {
+      console.warn('Avviso auto-regolarizzazione CNDCEC saltata:', regErr?.message)
     }
 
     const oggi = new Date()
@@ -115,11 +119,30 @@ export async function GET(request: Request) {
     ])
 
     // Calcola la valutazione Bot (Zona 1, 2, 3 + Matrice CNDCEC) per ogni cliente
+    const defaultBotVal: any = {
+      zona: 'ZONA_2',
+      zonaLabel: 'ZONA 2',
+      rischioInerente: 1.0,
+      rischioSpecifico: 1.0,
+      rischioEffettivo: 1.0,
+      classeRischio: 'BASSO',
+      obbligoSchedaAv2: false,
+      obbligoTitolareEffettivo: false,
+      periodicitaMesi: 36,
+      motivoBot: 'Classificazione standard',
+    }
+
     const aziendeConBot = aziendeRaw
-      .map((az) => ({
-        ...az,
-        botValutazione: calcolaZonaERischioBot(az),
-      }))
+      .map((az) => {
+        let botValutazione = defaultBotVal
+        try {
+          botValutazione = calcolaZonaERischioBot(az)
+        } catch {}
+        return {
+          ...az,
+          botValutazione,
+        }
+      })
       .filter((az) => {
         if (zonaFiltro === 'TUTTE') return true
         return az.botValutazione.zona === zonaFiltro
@@ -138,7 +161,11 @@ export async function GET(request: Request) {
     let privacyMancante = 0
 
     for (const a of tutteAziendeStudio) {
-      const val = calcolaZonaERischioBot(a)
+      let val = defaultBotVal
+      try {
+        val = calcolaZonaERischioBot(a)
+      } catch {}
+
       if (val.zona === 'ZONA_1') {
         zona1Count++
       } else {
@@ -152,8 +179,10 @@ export async function GET(request: Request) {
           docMancanti++
         } else if (a.documentoScadenza) {
           const scad = new Date(a.documentoScadenza)
-          if (scad < oggi) docScaduti++
-          else if (scad <= fra60Giorni) docInScadenza++
+          if (!isNaN(scad.getTime())) {
+            if (scad < oggi) docScaduti++
+            else if (scad <= fra60Giorni) docInScadenza++
+          }
         }
         if (!a.privacyFirmata) privacyMancante++
       }
