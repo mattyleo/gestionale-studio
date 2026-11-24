@@ -11,28 +11,61 @@ echo "       AVVIO GESTIONALE STUDIO - DOTT. ANTONIO TUZIO"
 echo "======================================================================="
 echo ""
 
-echo "[1/2] Verifica e avvio database PostgreSQL..."
-if docker compose ps >/dev/null 2>&1; then
-    docker compose up -d postgres >/dev/null 2>&1
-else
-    sudo docker compose up -d postgres >/dev/null 2>&1
+# ─────────────────────────────────────────────────────────────
+# 1. Verifica e Avvio Automatico del Servizio Docker di Sistema
+# ─────────────────────────────────────────────────────────────
+echo "[1/3] Verifica del servizio Docker di sistema..."
+
+# Se il servizio Docker è spento o inattivo, avvialo automaticamente
+if ! systemctl is-active --quiet docker 2>/dev/null && ! service docker status >/dev/null 2>&1; then
+    echo "[INFO] Il servizio Docker è spento. Avvio automatico del servizio..."
+    sudo systemctl start docker 2>/dev/null || sudo service docker start 2>/dev/null || true
+    # Abilita Docker all'avvio del sistema così parte da solo all'accensione del PC
+    sudo systemctl enable docker >/dev/null 2>&1 || true
+    sleep 3
 fi
 
-# Attesa attiva disponibilità PostgreSQL sulla porta 5432
-for i in {1..15}; do
+# Aggiungi l'utente corrente al gruppo docker se non presente (evita richieste di password future)
+if ! groups 2>/dev/null | grep -q '\bdocker\b'; then
+    sudo usermod -aG docker "$USER" 2>/dev/null || true
+fi
+
+# ─────────────────────────────────────────────────────────────
+# 2. Avvio Container PostgreSQL
+# ─────────────────────────────────────────────────────────────
+echo "[2/3] Verifica e avvio container PostgreSQL..."
+if docker compose ps >/dev/null 2>&1; then
+    docker compose up -d postgres >/dev/null 2>&1
+elif sudo docker compose ps >/dev/null 2>&1; then
+    sudo docker compose up -d postgres >/dev/null 2>&1
+elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose up -d postgres 2>/dev/null || sudo docker-compose up -d postgres 2>/dev/null || true
+fi
+
+# Attesa attiva disponibilità PostgreSQL sulla porta 5432 (fino a 20 secondi)
+DB_PRONTO=false
+for i in {1..20}; do
     if timeout 1 bash -c "</dev/tcp/localhost/5432" >/dev/null 2>&1 || nc -z localhost 5432 >/dev/null 2>&1; then
+        DB_PRONTO=true
         break
     fi
     sleep 1
 done
-echo "[OK] Database attivo su porta 5432."
 
-echo "[1b/2] Allineamento database e nuove colonne/tabelle..."
+if [ "$DB_PRONTO" = true ]; then
+    echo "[OK] Database PostgreSQL attivo su porta 5432."
+else
+    echo "[AVVISO] Tentativo di riavvio container PostgreSQL..."
+    sudo docker compose restart postgres 2>/dev/null || docker compose restart postgres 2>/dev/null || true
+    sleep 2
+fi
+
+echo "[2b/3] Allineamento database e nuove colonne/tabelle..."
 npx prisma db push --accept-data-loss >/dev/null 2>&1 || true
 echo "[OK] Schema database allineato."
 
 echo ""
-echo "[2/2] Apertura del browser su http://localhost:3000..."
+echo "[3/3] Apertura del browser su http://localhost:3000..."
 sleep 2
 if command -v xdg-open &> /dev/null; then
     xdg-open "http://localhost:3000" >/dev/null 2>&1 &
