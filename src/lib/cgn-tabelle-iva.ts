@@ -1,10 +1,10 @@
 // src/lib/cgn-tabelle-iva.ts
 // Tavola di raccordo ufficiale Gestionale CGN Contabilità <-> Codici Natura Agenzia delle Entrate (SDI / LIPE / Dichiarazione IVA)
-// Da documento di studio fornito dal Dott. Antonio Tuzio
+// Da documento di studio fornito dal Dott. Antonio Tuzio (Pagine 1-5 complete)
 
 export interface CodificaIvaCGN {
   codiceCgn: string
-  naturaSdi?: string // es. N1, N2.1, N2.2, N3.1, N3.2, N4, N5, N6.1 - N6.9, N7
+  naturaSdi?: string // es. N1, N2.1, N2.2, N3.1, N3.2, N3.3, N3.4, N3.5, N3.6, N4, N5, N6.1 - N6.9, N7
   tipoDocumentoAutofattura?: string // TD16, TD17, TD18, TD19
   norma: string
   descrizione: string
@@ -14,12 +14,12 @@ export interface CodificaIvaCGN {
 }
 
 export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
-  // 1. Natura N1 — Operazioni Escluse ex Art. 15 DPR 633/1972
+  // ── 1. Natura N1 — Operazioni Escluse ex Art. 15 DPR 633/1972 ──
   {
     codiceCgn: 'A15',
     naturaSdi: 'N1',
     norma: 'Art. 15 DPR 633/72',
-    descrizione: 'Escluso generico ex art. 15 (non concorre al volume d\'affari)',
+    descrizione: 'Escluso generico ex art. 15 (non concorre alla formazione della base imponibile né al volume d\'affari)',
     ambito: 'ESCLUSO',
   },
   {
@@ -58,7 +58,7 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     ambito: 'ESCLUSO',
   },
 
-  // 2. Natura N2 — Operazioni Non Soggette ad IVA
+  // ── 2. Natura N2 — Operazioni Non Soggette ad IVA ──
   {
     codiceCgn: 'A07T',
     naturaSdi: 'N2.1',
@@ -83,10 +83,24 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     ambito: 'NON_SOGGETTO',
   },
   {
+    codiceCgn: 'A07QAA-AE',
+    naturaSdi: 'N2.1',
+    norma: 'Art. 7-quater lett. a-e',
+    descrizione: 'Deroghe territoriali: servizi su immobili, trasporto passeggeri, ristorazione, noleggi a breve',
+    ambito: 'NON_SOGGETTO',
+  },
+  {
+    codiceCgn: 'A07QI/SX/SP',
+    naturaSdi: 'N2.1',
+    norma: 'Artt. 7-quinquies, sexies, septies',
+    descrizione: 'Servizi culturali/artistici, servizi B2C e servizi immateriali a privati Extra-UE',
+    ambito: 'NON_SOGGETTO',
+  },
+  {
     codiceCgn: 'FORF',
     naturaSdi: 'N2.2',
     norma: 'L. 190/2014, art. 1 commi 54-89',
-    descrizione: 'Regime Forfettario. Operazione senza addebito d\'imposta e senza detrazione. Vale anche per riaddebito bollo 2€ (Interpello 911-894/2022)',
+    descrizione: 'Regime forfettario. Operazione senza addebito d\'imposta e senza detrazione. Vale anche per riaddebito bollo 2€ (Interpello 911-894/2022)',
     ambito: 'NON_SOGGETTO',
   },
   {
@@ -94,6 +108,34 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     naturaSdi: 'N2.2',
     norma: 'D.L. 98/2011, art. 27 commi 1-2',
     descrizione: 'Regime fiscale di vantaggio per l\'imprenditoria giovanile e lavoratori in mobilità (ex minimi)',
+    ambito: 'NON_SOGGETTO',
+  },
+  {
+    codiceCgn: 'A02/A03',
+    naturaSdi: 'N2.2',
+    norma: 'Artt. 2 e 3 DPR 633/72',
+    descrizione: 'Cessioni di denaro, passaggi aziendali e operazioni non considerate cessioni di beni o prestazioni',
+    ambito: 'NON_SOGGETTO',
+  },
+  {
+    codiceCgn: 'A04/A05',
+    naturaSdi: 'N2.2',
+    norma: 'Artt. 4 e 5 DPR 633/72',
+    descrizione: 'Operazioni non effettuate nell\'esercizio di imprese, arti o professioni (carenza requisito soggettivo)',
+    ambito: 'NON_SOGGETTO',
+  },
+  {
+    codiceCgn: 'A13',
+    naturaSdi: 'N2.2',
+    norma: 'Art. 13 DPR 633/72',
+    descrizione: 'Operazioni con corrispettivi o elementi specificamente esclusi dal computo della base imponibile',
+    ambito: 'NON_SOGGETTO',
+  },
+  {
+    codiceCgn: 'A26',
+    naturaSdi: 'N2.2',
+    norma: 'Art. 26 DPR 633/72',
+    descrizione: 'Note di variazione in diminuzione/aumento non soggette a rettifica IVA diretta',
     ambito: 'NON_SOGGETTO',
   },
   {
@@ -110,8 +152,15 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     descrizione: 'Operazioni generiche fuori campo IVA per difetto assoluto dei requisiti normativi',
     ambito: 'NON_SOGGETTO',
   },
+  {
+    codiceCgn: 'DPR322/L196/L67',
+    naturaSdi: 'N2.2',
+    norma: 'Leggi speciali di settore',
+    descrizione: 'Compensi invio telematico (DPR 322), lavoro interinale (L. 196), distacco del personale (L. 67)',
+    ambito: 'NON_SOGGETTO',
+  },
 
-  // 3. Natura N3 — Operazioni Non Imponibili (Esportazioni e Scambi Intracomunitari)
+  // ── 3. Natura N3 — Operazioni Non Imponibili (Esportazioni e Scambi Intracomunitari) ──
   {
     codiceCgn: 'A0801A',
     naturaSdi: 'N3.1',
@@ -127,22 +176,113 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     ambito: 'NON_IMPONIBILE',
   },
   {
+    codiceCgn: 'A0801U',
+    naturaSdi: 'N3.1',
+    norma: 'Art. 8, co. 1 DPR 633/72',
+    descrizione: 'Esportazioni definitive di beni usati verso Paesi terzi',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'D50B4G',
+    naturaSdi: 'N3.1',
+    norma: 'Art. 50-bis, co. 4, lett. g)',
+    descrizione: 'Cessioni di beni estratti da un deposito IVA con spedizione fuori dal territorio UE',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
     codiceCgn: 'D41',
     naturaSdi: 'N3.2',
     tipoDocumentoAutofattura: 'TD18',
     norma: 'Art. 41 D.L. 331/1993',
-    descrizione: 'Cessioni intracomunitarie onerose a soggetti passivi stabiliti in altro Stato membro UE',
+    descrizione: 'Cessioni intracomunitarie onerose a soggetti passivi identificati IVA in altro Stato membro UE',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'D50B4F',
+    naturaSdi: 'N3.2',
+    norma: 'Art. 50-bis, co. 4, lett. f)',
+    descrizione: 'Cessioni intracomunitarie di beni estratti da depositi IVA con invio in altro Paese UE',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'D51/D58',
+    naturaSdi: 'N3.2',
+    norma: 'Artt. 51 e 58 D.L. 331/93',
+    descrizione: 'Cessioni intra di prodotti agricoli e triangolazioni nazionali con consegna in ambito UE',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'RSM',
+    naturaSdi: 'N3.3',
+    norma: 'Art. 71 DPR 633/72',
+    descrizione: 'Operazioni non imponibili verso operatori economici della Repubblica di San Marino',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'A08B',
+    naturaSdi: 'N3.4',
+    norma: 'Art. 8-bis DPR 633/72',
+    descrizione: 'Operazioni assimilate alle esportazioni: cessioni di navi, aeromobili e relative dotazioni',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'A09',
+    naturaSdi: 'N3.4',
+    norma: 'Art. 9 DPR 633/72',
+    descrizione: 'Servizi internazionali o connessi agli scambi internazionali (trasporti, spedizioni doganali)',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'A72/SCV',
+    naturaSdi: 'N3.4',
+    norma: 'Artt. 71 e 72 DPR 633/72',
+    descrizione: 'Cessioni a sedi diplomatiche, trattati internazionali e cessioni verso la Città del Vaticano',
     ambito: 'NON_IMPONIBILE',
   },
   {
     codiceCgn: 'A0801C',
     naturaSdi: 'N3.5',
     norma: 'Art. 8, co. 1, lett. c)',
-    descrizione: 'Cessioni e prestazioni ad esportatori abituali muniti di dichiarazione d\'intento (plafond)',
+    descrizione: 'Cessioni ad esportatori abituali muniti di Dichiarazione d\'Intento regolarmente registrata',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'A08B02/A0902',
+    naturaSdi: 'N3.5',
+    norma: 'Artt. 8-bis co.2 e 9 co.2',
+    descrizione: 'Forniture navali/aeronautiche e servizi internazionali resi con dichiarazione d\'intento',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'D40',
+    naturaSdi: 'N3.6',
+    norma: 'Art. 40 D.L. 331/1993',
+    descrizione: 'Triangolazioni comunitarie con intervento di promotore italiano',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'A38QA1',
+    naturaSdi: 'N3.6',
+    norma: 'Art. 38-quater co. 1',
+    descrizione: 'Sgravio d\'imposta per cessioni a viaggiatori residenti fuori dall\'Unione Europea (Tax-Free)',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'D50B4A-E',
+    naturaSdi: 'N3.6',
+    norma: 'Art. 50-bis D.L. 331/1993',
+    descrizione: 'Operazioni relative a depositi IVA: introduzione beni, custodia, lavorazioni e trasferimenti',
+    ambito: 'NON_IMPONIBILE',
+  },
+  {
+    codiceCgn: 'DL90/EXPO15',
+    naturaSdi: 'N3.6',
+    norma: 'Leggi speciali',
+    descrizione: 'Cessioni di pubblicazioni estere (D.L. 90/90) e cessioni legate ad accordi BIE/Expo',
     ambito: 'NON_IMPONIBILE',
   },
 
-  // 4. Natura N4 — Operazioni Esenti ex Art. 10 DPR 633/1972
+  // ── 4. Natura N4 — Operazioni Esenti ex Art. 10 DPR 633/1972 ──
   {
     codiceCgn: 'A1001',
     naturaSdi: 'N4',
@@ -158,17 +298,115 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     ambito: 'ESENTE',
   },
   {
+    codiceCgn: 'A1003/A1004',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, nn. 3 e 4',
+    descrizione: 'Operazioni relative a valute estere, azioni, obbligazioni e quote societarie',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1005',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, n. 5 DPR 633/72',
+    descrizione: 'Operazioni relative alla riscossione di tributi delegata a intermediari',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1006/A1007',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, nn. 6 e 7',
+    descrizione: 'Esercizio del gioco, scommesse, lotto, concorsi a premio e lotterie nazionali',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1008',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, n. 8 DPR 633/72',
+    descrizione: 'Locazioni e affitti non finanziari di terreni ed edifici abitativi (senza opzione imponibilità)',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1008B/A1008T',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, nn. 8-bis e 8-ter',
+    descrizione: 'Cessioni di fabbricati ad uso abitativo e fabbricati strumentali in regime naturale esente',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1009',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, n. 9 DPR 633/72',
+    descrizione: 'Prestazioni di mandato, mediazione e intermediazione relative alle operazioni esenti',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1011',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, n. 11 DPR 633/72',
+    descrizione: 'Cessioni e intermediazioni di oro da investimento esenti ex L. 7/2000',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1012/A1013',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, nn. 12 e 13',
+    descrizione: 'Cessioni gratuite a enti pubblici, fondazioni, ONLUS o popolazioni colpite da calamità',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1014/A1015',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, nn. 14 e 15',
+    descrizione: 'Trasporto urbano collettivo di persone e trasporto di malati/feriti con ambulanze',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1016',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, n. 16 DPR 633/72',
+    descrizione: 'Prestazioni del servizio postale universale e cessioni di beni accessori',
+    ambito: 'ESENTE',
+  },
+  {
     codiceCgn: 'A1018',
     naturaSdi: 'N4',
     norma: 'Art. 10, n. 18 DPR 633/72',
-    descrizione: 'Prestazioni sanitarie di diagnosi, cura e riabilitazione rese alla persona',
+    descrizione: 'Prestazioni sanitarie di diagnosi, cura e riabilitazione rese alla persona da professionisti abilitati',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1019',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, n. 19 DPR 633/72',
+    descrizione: 'Prestazioni di ricovero e cura rese da ospedali, cliniche convenzionate e case di riposo',
     ambito: 'ESENTE',
   },
   {
     codiceCgn: 'A1020',
     naturaSdi: 'N4',
     norma: 'Art. 10, n. 20 DPR 633/72',
-    descrizione: 'Prestazioni educative, didattiche e di formazione o riqualificazione professionale',
+    descrizione: 'Prestazioni educative dell\'infanzia, didattiche di ogni genere, formazione e riqualificazione',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1021/A1022',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, nn. 21 e 22',
+    descrizione: 'Servizi di asili, case di riposo, colonie nonché biblioteche, musei, gallerie e parchi',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1027/A1027T',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, nn. 27 e 27-ter',
+    descrizione: 'Prestazioni di pompe funebri e prestazioni socio-sanitarie verso persone svantaggiate',
+    ambito: 'ESENTE',
+  },
+  {
+    codiceCgn: 'A1027QI',
+    naturaSdi: 'N4',
+    norma: 'Art. 10, n. 27-quinquies',
+    descrizione: 'Cessioni di beni acquistati in precedenza senza diritto alla detrazione totale dell\'IVA',
     ambito: 'ESENTE',
   },
   {
@@ -178,8 +416,15 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     descrizione: 'Compensi spettanti agli intermediari abilitati per la trasmissione dei modelli F24',
     ambito: 'ESENTE',
   },
+  {
+    codiceCgn: 'L537',
+    naturaSdi: 'N4',
+    norma: 'Art. 14, co. 10 L. 537/1993',
+    descrizione: 'Attività formative e corsi di aggiornamento prestati ad enti pubblici',
+    ambito: 'ESENTE',
+  },
 
-  // 5. Natura N5 — Regime del Margine e Agenzie di Viaggio
+  // ── 5. Natura N5 — Regime del Margine e Agenzie di Viaggio ──
   {
     codiceCgn: 'DL41A',
     naturaSdi: 'N5',
@@ -188,16 +433,44 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     ambito: 'MARGINE',
   },
   {
+    codiceCgn: 'DL41V04/10/22',
+    naturaSdi: 'N5',
+    norma: 'Art. 36 D.L. 41/1995',
+    descrizione: 'Vendita di beni usati con margine analitico alle aliquote ordinarie (4%, 10%, 22%)',
+    ambito: 'MARGINE',
+  },
+  {
+    codiceCgn: 'DL41V...F25/50/60',
+    naturaSdi: 'N5',
+    norma: 'Art. 36 D.L. 41/1995',
+    descrizione: 'Vendita beni in regime del margine forfettario (percentuali di abbattimento 25%, 50%, 60%)',
+    ambito: 'MARGINE',
+  },
+  {
     codiceCgn: 'A74TER',
     naturaSdi: 'N5',
     norma: 'Art. 74-ter DPR 633/72',
-    descrizione: 'Regime speciale agenzie di viaggio e turismo',
+    descrizione: 'Acquisti di servizi turistici da agenzie di viaggio rientranti nel regime speciale',
+    ambito: 'MARGINE',
+  },
+  {
+    codiceCgn: 'A74VUE/A74VXUE',
+    naturaSdi: 'N5',
+    norma: 'Art. 74-ter DPR 633/72',
+    descrizione: 'Vendita pacchetti turistici all\'interno dell\'UE o fuori dall\'Unione Europea',
+    ambito: 'MARGINE',
+  },
+  {
+    codiceCgn: 'A74VM',
+    naturaSdi: 'N5',
+    norma: 'Art. 74-ter DPR 633/72',
+    descrizione: 'Vendita pacchetti turistici misti (con prestazioni sia UE che extra-comunitarie)',
     ambito: 'MARGINE',
   },
 
-  // 6. Natura N6 — Inversione Contabile (Reverse Charge Interno)
+  // ── 6. Natura N6 — Inversione Contabile (Reverse Charge Interno) ──
   {
-    codiceCgn: 'A7407',
+    codiceCgn: 'A7407/A7408',
     naturaSdi: 'N6.1',
     tipoDocumentoAutofattura: 'TD16',
     norma: 'Art. 74, commi 7 e 8',
@@ -206,7 +479,7 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     causalePrimaNota: '130IFR',
   },
   {
-    codiceCgn: 'A1705OI',
+    codiceCgn: 'A1705OI/OP',
     naturaSdi: 'N6.2',
     tipoDocumentoAutofattura: 'TD16',
     norma: 'Art. 17, co. 5 DPR 633/72',
@@ -224,11 +497,11 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     causalePrimaNota: '130IFR',
   },
   {
-    codiceCgn: 'A1706ABA',
+    codiceCgn: 'A1706ABA/ABS',
     naturaSdi: 'N6.4',
     tipoDocumentoAutofattura: 'TD16',
     norma: 'Art. 17, co. 6, lett. a-bis)',
-    descrizione: 'Cessioni di fabbricati abitativi o strumentali con opzione per l\'imposizione',
+    descrizione: 'Cessioni di fabbricati abitativi o strumentali per i quali il cedente ha optato per l\'imposizione',
     ambito: 'REVERSE_CHARGE',
     causalePrimaNota: '130IFR',
   },
@@ -260,10 +533,10 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     causalePrimaNota: '130IFR',
   },
   {
-    codiceCgn: 'A1706DB',
+    codiceCgn: 'A1706DB/DT/DQA',
     naturaSdi: 'N6.8',
     tipoDocumentoAutofattura: 'TD16',
-    norma: 'Art. 17, co. 6, lett. d-bis)',
+    norma: 'Art. 17, co. 6, lett. d-bis-quater',
     descrizione: 'Trasferimento quote gas serra, certificati gas/energia e cessioni di energia/gas all\'ingrosso',
     ambito: 'REVERSE_CHARGE',
     causalePrimaNota: '130IFR',
@@ -277,20 +550,20 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
     causalePrimaNota: '130IFR',
   },
 
-  // 7. Split Payment & Operazioni Speciali
+  // ── 7. Meccanismi Speciali: Split Payment & Scritture NO IVA (Causale 899) ──
   {
-    codiceCgn: 'A17T22',
-    naturaSdi: 'N1', // Split payment vendite: espone aliquota 22% con scissione pagamenti
+    codiceCgn: 'A17T04-A17T22',
+    naturaSdi: 'N1', // Split payment vendite: espone aliquota ordinaria con scissione pagamenti
     norma: 'Art. 17-ter DPR 633/72',
-    descrizione: 'Fatture emesse verso PA in Split Payment: IVA 22% esposta ma riscossa dall\'Erario',
+    descrizione: 'Fatture emesse verso PA in Split Payment: IVA riscossa direttamente dallo Stato',
     ambito: 'SPLIT_PAYMENT',
     aliquotaPredefinita: 22,
   },
   {
-    codiceCgn: 'A17T22A',
+    codiceCgn: 'A17T04A-A17T22A',
     naturaSdi: 'N1',
     norma: 'Art. 17-ter DPR 633/72',
-    descrizione: 'Acquisti in split payment (causale 130IFS / 130ISR): versamento dell\'imposta con F24',
+    descrizione: 'Acquisti in split payment (causale 130IFS / 130ISR): versamento dell\'imposta all\'Erario con F24',
     ambito: 'SPLIT_PAYMENT',
     causalePrimaNota: '130IFS',
     aliquotaPredefinita: 22,
@@ -298,7 +571,7 @@ export const TABELLA_IVA_CGN: CodificaIvaCGN[] = [
   {
     codiceCgn: 'NO_IVA',
     norma: 'DPR 633/1972',
-    descrizione: 'Operazioni non rilevanti IVA (causale 899 su conto 25999.1): paghe, INAIL, assicurazioni, quote associative',
+    descrizione: 'Operazioni non rilevanti IVA (causale 899 su conto 25999.1): paghe, contributi INPS, premi INAIL, assicurazioni',
     ambito: 'NO_IVA',
     causalePrimaNota: '899',
   },

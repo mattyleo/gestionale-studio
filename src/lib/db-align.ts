@@ -119,6 +119,13 @@ export async function assureDbSchemaAligned() {
         "importoDare" DECIMAL(12, 2) NOT NULL DEFAULT 0,
         "importoAvere" DECIMAL(12, 2) NOT NULL DEFAULT 0,
         "tipoRegistro" TEXT DEFAULT 'GENERALE',
+        "registroCodice" TEXT DEFAULT 'A1',
+        "protocollo" INTEGER,
+        "anno" INTEGER,
+        "codiceIvaCgn" TEXT,
+        "naturaSdi" TEXT,
+        "anagraficaSoggetto" TEXT,
+        "isScritturaNoIva" BOOLEAN NOT NULL DEFAULT false,
         "aliquotaIva" DECIMAL(5, 2),
         "impostaIva" DECIMAL(12, 2),
         "reverseCharge" BOOLEAN NOT NULL DEFAULT false,
@@ -127,9 +134,18 @@ export async function assureDbSchemaAligned() {
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "company_accounting_entries_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE
       );
+      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "registroCodice" TEXT DEFAULT 'A1';
+      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "protocollo" INTEGER;
+      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "anno" INTEGER;
+      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "codiceIvaCgn" TEXT;
+      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "naturaSdi" TEXT;
+      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "anagraficaSoggetto" TEXT;
+      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "isScritturaNoIva" BOOLEAN DEFAULT false;
       CREATE INDEX IF NOT EXISTS "company_accounting_entries_companyId_idx" ON "company_accounting_entries"("companyId");
       CREATE INDEX IF NOT EXISTS "company_accounting_entries_dataRegistrazione_idx" ON "company_accounting_entries"("dataRegistrazione");
       CREATE INDEX IF NOT EXISTS "company_accounting_entries_tipoRegistro_idx" ON "company_accounting_entries"("tipoRegistro");
+      CREATE INDEX IF NOT EXISTS "company_accounting_entries_registroCodice_idx" ON "company_accounting_entries"("registroCodice");
+      CREATE INDEX IF NOT EXISTS "company_accounting_entries_anno_protocollo_idx" ON "company_accounting_entries"("anno", "protocollo");
     `)
 
     isAligned = true

@@ -301,6 +301,13 @@ model CompanyAccountingEntry {
   importoDare       Decimal   @default(0) @db.Decimal(12, 2)
   importoAvere      Decimal   @default(0) @db.Decimal(12, 2)
   tipoRegistro      String?   @default("GENERALE") // "VENDITE" | "ACQUISTI" | "CORRISPETTIVI" | "GENERALE"
+  registroCodice    String?   @default("A1") // "A1" | "AS1" | "AI1" | "AR1" | "V1" | "V2" | "VS1" | "C1" | "CV1" | "R1" | "GEN"
+  protocollo        Int?      // Numero progressivo nel registro IVA per anno
+  anno              Int?      // Anno fiscale protocollo
+  codiceIvaCgn      String?   // es. "A1706A", "FORF", "NO_IVA", "A1503"
+  naturaSdi         String?   // es. "N6.3", "N2.2", "N1", "N3.2", "N4"
+  anagraficaSoggetto String?  // Fornitore / Cliente (es. "Fornitori Non IVA", "INPS", "Dipendenti")
+  isScritturaNoIva  Boolean   @default(false) // Operazioni non rilevanti IVA annotate nei registri semplificati
   aliquotaIva       Decimal?  @db.Decimal(5, 2)
   impostaIva        Decimal?  @db.Decimal(12, 2)
   reverseCharge     Boolean   @default(false)
@@ -313,6 +320,8 @@ model CompanyAccountingEntry {
   @@index([companyId])
   @@index([dataRegistrazione])
   @@index([tipoRegistro])
+  @@index([registroCodice])
+  @@index([anno, protocollo])
   @@map("company_accounting_entries")
 }
 
