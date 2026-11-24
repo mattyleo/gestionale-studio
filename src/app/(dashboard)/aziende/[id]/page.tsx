@@ -4,8 +4,10 @@
 import * as React from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, Loader2, RefreshCw, FileText, CheckCircle2, Clock, AlertCircle, Plus, Pencil, Trash2, ShieldCheck, FileDown, AlertTriangle, Sparkles, Printer } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, RefreshCw, FileText, CheckCircle2, Clock, AlertCircle, Plus, Pencil, Trash2, ShieldCheck, FileDown, AlertTriangle, Sparkles, Printer, BookOpen, Bot } from 'lucide-react'
 import { AntiriciclaggioDettaglioModal } from '@/components/antiriciclaggio/AntiriciclaggioDettaglioModal'
+import { AziendaContabilitaTab } from '@/components/contabilita/AziendaContabilitaTab'
+import { analizzaFiscaleCliente, LISTA_ATECO_COMUNI } from '@/lib/fiscal-intelligence'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -112,6 +114,14 @@ export default function AziendaDettaglioPage() {
     antiriciclaggioPrestazione: 'Tenuta contabilità e adempimenti fiscali periodici',
     privacyFirmata: false,
     privacyData: '',
+    // Inquadramento Fiscale & Contabilità Studio
+    dataInizioAttivita: '',
+    periodicitaIva: 'TRIMESTRALE',
+    codiceAteco: '',
+    descrizioneAteco: '',
+    regimeContabile: 'SEMPLIFICATO',
+    gruppoAmmortamenti: '',
+    registriIva: { vendite: true, acquisti: true, corrispettivi: false, reverseCharge: false } as Record<string, boolean>,
   })
 
   const caricaTutto = React.useCallback(async () => {
@@ -177,6 +187,16 @@ export default function AziendaDettaglioPage() {
         antiriciclaggioPrestazione: datiAz.antiriciclaggioPrestazione || 'Tenuta contabilità e adempimenti fiscali periodici',
         privacyFirmata: datiAz.privacyFirmata ?? false,
         privacyData: datiAz.privacyData ? new Date(datiAz.privacyData).toISOString().split('T')[0] : '',
+        // Inquadramento Fiscale & Contabilità Studio
+        dataInizioAttivita: datiAz.dataInizioAttivita ? new Date(datiAz.dataInizioAttivita).toISOString().split('T')[0] : '',
+        periodicitaIva: datiAz.periodicitaIva || 'TRIMESTRALE',
+        codiceAteco: datiAz.codiceAteco || '',
+        descrizioneAteco: datiAz.descrizioneAteco || '',
+        regimeContabile: datiAz.regimeContabile || 'SEMPLIFICATO',
+        gruppoAmmortamenti: datiAz.gruppoAmmortamenti || '',
+        registriIva: (typeof datiAz.registriIva === 'object' && datiAz.registriIva !== null)
+          ? datiAz.registriIva
+          : { vendite: true, acquisti: true, corrispettivi: false, reverseCharge: false },
       })
     } catch (e: any) {
       toast({ title: 'Errore caricamento azienda', description: e.message, variant: 'destructive' })
@@ -184,6 +204,32 @@ export default function AziendaDettaglioPage() {
       setLoading(false)
     }
   }, [aziendaId, toast])
+
+  const handleAutoAnalizzaFiscale = () => {
+    const suggerimento = analizzaFiscaleCliente({
+      tipoSoggetto: form.tipoSoggetto,
+      ragioneSociale: form.ragioneSociale,
+      partitaIva: form.partitaIva,
+      codiceFiscale: form.codiceFiscale,
+      codiceAteco: form.codiceAteco,
+    })
+    setForm((prev) => ({
+      ...prev,
+      regimeContabile: suggerimento.regimeContabile,
+      periodicitaIva: suggerimento.periodicitaIva,
+      gruppoAmmortamenti: prev.gruppoAmmortamenti || suggerimento.gruppoAmmortamenti || '',
+      registriIva: {
+        vendite: suggerimento.registriIvaConsigliati.vendite,
+        acquisti: suggerimento.registriIvaConsigliati.acquisti,
+        corrispettivi: suggerimento.registriIvaConsigliati.corrispettivi,
+        reverseCharge: suggerimento.registriIvaConsigliati.reverseCharge,
+      },
+    }))
+    toast({
+      title: '🤖 Analisi Fiscale Completata',
+      description: `${suggerimento.motivazione}. Inquadramento impostato: Regime ${suggerimento.regimeEtichetta}, IVA ${suggerimento.periodicitaEtichetta}.`,
+    })
+  }
 
   React.useEffect(() => {
     caricaTutto()
@@ -436,8 +482,16 @@ export default function AziendaDettaglioPage() {
           </TabsTrigger>
           <TabsTrigger value="documenti">📎 Documenti & CI</TabsTrigger>
           <TabsTrigger value="antiriciclaggio" className="gap-1.5">
-            <ShieldCheck className="h-4 w-4 text-emerald-600" /> Antiriciclaggio & Privacy
+            <ShieldCheck className="h-4 w-4 text-emerald-600" /> Antiriciclaggio &amp; Privacy
           </TabsTrigger>
+          {Boolean(form.partitaIva || azienda?.partitaIva) && (
+            <TabsTrigger
+              value="contabilita"
+              className="gap-1.5 font-semibold text-blue-700 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-800"
+            >
+              <BookOpen className="h-4 w-4 text-blue-600" /> Contabilità
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* TAB: Anagrafica */}
@@ -648,7 +702,241 @@ export default function AziendaDettaglioPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1.5 sm:col-span-3">
+                  <Label htmlFor="ibanRiferimento">IBAN di Riferimento per Pagamenti / F24</Label>
+                  <Input
+                    id="ibanRiferimento"
+                    placeholder="IT00X0000000000000000000000"
+                    value={form.ibanRiferimento}
+                    onChange={(e) => setForm({ ...form, ibanRiferimento: e.target.value.toUpperCase().replace(/\s/g, '') })}
+                  />
+                </div>
               </div>
+
+              {/* Sezione Attivata per Partite IVA: Inquadramento Fiscale & Contabilità Studio */}
+              {Boolean(form.partitaIva || azienda?.partitaIva) && (
+                <div className="mt-6 pt-6 border-t border-blue-200 bg-blue-50/40 p-5 rounded-xl border space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-5 w-5 text-blue-700" />
+                        <h4 className="font-bold text-gray-900 text-base">
+                          Inquadramento Fiscale, ATECO &amp; Parametri Contabilità Studio
+                        </h4>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Campi specifici per i clienti con Partita IVA per la gestione contabile autonoma (Prima Nota, Registri IVA e Liquidazioni periodiche).
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAutoAnalizzaFiscale}
+                      className="bg-white border-blue-300 text-blue-700 hover:bg-blue-100/60 shadow-sm text-xs font-semibold"
+                    >
+                      <Bot className="h-4 w-4 mr-1.5 text-blue-600" />
+                      🤖 Auto-Analizza Regime &amp; Parametri
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="dataInizioAttivita" className="text-xs font-semibold text-gray-700">
+                        Data Inizio Attività
+                      </Label>
+                      <Input
+                        id="dataInizioAttivita"
+                        type="date"
+                        value={form.dataInizioAttivita}
+                        onChange={(e) => setForm({ ...form, dataInizioAttivita: e.target.value })}
+                        className="bg-white"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="periodicitaIva" className="text-xs font-semibold text-gray-700">
+                        Periodicità Liquidazione IVA *
+                      </Label>
+                      <Select
+                        value={form.periodicitaIva}
+                        onValueChange={(v) => setForm({ ...form, periodicitaIva: v })}
+                      >
+                        <SelectTrigger id="periodicitaIva" className="bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MENSILE">Mensile (16 del mese successivo)</SelectItem>
+                          <SelectItem value="TRIMESTRALE">Trimestrale Ordinaria (+1% int.)</SelectItem>
+                          <SelectItem value="SPECIALE_TRIMESTRALE">Speciale Trimestrale (senza int. ex art. 74)</SelectItem>
+                          <SelectItem value="TRIMESTRALE_AUTOTRASPORTATORI">Trimestrale Autotrasportatori (art. 74 co. 4)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="regimeContabile" className="text-xs font-semibold text-gray-700">
+                        Regime Contabile Studio *
+                      </Label>
+                      <Select
+                        value={form.regimeContabile}
+                        onValueChange={(v) => setForm({ ...form, regimeContabile: v })}
+                      >
+                        <SelectTrigger id="regimeContabile" className="bg-white font-medium">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PROFESSIONISTI">Professionisti (Principio di Cassa)</SelectItem>
+                          <SelectItem value="FORFETTARIO">Forfettario (L. 190/2014 - No IVA)</SelectItem>
+                          <SelectItem value="SEMPLIFICATO">Imprese Semplificato (Registri IVA Cassa)</SelectItem>
+                          <SelectItem value="ORDINARIO">Imprese Ordinario (Competenza Economica)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* ATECO & Gruppo Ammortamenti */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="codiceAteco" className="text-xs font-semibold text-gray-700">
+                          Codice ATECO
+                        </Label>
+                        <span className="text-[10px] text-gray-500">Es. 69.20.11 o 49.41.00</span>
+                      </div>
+                      <Input
+                        id="codiceAteco"
+                        placeholder="es. 69.20.11"
+                        value={form.codiceAteco}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          const trovato = LISTA_ATECO_COMUNI.find(a => a.codice === val.trim())
+                          setForm({
+                            ...form,
+                            codiceAteco: val,
+                            descrizioneAteco: trovato ? trovato.descrizione : form.descrizioneAteco,
+                          })
+                        }}
+                        className="bg-white font-mono text-sm"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="descrizioneAteco" className="text-xs font-semibold text-gray-700">
+                        Descrizione Attività ATECO
+                      </Label>
+                      <Input
+                        id="descrizioneAteco"
+                        placeholder="es. Servizi forniti da commercialisti, esperti contabili o consulenti del lavoro"
+                        value={form.descrizioneAteco}
+                        onChange={(e) => setForm({ ...form, descrizioneAteco: e.target.value })}
+                        className="bg-white text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* ATECO Rapidi Consigliati */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[11px] text-gray-500 font-medium mr-1">ATECO Frequenti:</span>
+                    {LISTA_ATECO_COMUNI.slice(0, 5).map((at) => (
+                      <button
+                        key={at.codice}
+                        type="button"
+                        onClick={() => {
+                          setForm({
+                            ...form,
+                            codiceAteco: at.codice,
+                            descrizioneAteco: at.descrizione,
+                          })
+                        }}
+                        className="text-[11px] px-2 py-0.5 rounded bg-white hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors"
+                      >
+                        {at.codice} ({at.descrizione.split(' ')[0]})
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Ammortamenti e Registri */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-blue-100">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="gruppoAmmortamenti" className="text-xs font-semibold text-gray-700">
+                        Gruppo Coefficienti Ammortamento (D.M. 31/12/1988)
+                      </Label>
+                      <Input
+                        id="gruppoAmmortamenti"
+                        placeholder="es. Gruppo XVII - Servizi, Professioni e Studi Professionali"
+                        value={form.gruppoAmmortamenti}
+                        onChange={(e) => setForm({ ...form, gruppoAmmortamenti: e.target.value })}
+                        className="bg-white text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold text-gray-700">
+                        Registri IVA da Tenere per il Cliente
+                      </Label>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <label className="flex items-center gap-1.5 cursor-pointer bg-white p-2 rounded border border-gray-200">
+                          <input
+                            type="checkbox"
+                            checked={form.registriIva?.vendite ?? true}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                registriIva: { ...form.registriIva, vendite: e.target.checked },
+                              })
+                            }
+                            className="rounded text-blue-600 h-3.5 w-3.5"
+                          />
+                          <span>Vendite (Art. 23)</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer bg-white p-2 rounded border border-gray-200">
+                          <input
+                            type="checkbox"
+                            checked={form.registriIva?.acquisti ?? true}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                registriIva: { ...form.registriIva, acquisti: e.target.checked },
+                              })
+                            }
+                            className="rounded text-blue-600 h-3.5 w-3.5"
+                          />
+                          <span>Acquisti (Art. 25)</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer bg-white p-2 rounded border border-gray-200">
+                          <input
+                            type="checkbox"
+                            checked={form.registriIva?.corrispettivi ?? false}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                registriIva: { ...form.registriIva, corrispettivi: e.target.checked },
+                              })
+                            }
+                            className="rounded text-blue-600 h-3.5 w-3.5"
+                          />
+                          <span>Corrispettivi (Art. 24)</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer bg-white p-2 rounded border border-gray-200">
+                          <input
+                            type="checkbox"
+                            checked={form.registriIva?.reverseCharge ?? false}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                registriIva: { ...form.registriIva, reverseCharge: e.target.checked },
+                              })
+                            }
+                            className="rounded text-blue-600 h-3.5 w-3.5"
+                          />
+                          <span>Reverse Charge / Auto (Art. 17)</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1357,6 +1645,21 @@ export default function AziendaDettaglioPage() {
             </Card>
           </div>
         </TabsContent>
+
+        {/* TAB: Contabilità (visibile se il cliente ha Partita IVA) */}
+        {Boolean(form.partitaIva || azienda?.partitaIva) && (
+          <TabsContent value="contabilita">
+            <AziendaContabilitaTab
+              aziendaId={aziendaId}
+              aziendaNome={azienda?.ragioneSociale || form.ragioneSociale}
+              partitaIva={form.partitaIva || azienda?.partitaIva}
+              regimeContabile={form.regimeContabile}
+              periodicitaIva={form.periodicitaIva}
+              codiceAteco={form.codiceAteco}
+              onDatiAggiornati={caricaTutto}
+            />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* ─────────────────────────────────────────────────────────────

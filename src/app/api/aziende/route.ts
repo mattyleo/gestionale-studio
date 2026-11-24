@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { validaDatiFiscaliCliente } from '@/lib/fiscal-validators'
+import { assureDbSchemaAligned } from '@/lib/db-align'
 
 // Schema validazione nuova azienda
 const nuovaAziendaSchema = z.object({
@@ -36,6 +37,15 @@ const nuovaAziendaSchema = z.object({
   documentoTipo: z.string().optional(),
   documentoNumero: z.string().optional(),
   documentoScadenza: z.string().or(z.date()).optional().nullable().transform(v => v ? new Date(v) : null),
+
+  // Dati Fiscali & Contabilità Studio
+  dataInizioAttivita: z.string().or(z.date()).optional().nullable().transform(v => v ? new Date(v) : null),
+  periodicitaIva: z.string().optional().nullable(),
+  codiceAteco: z.string().optional().nullable(),
+  descrizioneAteco: z.string().optional().nullable(),
+  regimeContabile: z.string().optional().nullable(),
+  gruppoAmmortamenti: z.string().optional().nullable(),
+  registriIva: z.any().optional().nullable(),
 })
 
 export async function GET(request: Request) {

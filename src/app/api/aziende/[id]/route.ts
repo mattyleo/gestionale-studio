@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { validaDatiFiscaliCliente } from '@/lib/fiscal-validators'
+import { assureDbSchemaAligned } from '@/lib/db-align'
 
 const aggiornaAziendaSchema = z.object({
   ragioneSociale: z.string().min(1).optional(),
@@ -30,6 +31,15 @@ const aggiornaAziendaSchema = z.object({
   frequenzaFatturazione: z.enum(['MENSILE', 'BIMESTRALE', 'TRIMESTRALE', 'SEMESTRALE', 'ANNUALE', 'MANUALE']).optional(),
   attivo: z.boolean().optional(),
   motivo: z.string().optional(), // Motivo della modifica per storico
+
+  // Dati Fiscali & Contabilità Studio
+  dataInizioAttivita: z.string().or(z.date()).optional().nullable().transform(v => v ? new Date(v) : null),
+  periodicitaIva: z.string().optional().nullable(),
+  codiceAteco: z.string().optional().nullable(),
+  descrizioneAteco: z.string().optional().nullable(),
+  regimeContabile: z.string().optional().nullable(),
+  gruppoAmmortamenti: z.string().optional().nullable(),
+  registriIva: z.any().optional().nullable(),
 
   // Settore di attività studio
   settoreAttivita: z.string().optional().nullable(),
@@ -74,6 +84,7 @@ export async function GET(request: Request, { params: _params }: { params: Promi
   if (!session) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   try {
+    await assureDbSchemaAligned()
     const azienda = await prisma.company.findUnique({
       where: { id: params.id },
       include: {
@@ -109,6 +120,7 @@ export async function PUT(request: Request, { params: _params }: { params: Promi
   if (!session) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   try {
+    await assureDbSchemaAligned()
     const body = await request.json()
     const { motivo, ...dati } = aggiornaAziendaSchema.parse(body)
 

@@ -187,6 +187,15 @@ model Company {
   archiviata            Boolean           @default(false)
   dataArchiviazione     DateTime?
 
+  // ── Dati Fiscali & Contabilità Aziendale dello Studio ──
+  dataInizioAttivita    DateTime?         @db.Date
+  periodicitaIva        String?           @default("TRIMESTRALE") // "MENSILE" | "TRIMESTRALE" | "SPECIALE_TRIMESTRALE" | "TRIMESTRALE_AUTOTRASPORTATORI"
+  codiceAteco           String?           // es. "69.20.11"
+  descrizioneAteco      String?           // es. "Attività degli studi commerciali, tributari e contabili"
+  regimeContabile       String?           @default("SEMPLIFICATO") // "FORFETTARIO" | "PROFESSIONISTI" | "SEMPLIFICATO" | "ORDINARIO"
+  gruppoAmmortamenti    String?           // Gruppo ministeriale coefficienti ammortamento
+  registriIva           Json?             // Configurazione registri IVA attivi (Vendite, Corrispettivi, Acquisti, Reverse Charge)
+
   // ── Settore di attività per lo studio (CAF, Contabilità, Paghe) ──
   settoreAttivita       String?           @default("CONTABILITA") // "CONTABILITA" | "PAGHE" | "CAF" | "MISTO"
 
@@ -232,6 +241,7 @@ model Company {
   invoices         Invoice[]
   historySnapshots CompanyHistorySnapshot[]
   documents        CompanyDocument[]
+  accountingEntries CompanyAccountingEntry[]
 
   @@index([ragioneSociale])
   @@index([codiceFiscale])
@@ -270,6 +280,40 @@ model CompanyDocument {
   @@index([cartella])
   @@index([tipoDoc])
   @@map("company_documents")
+}
+
+// ─────────────────────────────────────────────
+// CONTABILITÀ CLIENTE (Prima Nota, Registri IVA, Scritture)
+// ─────────────────────────────────────────────
+
+model CompanyAccountingEntry {
+  id                String    @id @default(cuid())
+  companyId         String
+  dataRegistrazione DateTime  @db.Date
+  dataCompetenza    DateTime? @db.Date
+  numeroDocumento   String?
+  dataDocumento     DateTime? @db.Date
+  descrizione       String
+  contoDareCodice   String?
+  contoDareNome     String?
+  contoAvereCodice  String?
+  contoAvereNome    String?
+  importoDare       Decimal   @default(0) @db.Decimal(12, 2)
+  importoAvere      Decimal   @default(0) @db.Decimal(12, 2)
+  tipoRegistro      String?   @default("GENERALE") // "VENDITE" | "ACQUISTI" | "CORRISPETTIVI" | "GENERALE"
+  aliquotaIva       Decimal?  @db.Decimal(5, 2)
+  impostaIva        Decimal?  @db.Decimal(12, 2)
+  reverseCharge     Boolean   @default(false)
+  note              String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([dataRegistrazione])
+  @@index([tipoRegistro])
+  @@map("company_accounting_entries")
 }
 
 // ─────────────────────────────────────────────

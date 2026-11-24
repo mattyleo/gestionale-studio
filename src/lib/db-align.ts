@@ -91,6 +91,47 @@ export async function assureDbSchemaAligned() {
       );
     `)
 
+    // 6. Colonne contabili e fiscali su companies
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "dataInizioAttivita" DATE;
+      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "periodicitaIva" TEXT DEFAULT 'TRIMESTRALE';
+      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "codiceAteco" TEXT;
+      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "descrizioneAteco" TEXT;
+      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "regimeContabile" TEXT DEFAULT 'SEMPLIFICATO';
+      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "gruppoAmmortamenti" TEXT;
+      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "registriIva" JSONB;
+    `)
+
+    // 7. Tabella company_accounting_entries (Prima Nota e Registrazioni)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "company_accounting_entries" (
+        "id" TEXT PRIMARY KEY,
+        "companyId" TEXT NOT NULL,
+        "dataRegistrazione" DATE NOT NULL,
+        "dataCompetenza" DATE,
+        "numeroDocumento" TEXT,
+        "dataDocumento" DATE,
+        "descrizione" TEXT NOT NULL,
+        "contoDareCodice" TEXT,
+        "contoDareNome" TEXT,
+        "contoAvereCodice" TEXT,
+        "contoAvereNome" TEXT,
+        "importoDare" DECIMAL(12, 2) NOT NULL DEFAULT 0,
+        "importoAvere" DECIMAL(12, 2) NOT NULL DEFAULT 0,
+        "tipoRegistro" TEXT DEFAULT 'GENERALE',
+        "aliquotaIva" DECIMAL(5, 2),
+        "impostaIva" DECIMAL(12, 2),
+        "reverseCharge" BOOLEAN NOT NULL DEFAULT false,
+        "note" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "company_accounting_entries_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "company_accounting_entries_companyId_idx" ON "company_accounting_entries"("companyId");
+      CREATE INDEX IF NOT EXISTS "company_accounting_entries_dataRegistrazione_idx" ON "company_accounting_entries"("dataRegistrazione");
+      CREATE INDEX IF NOT EXISTS "company_accounting_entries_tipoRegistro_idx" ON "company_accounting_entries"("tipoRegistro");
+    `)
+
     isAligned = true
   } catch (err: any) {
     console.warn('Avviso allineamento schema runtime saltato o già presente:', err?.message)
