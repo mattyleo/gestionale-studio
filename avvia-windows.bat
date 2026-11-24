@@ -10,19 +10,45 @@ echo          AVVIO GESTIONALE STUDIO - DOTT. ANTONIO TUZIO
 echo =======================================================================
 echo.
 
-echo [1/3] Verifica e avvio database PostgreSQL su Docker...
-docker compose up -d postgres >nul 2>&1
+echo [1/3] Verifica e avvio motore Docker e database PostgreSQL...
+docker info >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
-    echo [ATTENZIONE] Docker Desktop non e' ancora in esecuzione.
+    echo [INFO] Docker Desktop non e' in esecuzione. Avvio automatico in corso...
+    if exist "%ProgramFiles%\Docker\Docker\Docker Desktop.exe" (
+        start "" "%ProgramFiles%\Docker\Docker\Docker Desktop.exe"
+    ) else if exist "C:\Program Files\Docker\Docker\Docker Desktop.exe" (
+        start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    )
+    echo [INFO] Attesa che il motore Docker sia pronto (puo' richiedere 15-30 secondi)...
+    set /a _wait_count=0
+    goto :attendi_docker
+)
+goto :docker_avviato
+
+:attendi_docker
+timeout /t 2 /nobreak >nul
+docker info >nul 2>&1
+if %ERRORLEVEL% EQU 0 goto :docker_avviato
+set /a _wait_count+=1
+<nul set /p=.
+if %_wait_count% GEQ 45 (
     echo.
-    echo 1. Apri l'applicazione "Docker Desktop" dal menu Start di Windows.
-    echo 2. Attendi 15-20 secondi che Docker si avvii completamente.
-    echo 3. Rilancia questo file avvia-windows.bat.
-    echo.
+    echo [ERRORE] Timeout: Docker Desktop non ha risposto entro 90 secondi.
+    echo Assicurati che Docker Desktop sia installato e funzionante.
     pause
     exit /b 1
 )
-echo [OK] Database attivo su porta 5432.
+goto :attendi_docker
+
+:docker_avviato
+echo.
+docker compose up -d postgres >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo [ERRORE] Impossibile avviare il container PostgreSQL con docker compose.
+    pause
+    exit /b 1
+)
+echo [OK] Database PostgreSQL attivo su porta 5432.
 
 echo.
 echo [2/3] Allineamento schema database...
