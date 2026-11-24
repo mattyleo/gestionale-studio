@@ -146,6 +146,21 @@ export async function assureDbSchemaAligned() {
       CREATE INDEX IF NOT EXISTS "company_accounting_entries_tipoRegistro_idx" ON "company_accounting_entries"("tipoRegistro");
       CREATE INDEX IF NOT EXISTS "company_accounting_entries_registroCodice_idx" ON "company_accounting_entries"("registroCodice");
       CREATE INDEX IF NOT EXISTS "company_accounting_entries_anno_protocollo_idx" ON "company_accounting_entries"("anno", "protocollo");
+
+      // 8. Tabella studio_ai_memories (Apprendimento continuo IA Studio)
+      CREATE TABLE IF NOT EXISTS "studio_ai_memories" (
+        "id" TEXT PRIMARY KEY,
+        "tipo" TEXT NOT NULL,
+        "chiavePattern" TEXT NOT NULL,
+        "valoreRegola" JSONB NOT NULL,
+        "confermeConteggio" INTEGER NOT NULL DEFAULT 1,
+        "accuratezzaScore" DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+        "istruzioniCustom" TEXT,
+        "creatoDa" TEXT DEFAULT 'Dott. Antonio Tuzio',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "studio_ai_memories_tipo_chiavePattern_idx" ON "studio_ai_memories"("tipo", "chiavePattern");
     `)
 
     isAligned = true

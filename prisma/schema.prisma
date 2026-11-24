@@ -326,6 +326,26 @@ model CompanyAccountingEntry {
 }
 
 // ─────────────────────────────────────────────
+// IA LOCALE DELLO STUDIO: MEMORIA DI APPRENDIMENTO CONTINUO (Feedback Dottore)
+// ─────────────────────────────────────────────
+
+model StudioAiMemory {
+  id                String   @id @default(cuid())
+  tipo              String   // "CONTABILITA" | "FISCALE_F24" | "DICHIARATIVI" | "BILANCIO" | "CLASSIFICAZIONE_ATECO"
+  chiavePattern     String   // Identificativo pattern (es. P.IVA fornitore, parola chiave fattura, causale)
+  valoreRegola      Json     // Dati strutturati appresi (contoDare, contoAvere, registro, aliquota, cgn, ecc.)
+  confermeConteggio Int      @default(1) // Numero di volte che il Dottore ha confermato o validato la regola
+  accuratezzaScore  Float    @default(1.0)
+  istruzioniCustom  String?  @db.Text // Note specifiche o annotazioni dettate dal Dottore
+  creatoDa          String?  @default("Dott. Antonio Tuzio")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tipo, chiavePattern])
+  @@map("studio_ai_memories")
+}
+
+// ─────────────────────────────────────────────
 // PROGRAMMI ESTERNI DELLO STUDIO (Desktop Telematico, UniEMens, ecc.)
 // ─────────────────────────────────────────────
 
