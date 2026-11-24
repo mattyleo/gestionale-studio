@@ -30,48 +30,98 @@ export async function POST() {
     ].filter(Boolean)))
     const trovati: DetectedProgram[] = []
 
-  if (isWindows) {
-    // ─── WINDOWS SEARCH PATHS ──────────────────────────────
-    const searchMap: Record<string, string[]> = {
-      telematico: [
-        'C:\\DesktopTelematico\\DesktopTelematico.exe',
-        'C:\\Program Files\\DesktopTelematico\\DesktopTelematico.exe',
-        'C:\\Program Files (x86)\\DesktopTelematico\\DesktopTelematico.exe',
-        path.join(homeDir, 'DesktopTelematico', 'DesktopTelematico.exe'),
-      ],
-      uniemens: [
-        'C:\\INPS\\UniEMens\\uniemens.bat',
-        'C:\\Program Files\\INPS\\UniEMens\\uniemens.exe',
-        'C:\\UniEMens\\uniemens.bat',
-        path.join(homeDir, 'UniEMens', 'uniemens.bat'),
-      ],
-      redditi: [
-        'C:\\RedditiOnline\\redditi.exe',
-        'C:\\Program Files\\RedditiOnline\\redditi.exe',
-      ],
-      lipe: [
-        'C:\\LIPE\\lipe.exe',
-        'C:\\Program Files\\LIPE\\lipe.exe',
-      ],
-      cu: [
-        'C:\\CU\\cu.exe',
-        'C:\\Program Files\\CU\\cu.exe',
-      ],
-      f24: [
-        'C:\\F24Online\\f24.exe',
-        'C:\\Program Files\\F24Online\\f24.exe',
-      ],
-    }
+    const anniScan = ['2026', '2025', '2024', '2023', '2022', '2021', '2020']
+    const versioniTrovate: { nomeKey: string; anno: string; percorso: string }[] = []
 
-    for (const [key, paths] of Object.entries(searchMap)) {
-      for (const p of paths) {
-        if (fs.existsSync(p)) {
-          trovati.push({ nomeKey: key, percorsoTrovato: p, tipo: 'eseguibile' })
-          break
+    if (isWindows) {
+      // ─── WINDOWS SEARCH PATHS ──────────────────────────────
+      const searchMap: Record<string, string[]> = {
+        telematico: [
+          'C:\\DesktopTelematico\\DesktopTelematico.exe',
+          'C:\\Program Files\\DesktopTelematico\\DesktopTelematico.exe',
+          'C:\\Program Files (x86)\\DesktopTelematico\\DesktopTelematico.exe',
+          path.join(homeDir, 'DesktopTelematico', 'DesktopTelematico.exe'),
+        ],
+        uniemens: [
+          'C:\\INPS\\UniEMens\\uniemens.bat',
+          'C:\\Program Files\\INPS\\UniEMens\\uniemens.exe',
+          'C:\\UniEMens\\uniemens.bat',
+          path.join(homeDir, 'UniEMens', 'uniemens.bat'),
+        ],
+        redditi: [
+          'C:\\RedditiOnline\\redditi.exe',
+          'C:\\Program Files\\RedditiOnline\\redditi.exe',
+        ],
+        lipe: [
+          'C:\\LIPE\\lipe.exe',
+          'C:\\Program Files\\LIPE\\lipe.exe',
+        ],
+        cu: [
+          'C:\\CU\\cu.exe',
+          'C:\\Program Files\\CU\\cu.exe',
+        ],
+        f24: [
+          'C:\\F24Online\\f24.exe',
+          'C:\\Program Files\\F24Online\\f24.exe',
+        ],
+      }
+
+      for (const [key, paths] of Object.entries(searchMap)) {
+        for (const p of paths) {
+          if (fs.existsSync(p)) {
+            trovati.push({ nomeKey: key, percorsoTrovato: p, tipo: 'eseguibile' })
+            break
+          }
         }
       }
-    }
-  } else {
+
+      // Ricerca per annate specifiche su Windows (Redditi, LIPE, CU)
+      for (const yr of anniScan) {
+        const redditiYrPaths = [
+          `C:\\RedditiOnline${yr}\\redditi.exe`,
+          `C:\\RedditiOnline\\${yr}\\redditi.exe`,
+          `C:\\Redditi${yr}\\redditi.exe`,
+          `C:\\UnicoOnline${yr}\\unico.exe`,
+          `C:\\Unico${yr}\\unico.exe`,
+          `C:\\Program Files\\RedditiOnline${yr}\\redditi.exe`,
+          `C:\\Program Files (x86)\\RedditiOnline${yr}\\redditi.exe`,
+          `C:\\Program Files\\RedditiOnline\\${yr}\\redditi.exe`,
+          `C:\\Program Files (x86)\\RedditiOnline\\${yr}\\redditi.exe`,
+          path.join(homeDir, `RedditiOnline${yr}`, 'redditi.exe'),
+          path.join(homeDir, `Redditi${yr}`, 'redditi.exe'),
+        ]
+        for (const p of redditiYrPaths) {
+          if (fs.existsSync(p)) {
+            versioniTrovate.push({ nomeKey: 'redditi', anno: yr, percorso: p })
+            break
+          }
+        }
+
+        const lipeYrPaths = [
+          `C:\\LIPE${yr}\\lipe.exe`,
+          `C:\\LIPE\\${yr}\\lipe.exe`,
+          `C:\\Program Files\\LIPE${yr}\\lipe.exe`,
+        ]
+        for (const p of lipeYrPaths) {
+          if (fs.existsSync(p)) {
+            versioniTrovate.push({ nomeKey: 'lipe', anno: yr, percorso: p })
+            break
+          }
+        }
+
+        const cuYrPaths = [
+          `C:\\CU${yr}\\cu.exe`,
+          `C:\\CU\\${yr}\\cu.exe`,
+          `C:\\Program Files\\CU${yr}\\cu.exe`,
+        ]
+        for (const p of cuYrPaths) {
+          if (fs.existsSync(p)) {
+            versioniTrovate.push({ nomeKey: 'cu', anno: yr, percorso: p })
+            break
+          }
+        }
+      }
+    } else {
     // ─── LINUX (UBUNTU) SEARCH PATHS ───────────────────────
     const linuxSearchPaths: Record<string, string[]> = {
       telematico: [
@@ -298,6 +348,42 @@ export async function POST() {
           await prisma.studioProgram.update({
             where: { id: match.id },
             data: dataUpdate,
+          })
+          aggiornati++
+        }
+      }
+
+      // Aggiorna annate specifiche in versioni
+      for (const vt of versioniTrovate) {
+        const match = programmiDb.find((p) => {
+          const n = p.nome.toLowerCase()
+          if (vt.nomeKey === 'redditi') return n.includes('redditi')
+          if (vt.nomeKey === 'lipe') return n.includes('lipe')
+          if (vt.nomeKey === 'cu') return n.includes('certificazione unica') || n.includes('cu')
+          return false
+        })
+        if (match) {
+          const currentVersioni: any[] = Array.isArray(match.versioni)
+            ? [...(match.versioni as any[])]
+            : []
+          const existingIdx = currentVersioni.findIndex((v) => v.anno === vt.anno)
+          if (existingIdx >= 0) {
+            if (isWindows) {
+              currentVersioni[existingIdx].comandoWindows = vt.percorso
+            } else {
+              currentVersioni[existingIdx].comandoLinux = vt.percorso
+            }
+          } else {
+            currentVersioni.push({
+              anno: vt.anno,
+              etichetta: `${match.nome} ${vt.anno}`,
+              comandoWindows: isWindows ? vt.percorso : undefined,
+              comandoLinux: !isWindows ? vt.percorso : undefined,
+            })
+          }
+          await prisma.studioProgram.update({
+            where: { id: match.id },
+            data: { versioni: currentVersioni },
           })
           aggiornati++
         }

@@ -1,6 +1,14 @@
 // src/lib/programmi-default.ts
 // Programmi predefiniti dello studio professionale per adempimenti fiscali, previdenziali e catastali
 
+export interface ProgrammaVersioneDef {
+  anno: string
+  etichetta: string
+  comandoWindows?: string | null
+  comandoLinux?: string | null
+  webUrl?: string | null
+}
+
 export interface StudioProgramDef {
   nome: string
   descrizione: string
@@ -10,6 +18,7 @@ export interface StudioProgramDef {
   comandoWindows: string | null
   webUrl: string | null
   ordinamento: number
+  versioni?: ProgrammaVersioneDef[]
 }
 
 export const DEFAULT_PROGRAMMI: StudioProgramDef[] = [
@@ -35,13 +44,43 @@ export const DEFAULT_PROGRAMMI: StudioProgramDef[] = [
   },
   {
     nome: 'Dichiarazioni dei Redditi (Redditi PF / SP / SC / 730)',
-    descrizione: 'Pacchetto ministeriale per la compilazione e il calcolo delle dichiarazioni dei redditi annuali',
+    descrizione: 'Pacchetto per la compilazione e il calcolo delle dichiarazioni dei redditi annuali e modelli 730',
     categoria: 'Fiscale',
     icona: 'FileSpreadsheet',
     comandoLinux: 'redditionline',
     comandoWindows: 'C:\\RedditiOnline\\redditi.exe',
     webUrl: 'https://www.agenziaentrate.gov.it/portale/dichiarazioni-e-comunicazioni',
     ordinamento: 3,
+    versioni: [
+      {
+        anno: '2025',
+        etichetta: 'Redditi / 730 2025 (Periodo 2024)',
+        comandoWindows: 'C:\\RedditiOnline2025\\redditi.exe',
+        comandoLinux: 'redditi2025',
+        webUrl: 'https://www.agenziaentrate.gov.it/portale/dichiarazione-redditi-persone-fisiche-2025',
+      },
+      {
+        anno: '2024',
+        etichetta: 'Redditi / 730 2024 (Periodo 2023)',
+        comandoWindows: 'C:\\RedditiOnline2024\\redditi.exe',
+        comandoLinux: 'redditi2024',
+        webUrl: 'https://www.agenziaentrate.gov.it/portale/dichiarazione-redditi-persone-fisiche-2024',
+      },
+      {
+        anno: '2023',
+        etichetta: 'Redditi / 730 2023 (Periodo 2022)',
+        comandoWindows: 'C:\\RedditiOnline2023\\redditi.exe',
+        comandoLinux: 'redditi2023',
+        webUrl: 'https://www.agenziaentrate.gov.it/portale/dichiarazione-redditi-persone-fisiche-2023',
+      },
+      {
+        anno: '2022',
+        etichetta: 'Redditi / 730 2022 (Periodo 2021)',
+        comandoWindows: 'C:\\RedditiOnline2022\\redditi.exe',
+        comandoLinux: 'redditi2022',
+        webUrl: 'https://www.agenziaentrate.gov.it/portale/dichiarazione-redditi-persone-fisiche-2022',
+      },
+    ],
   },
   {
     nome: 'Comunicazioni LIPE (Liquidazioni IVA)',
@@ -52,6 +91,29 @@ export const DEFAULT_PROGRAMMI: StudioProgramDef[] = [
     comandoWindows: 'C:\\LIPE\\lipe.exe',
     webUrl: 'https://ivaservizi.agenziaentrate.gov.it/portale/',
     ordinamento: 4,
+    versioni: [
+      {
+        anno: '2025',
+        etichetta: 'LIPE Trimestri 2025',
+        comandoWindows: 'C:\\LIPE2025\\lipe.exe',
+        comandoLinux: 'lipe2025',
+        webUrl: 'https://ivaservizi.agenziaentrate.gov.it/portale/',
+      },
+      {
+        anno: '2024',
+        etichetta: 'LIPE Trimestri 2024',
+        comandoWindows: 'C:\\LIPE2024\\lipe.exe',
+        comandoLinux: 'lipe2024',
+        webUrl: 'https://ivaservizi.agenziaentrate.gov.it/portale/',
+      },
+      {
+        anno: '2023',
+        etichetta: 'LIPE Trimestri 2023',
+        comandoWindows: 'C:\\LIPE2023\\lipe.exe',
+        comandoLinux: 'lipe2023',
+        webUrl: 'https://ivaservizi.agenziaentrate.gov.it/portale/',
+      },
+    ],
   },
   {
     nome: 'Certificazione Unica (CU)',
@@ -62,6 +124,22 @@ export const DEFAULT_PROGRAMMI: StudioProgramDef[] = [
     comandoWindows: 'C:\\CU\\cu.exe',
     webUrl: 'https://www.agenziaentrate.gov.it/portale/certificazione-unica',
     ordinamento: 5,
+    versioni: [
+      {
+        anno: '2025',
+        etichetta: 'Certificazione Unica 2025 (Redditi 2024)',
+        comandoWindows: 'C:\\CU2025\\cu.exe',
+        comandoLinux: 'cu2025',
+        webUrl: 'https://www.agenziaentrate.gov.it/portale/certificazione-unica-2025',
+      },
+      {
+        anno: '2024',
+        etichetta: 'Certificazione Unica 2024 (Redditi 2023)',
+        comandoWindows: 'C:\\CU2024\\cu.exe',
+        comandoLinux: 'cu2024',
+        webUrl: 'https://www.agenziaentrate.gov.it/portale/certificazione-unica-2024',
+      },
+    ],
   },
   {
     nome: 'F24 Online (Compilazione & Invio)',

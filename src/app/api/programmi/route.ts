@@ -19,8 +19,32 @@ export async function GET() {
     // Se la tabella è ancora vuota, inserisci automaticamente i software predefiniti
     if (programmi.length === 0) {
       for (const p of DEFAULT_PROGRAMMI) {
-        await prisma.studioProgram.create({ data: p })
+        await prisma.studioProgram.create({
+          data: {
+            ...p,
+            versioni: p.versioni ? (p.versioni as any) : undefined,
+          },
+        })
       }
+      programmi = await prisma.studioProgram.findMany({
+        orderBy: { ordinamento: 'asc' },
+      })
+    } else {
+      // Se esistono programmi senza versioni (creati con versioni precedenti), arricchiscili se corrispondono ai default
+      for (const prog of programmi) {
+        if (!prog.versioni) {
+          const matchingDefault = DEFAULT_PROGRAMMI.find(
+            (d) => d.nome.toLowerCase() === prog.nome.toLowerCase() || prog.nome.toLowerCase().includes('redditi')
+          )
+          if (matchingDefault?.versioni) {
+            await prisma.studioProgram.update({
+              where: { id: prog.id },
+              data: { versioni: matchingDefault.versioni as any },
+            }).catch(() => {})
+          }
+        }
+      }
+      // Ricarica dopo aggiornamento versioni
       programmi = await prisma.studioProgram.findMany({
         orderBy: { ordinamento: 'asc' },
       })
@@ -40,6 +64,7 @@ export async function GET() {
       comandoLinux: p.comandoLinux || null,
       comandoWindows: p.comandoWindows || null,
       webUrl: p.webUrl || null,
+      versioni: p.versioni || null,
       ordinamento: p.ordinamento,
       attivo: true,
     }))
@@ -59,41 +84,34 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    const { id, nome, descrizione, categoria, icona, comandoLinux, comandoWindows, webUrl, ordinamento, attivo } = body
+    const { id, nome, descrizione, categoria, icona, comandoLinux, comandoWindows, webUrl, versioni, ordinamento, attivo } = body
 
     if (!nome?.trim()) {
       return NextResponse.json({ error: 'Il nome del programma è obbligatorio' }, { status: 400 })
     }
 
+    const payloadData = {
+      nome: nome.trim(),
+      descrizione: descrizione?.trim() || null,
+      categoria: categoria || 'Fiscale',
+      icona: icona || 'Monitor',
+      comandoLinux: comandoLinux?.trim() || null,
+      comandoWindows: comandoWindows?.trim() || null,
+      webUrl: webUrl?.trim() || null,
+      versioni: versioni && Array.isArray(versioni) ? (versioni as any) : undefined,
+      ordinamento: ordinamento !== undefined ? Number(ordinamento) : 0,
+      attivo: attivo !== undefined ? Boolean(attivo) : true,
+    }
+
     let prog
-    if (id) {
+    if (id && !id.startsWith('default-')) {
       prog = await prisma.studioProgram.update({
         where: { id },
-        data: {
-          nome: nome.trim(),
-          descrizione: descrizione?.trim() || null,
-          categoria: categoria || 'Fiscale',
-          icona: icona || 'Monitor',
-          comandoLinux: comandoLinux?.trim() || null,
-          comandoWindows: comandoWindows?.trim() || null,
-          webUrl: webUrl?.trim() || null,
-          ordinamento: ordinamento !== undefined ? Number(ordinamento) : 0,
-          attivo: attivo !== undefined ? Boolean(attivo) : true,
-        },
+        data: payloadData,
       })
     } else {
       prog = await prisma.studioProgram.create({
-        data: {
-          nome: nome.trim(),
-          descrizione: descrizione?.trim() || null,
-          categoria: categoria || 'Fiscale',
-          icona: icona || 'Monitor',
-          comandoLinux: comandoLinux?.trim() || null,
-          comandoWindows: comandoWindows?.trim() || null,
-          webUrl: webUrl?.trim() || null,
-          ordinamento: ordinamento !== undefined ? Number(ordinamento) : 0,
-          attivo: attivo !== undefined ? Boolean(attivo) : true,
-        },
+        data: payloadData,
       })
     }
 
@@ -101,5 +119,21 @@ export async function POST(request: Request) {
   } catch (err: any) {
     console.error('Errore POST /api/programmi:', err)
     return NextResponse.json({ error: 'Errore salvataggio programma' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'ID mancante' }, { status: 400 })
+
+    await prisma.studioProgram.delete({ where: { id } })
+    return NextResponse.json({ successo: true, messaggio: 'Programma eliminato' })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

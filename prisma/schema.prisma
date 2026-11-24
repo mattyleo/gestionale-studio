@@ -358,6 +358,7 @@ model StudioProgram {
   comandoLinux   String?  // comando o percorso eseguibile Linux
   comandoWindows String?  // percorso eseguibile Windows
   webUrl         String?  // URL portale web alternativo
+  versioni       Json?    // Array di annate/versioni [{ anno: "2025", etichetta: "...", comandoWindows: "...", comandoLinux: "...", webUrl: "..." }]
   ordinamento    Int      @default(0)
   attivo         Boolean  @default(true)
   createdAt      DateTime @default(now())

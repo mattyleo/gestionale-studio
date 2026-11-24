@@ -1,11 +1,11 @@
 // src/app/api/programmi/[id]/avvia/route.ts
-// Lancia l'esecuzione del software sul computer dell'operatore (Linux / Windows)
+// Lancia l'esecuzione del software sul computer dell'operatore (Linux / Windows) con supporto multi-anno
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { DEFAULT_PROGRAMMI } from '@/lib/programmi-default'
+import { DEFAULT_PROGRAMMI, ProgrammaVersioneDef } from '@/lib/programmi-default'
 import { spawn } from 'child_process'
 import path from 'path'
 import fs from 'fs'
@@ -19,11 +19,15 @@ export async function POST(
   if (!session) return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
 
   try {
+    const body = await request.json().catch(() => ({}))
+    const requestedAnno: string | undefined = body.anno
+
     let prog: {
       nome: string
       comandoWindows: string | null
       comandoLinux: string | null
       webUrl: string | null
+      versioni?: any
     } | null = null
 
     if (params.id.startsWith('default-')) {
@@ -48,21 +52,42 @@ export async function POST(
     }
 
     const isWindows = process.platform === 'win32'
-    const cmd = isWindows ? prog.comandoWindows : prog.comandoLinux
 
-    if (!cmd && !prog.webUrl) {
+    // Risoluzione versione/anno
+    let versioneScelta: ProgrammaVersioneDef | null = null
+    const versioniList: ProgrammaVersioneDef[] = Array.isArray(prog.versioni)
+      ? (prog.versioni as ProgrammaVersioneDef[])
+      : typeof prog.versioni === 'string'
+      ? JSON.parse(prog.versioni || '[]')
+      : []
+
+    if (requestedAnno && versioniList.length > 0) {
+      versioneScelta = versioniList.find((v) => v.anno === requestedAnno) || null
+    } else if (versioniList.length > 0) {
+      // Se non specificato, prendi la prima versione disponibile (solitamente la più recente)
+      versioneScelta = versioniList[0]
+    }
+
+    const cmd = versioneScelta
+      ? (isWindows ? (versioneScelta.comandoWindows || prog.comandoWindows) : (versioneScelta.comandoLinux || prog.comandoLinux))
+      : (isWindows ? prog.comandoWindows : prog.comandoLinux)
+
+    const targetWebUrl = versioneScelta?.webUrl || prog.webUrl
+    const labelVisualizzata = versioneScelta?.etichetta || (versioneScelta ? `${prog.nome} (${versioneScelta.anno})` : prog.nome)
+
+    if (!cmd && !targetWebUrl) {
       return NextResponse.json({
-        error: `Nessun comando o percorso configurato per ${isWindows ? 'Windows' : 'Linux'}.`,
+        error: `Nessun comando o percorso configurato per ${isWindows ? 'Windows' : 'Linux'}${versioneScelta ? ` (anno ${versioneScelta.anno})` : ''}.`,
       }, { status: 400 })
     }
 
     // Se c'è solo URL o comando non impostato, notifica di aprire il web
-    if (!cmd && prog.webUrl) {
+    if (!cmd && targetWebUrl) {
       return NextResponse.json({
         successo: true,
         tipo: 'web',
-        url: prog.webUrl,
-        messaggio: `Apertura portale web per ${prog.nome}`,
+        url: targetWebUrl,
+        messaggio: `Apertura portale web per ${labelVisualizzata}`,
       })
     }
 
@@ -77,6 +102,24 @@ export async function POST(
       if (fs.existsSync(fallbackAntonio)) {
         finalCmd = fallbackAntonio
       }
+    }
+
+    // Verifica se il file/eseguibile esiste sul filesystem locale (se è un percorso assoluto o relativo con estensione)
+    const looksLikePath = finalCmd.includes('\\') || finalCmd.includes('/') || finalCmd.toLowerCase().endsWith('.exe') || finalCmd.toLowerCase().endsWith('.bat')
+    const fileExists = looksLikePath ? fs.existsSync(finalCmd) : true
+
+    if (looksLikePath && !fileExists) {
+      return NextResponse.json({
+        successo: false,
+        nonTrovato: true,
+        percorsoTentato: finalCmd,
+        anno: versioneScelta?.anno || null,
+        etichetta: labelVisualizzata,
+        webUrl: targetWebUrl || null,
+        nome: prog.nome,
+        errore: `File non trovato nel percorso indicato: "${finalCmd}".`,
+        messaggio: `Il software non è stato trovato nel percorso '${finalCmd}'. Puoi configurare il percorso corretto dove è installata l'annata sul tuo computer, oppure aprire il portale web dell'Agenzia delle Entrate.`,
+      }, { status: 404 })
     }
 
     // Se su Linux e il file esiste, assicurati che abbia i permessi di esecuzione (chmod +x)
@@ -112,7 +155,6 @@ export async function POST(
       } else {
         // Su Linux usa bash con variabili grafiche per visualizzare la finestra sul desktop dell'operatore
         let bashCmd = finalCmd
-        // Se il percorso contiene spazi ed è un file/eseguibile (senza pipe/operatori), racchiudilo tra virgolette
         if (bashCmd.includes(' ') && !bashCmd.startsWith('"') && !bashCmd.startsWith("'") && !bashCmd.includes('||') && !bashCmd.includes('&&')) {
           bashCmd = `"${bashCmd}"`
         }
@@ -127,7 +169,7 @@ export async function POST(
       return NextResponse.json({
         successo: true,
         tipo: 'desktop',
-        messaggio: `Software avviato con successo sul computer: ${prog.nome}`,
+        messaggio: `Software avviato con successo sul computer: ${labelVisualizzata}`,
       })
     } catch (launchErr: any) {
       return NextResponse.json({
