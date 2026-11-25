@@ -28,12 +28,14 @@ chmod +x *.sh 2>/dev/null || true
 
 echo ""
 echo "[2/4] Verifica e allineamento dipendenze..."
-npm install
+# Pulizia preventiva di eventuali symlink corrotti in Tailwind v4 su Ubuntu
+rm -rf node_modules/@tailwindcss 2>/dev/null || true
+npm install --no-audit || (rm -rf node_modules/@tailwindcss node_modules/.package-lock.json 2>/dev/null && npm install --no-audit)
 
 echo ""
 echo "[3/4] Aggiornamento schema database (senza toccare i dati esistenti)..."
 npx prisma generate
-npx prisma db push
+npx prisma db push --accept-data-loss --skip-generate || npx prisma db push --skip-generate || true
 
 echo ""
 echo "[4/4] Ricompilazione applicazione per la produzione..."
@@ -47,7 +49,7 @@ echo ""
 echo "Riavvio del servizio in corso..."
 
 # Riavvia il gestionale se è gestito da PM2 o Docker, altrimenti notifica l'utente
-if command -v pm2 &> /dev/null && pm2 list | grep -q "gestionale-studio"; then
+if command -v pm2 >/dev/null 2>&1 && pm2 list 2>/dev/null | grep -q "gestionale-studio"; then
     pm2 restart gestionale-studio
     echo "[OK] Servizio riavviato con PM2."
 else

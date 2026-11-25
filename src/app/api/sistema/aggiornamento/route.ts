@@ -162,7 +162,10 @@ export async function POST() {
     // 2. Allineamento dipendenze se necessario
     logFasi.push('2. Verifica e allineamento dipendenze (npm install)...')
     try {
-      execSync('npm install', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 180000 })
+      if (process.platform !== 'win32') {
+        try { execSync('rm -rf node_modules/@tailwindcss', { cwd: PROJECT_DIR, encoding: 'utf8' }) } catch {}
+      }
+      execSync('npm install --no-audit', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 180000 })
       logFasi.push('   Dipendenze verificate con successo.')
     } catch (npmErr: any) {
       logFasi.push(`   Avviso: npm install completato con avvisi: ${npmErr.message?.slice(0, 80)}`)
@@ -203,7 +206,7 @@ export async function POST() {
     logFasi.push('5. Riavvio del servizio in corso...')
     let riavviatoConPM2 = false
     try {
-      execSync('pm2 restart gestionale-studio', { encoding: 'utf8', timeout: 10000 })
+      execSync('command -v pm2 >/dev/null 2>&1 && pm2 restart gestionale-studio', { encoding: 'utf8', timeout: 10000 })
       riavviatoConPM2 = true
       logFasi.push('   Servizio riavviato tramite PM2.')
     } catch {}
