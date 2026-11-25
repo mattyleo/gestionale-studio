@@ -161,6 +161,25 @@ export async function assureDbSchemaAligned() {
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS "studio_ai_memories_tipo_chiavePattern_idx" ON "studio_ai_memories"("tipo", "chiavePattern");
+
+      // 9. Tabella studio_knowledge_documents (Biblioteca Normativa & Manuali PDF RAG)
+      CREATE TABLE IF NOT EXISTS "studio_knowledge_documents" (
+        "id" TEXT PRIMARY KEY,
+        "titolo" TEXT NOT NULL,
+        "descrizione" TEXT,
+        "categoria" TEXT NOT NULL DEFAULT 'IVA & Fatturazione',
+        "nomeFile" TEXT NOT NULL,
+        "dimensioneBytes" INTEGER NOT NULL DEFAULT 0,
+        "testoEstratto" TEXT NOT NULL,
+        "pagineConteggio" INTEGER NOT NULL DEFAULT 1,
+        "annoRiferimento" TEXT DEFAULT '2025',
+        "fonte" TEXT DEFAULT 'Studio Tuzio',
+        "attivo" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "studio_knowledge_documents_categoria_idx" ON "studio_knowledge_documents"("categoria");
+      CREATE INDEX IF NOT EXISTS "studio_knowledge_documents_attivo_idx" ON "studio_knowledge_documents"("attivo");
     `)
 
     isAligned = true

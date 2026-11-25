@@ -22,6 +22,11 @@ import {
   Lock,
   ArrowRight,
   TrendingUp,
+  BookOpen,
+  Upload,
+  FileUp,
+  Trash2,
+  Search,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -64,13 +69,31 @@ export default function AgentiIaPage() {
   // Chat Console Agente Mastro
   const [prompt, setPrompt] = React.useState('')
   const [interrogando, setInterrogando] = React.useState(false)
-  const [cronologia, setCronologia] = React.useState<Array<{ quesito: string; risposta: string; motore: string }>>([
+  const [cronologia, setCronologia] = React.useState<Array<{ quesito: string; risposta: string; motore: string; fonti?: string[] }>>([
     {
       quesito: 'Quali sono i compiti principali della squadra di Agenti IA?',
       risposta: 'L\'Agente Mastro coordina gli specialisti: Contabilità (registri A1/V1 e causale 899 NO IVA), Deleghe F24, Dichiarativi (730, 770, Redditi) e Bilancio CEE. Il sistema è progettato per operare in locale a tutela dei dati dello studio e si auto-perfeziona memorizzando le correzioni e le preferenze del Dottore.',
       motore: 'MOTORE_DETERMINISTICO_STUDIO',
+      fonti: ['Guida Schematica Codici IVA e Natura SDI (CGN / Agenzia delle Entrate)'],
     },
   ])
+
+  // Biblioteca Normativa & Manuali PDF RAG
+  const [manuali, setManuali] = React.useState<any[]>([])
+  const [caricandoManuali, setCaricandoManuali] = React.useState(false)
+  const [openModalCaricaManuale, setOpenModalCaricaManuale] = React.useState(false)
+  const [salvandoManuale, setSalvandoManuale] = React.useState(false)
+  const [ricercaManuali, setRicercaManuali] = React.useState('')
+  const [docVisualizzato, setDocVisualizzato] = React.useState<any | null>(null)
+  const [formManuale, setFormManuale] = React.useState({
+    titolo: '',
+    descrizione: '',
+    categoria: 'IVA & Fatturazione',
+    annoRiferimento: '2025',
+    fonte: 'CGN / Agenzia delle Entrate',
+    file: null as File | null,
+    testoManuale: '',
+  })
 
   // Modale Insegna Regola (Auto-apprendimento)
   const [openModalInsegna, setOpenModalInsegna] = React.useState(false)
@@ -99,9 +122,27 @@ export default function AgentiIaPage() {
     }
   }, [toast])
 
+  const caricaManuali = React.useCallback(async () => {
+    setCaricandoManuali(true)
+    try {
+      const url = ricercaManuali.trim()
+        ? `/api/agenti-ia/documenti?cerca=${encodeURIComponent(ricercaManuali.trim())}`
+        : '/api/agenti-ia/documenti'
+      const res = await fetch(url)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setManuali(json.documenti || [])
+    } catch (e: any) {
+      console.warn('Errore lettura manuali:', e.message)
+    } finally {
+      setCaricandoManuali(false)
+    }
+  }, [ricercaManuali])
+
   React.useEffect(() => {
     caricaDati()
-  }, [caricaDati])
+    caricaManuali()
+  }, [caricaDati, caricaManuali])
 
   const handleInviaPrompt = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -126,12 +167,105 @@ export default function AgentiIaPage() {
           quesito: q,
           risposta: json.risposta,
           motore: json.motore,
+          fonti: json.fonti,
         },
       ])
     } catch (err: any) {
       toast({ title: 'Errore consultazione agente', description: err.message, variant: 'destructive' })
     } finally {
       setInterrogando(false)
+    }
+  }
+
+  // Salvataggio nuovo manuale (PDF o Nota Normativa)
+  const handleSalvaManuale = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!formManuale.titolo.trim()) {
+      toast({ title: 'Inserisci il titolo del manuale o documento', variant: 'destructive' })
+      return
+    }
+
+    setSalvandoManuale(true)
+    try {
+      if (formManuale.file) {
+        // Invio multipart con file PDF
+        const fd = new FormData()
+        fd.append('file', formManuale.file)
+        fd.append('titolo', formManuale.titolo.trim())
+        fd.append('descrizione', formManuale.descrizione.trim())
+        fd.append('categoria', formManuale.categoria)
+        fd.append('annoRiferimento', formManuale.annoRiferimento)
+        fd.append('fonte', formManuale.fonte.trim())
+
+        const res = await fetch('/api/agenti-ia/documenti', {
+          method: 'POST',
+          body: fd,
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error)
+        toast({ title: '✅ Manuale PDF caricato ed indicizzato!', description: `Estratte ${json.documento?.pagineConteggio || 1} pagine per l'IA locale.` })
+      } else if (formManuale.testoManuale.trim()) {
+        // Invio nota di testo
+        const res = await fetch('/api/agenti-ia/documenti', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            titolo: formManuale.titolo.trim(),
+            descrizione: formManuale.descrizione.trim(),
+            categoria: formManuale.categoria,
+            annoRiferimento: formManuale.annoRiferimento,
+            fonte: formManuale.fonte.trim(),
+            testo: formManuale.testoManuale.trim(),
+          }),
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error)
+        toast({ title: '✅ Nota normativa memorizzata!', description: 'L\'Agente Mastro utilizzerà questo testo per consultazioni future.' })
+      } else {
+        toast({ title: 'Seleziona un file PDF oppure inserisci il testo normativo', variant: 'destructive' })
+        setSalvandoManuale(false)
+        return
+      }
+
+      setOpenModalCaricaManuale(false)
+      setFormManuale({
+        titolo: '',
+        descrizione: '',
+        categoria: 'IVA & Fatturazione',
+        annoRiferimento: '2025',
+        fonte: 'CGN / Agenzia delle Entrate',
+        file: null,
+        testoManuale: '',
+      })
+      caricaManuali()
+    } catch (err: any) {
+      toast({ title: 'Errore caricamento documento', description: err.message, variant: 'destructive' })
+    } finally {
+      setSalvandoManuale(false)
+    }
+  }
+
+  const handleEliminaManuale = async (id: string, titolo: string) => {
+    if (!confirm(`Sei sicuro di voler rimuovere "${titolo}" dalla biblioteca normativa dell'IA?`)) return
+    try {
+      const res = await fetch(`/api/agenti-ia/documenti?id=${id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      toast({ title: 'Documento rimosso' })
+      caricaManuali()
+    } catch (err: any) {
+      toast({ title: 'Errore eliminazione', description: err.message, variant: 'destructive' })
+    }
+  }
+
+  const handleVisualizzaTesto = async (id: string) => {
+    try {
+      const res = await fetch(`/api/agenti-ia/documenti?id=${id}`)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setDocVisualizzato(json.documento)
+    } catch (err: any) {
+      toast({ title: 'Errore lettura documento', description: err.message, variant: 'destructive' })
     }
   }
 
@@ -256,6 +390,9 @@ export default function AgentiIaPage() {
           </TabsTrigger>
           <TabsTrigger value="memoria" className="gap-1.5 text-xs sm:text-sm">
             <GraduationCap className="h-4 w-4" /> Memoria &amp; Regole Apprese ({dati?.memorieApprese?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="manuali" className="gap-1.5 text-xs sm:text-sm font-semibold text-emerald-800 data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-900">
+            <BookOpen className="h-4 w-4 text-emerald-600" /> Biblioteca Normativa &amp; Manuali PDF ({manuali.length})
           </TabsTrigger>
           <TabsTrigger value="roadmap" className="gap-1.5 text-xs sm:text-sm">
             <TrendingUp className="h-4 w-4" /> Roadmap Fiscale &amp; Commercializzazione
@@ -479,6 +616,142 @@ export default function AgentiIaPage() {
           </Card>
         </TabsContent>
 
+        {/* 3. TAB: BIBLIOTECA NORMATIVA & MANUALI PDF DELLO STUDIO (RAG) */}
+        <TabsContent value="manuali" className="space-y-4">
+          <Card className="border shadow-sm">
+            <CardHeader className="pb-3 border-b bg-gray-50/50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2 text-emerald-900">
+                    <BookOpen className="h-5 w-5 text-emerald-600" />
+                    Biblioteca Normativa &amp; Manuali PDF dello Studio (RAG Locale)
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Carica i manuali fiscali, guide CGN, circolari dell&apos;Agenzia delle Entrate e note interne in formato PDF. L&apos;IA li memorizza, li cita nelle risposte e li utilizza per verificare la regolarità delle registrazioni.
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => setOpenModalCaricaManuale(true)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shrink-0"
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1.5" /> Carica Manuale PDF
+                </Button>
+              </div>
+
+              {/* Barra di ricerca rapida nella biblioteca */}
+              <div className="flex items-center gap-2 pt-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
+                  <Input
+                    placeholder="Cerca per titolo, categoria o contenuto nei manuali dello studio..."
+                    value={ricercaManuali}
+                    onChange={(e) => setRicercaManuali(e.target.value)}
+                    className="pl-8 text-xs bg-white h-8"
+                  />
+                </div>
+                {ricercaManuali && (
+                  <Button variant="ghost" size="sm" onClick={() => setRicercaManuali('')} className="h-8 text-xs">
+                    Resetta
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              {caricandoManuali ? (
+                <div className="p-8 text-center text-xs text-gray-500">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600 mx-auto mb-2" />
+                  Caricamento biblioteca normativa...
+                </div>
+              ) : manuali.length === 0 ? (
+                <div className="p-8 text-center text-xs text-gray-500 space-y-2">
+                  <BookOpen className="h-8 w-8 text-gray-300 mx-auto" />
+                  <p className="font-semibold text-gray-700">Nessun manuale trovato nella biblioteca</p>
+                  <p className="max-w-md mx-auto text-gray-500">
+                    Clicca su &quot;Carica Manuale PDF&quot; per allegare la guida CGN, le circolari AdE o note dello studio. L&apos;IA estrarrà il testo automaticamente.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-gray-50/50">
+                      <TableRow>
+                        <TableHead className="text-xs">Documento / Manuale</TableHead>
+                        <TableHead className="text-xs">Categoria</TableHead>
+                        <TableHead className="text-xs">Fonte &amp; Anno</TableHead>
+                        <TableHead className="text-xs">Pagine &amp; Dimensione</TableHead>
+                        <TableHead className="text-xs text-right">Azioni</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {manuali.map((doc: any) => (
+                        <TableRow key={doc.id} className="hover:bg-gray-50/70 text-xs">
+                          <TableCell className="font-medium py-3">
+                            <div className="flex items-start gap-2.5">
+                              <div className="p-2 bg-emerald-50 text-emerald-700 rounded-lg shrink-0 mt-0.5">
+                                <FileText className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <span className="font-bold text-gray-900 block">{doc.titolo}</span>
+                                {doc.descrizione && (
+                                  <span className="text-gray-500 text-[11px] block mt-0.5 max-w-md line-clamp-2">
+                                    {doc.descrizione}
+                                  </span>
+                                )}
+                                <span className="text-[10px] text-gray-400 font-mono mt-0.5 block">
+                                  {doc.nomeFile}
+                                </span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-800 border-emerald-200">
+                              {doc.categoria}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-gray-700 font-medium">{doc.fonte || 'Studio Tuzio'}</div>
+                            <div className="text-[10px] text-gray-400">{doc.annoRiferimento || '2025'}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-gray-700 font-semibold">{doc.pagineConteggio || 1} pagine</div>
+                            <div className="text-[10px] text-gray-400">
+                              {doc.dimensioneBytes ? `${(doc.dimensioneBytes / 1024).toFixed(1)} KB` : 'Testo'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right space-x-1.5 whitespace-nowrap">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVisualizzaTesto(doc.id)}
+                              className="h-7 text-[11px] text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+                              title="Visualizza il testo indicizzato dall'IA"
+                            >
+                              <BookOpen className="h-3 w-3 mr-1" /> Leggi Testo
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEliminaManuale(doc.id, doc.titolo)}
+                              className="h-7 text-[11px] text-red-600 hover:bg-red-50"
+                              title="Rimuovi manuale"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* 4. TAB: CONSOLE AGENTE MASTRO */}
         <TabsContent value="console" className="space-y-4">
           <Card className="border shadow-sm">
@@ -488,7 +761,7 @@ export default function AgentiIaPage() {
                 Interazione Diretta con l&apos;Agente Mastro dello Studio
               </CardTitle>
               <CardDescription className="text-xs">
-                Poni qualsiasi quesito su codifiche IVA CGN, reverse charge TD16, F24, 730 o regole contabili. L&apos;agente risponde elaborando la risposta in locale.
+                Poni qualsiasi quesito su codifiche IVA CGN, reverse charge TD16, F24, 730 o regole contabili. L&apos;agente consulta istantaneamente sia le sue conoscenze locali sia la Biblioteca Manuali PDF caricata dal Dottore.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 space-y-4">
@@ -507,8 +780,42 @@ export default function AgentiIaPage() {
                         <span>Motore: {m.motore}</span>
                       </div>
                       <p className="text-xs whitespace-pre-line">{m.risposta}</p>
+
+                      {/* Fonti Ufficiali Citate dal RAG */}
+                      {m.fonti && m.fonti.length > 0 && (
+                        <div className="mt-2 pt-1.5 border-t border-gray-100 flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] font-semibold text-emerald-800 flex items-center gap-1">
+                            <BookOpen className="h-3 w-3 text-emerald-600" /> Fonti Ufficiali Citate:
+                          </span>
+                          {m.fonti.map((f, i) => (
+                            <Badge key={i} variant="outline" className="text-[10px] bg-emerald-50 text-emerald-900 border-emerald-300">
+                              {f}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Bottoni Suggerimenti Rapidi */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Esempi Rapidi:</span>
+                {[
+                  'Come registrare un fornitore forfettario?',
+                  'Regole per la causale 899 NO IVA su stipendi e INPS?',
+                  'Come gestire il reverse charge TD16 per pulizie ed edilizia?',
+                  'Quali sono i codici natura IVA per operazioni esenti N4?',
+                ].map((txt) => (
+                  <button
+                    key={txt}
+                    type="button"
+                    onClick={() => setPrompt(txt)}
+                    className="text-[11px] px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full border border-gray-200 transition-colors"
+                  >
+                    {txt}
+                  </button>
                 ))}
               </div>
 
@@ -660,6 +967,191 @@ export default function AgentiIaPage() {
             >
               {salvandoRegola ? 'Salvataggio...' : 'Memorizza Regola'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─────────────────────────────────────────────────────────────
+          MODAL: CARICA NUOVO MANUALE PDF / NOTA NORMATIVA (RAG)
+         ───────────────────────────────────────────────────────────── */}
+      <Dialog open={openModalCaricaManuale} onOpenChange={setOpenModalCaricaManuale}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-900 text-base">
+              <Upload className="h-5 w-5 text-emerald-600" />
+              Carica Manuale o Circolare nella Biblioteca dell&apos;IA
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Carica un file PDF (guida CGN, circolare AdE, prassi CNDCEC) oppure inserisci una nota normativa. Il testo verrà estratto ed indicizzato per le risposte e le verifiche dell&apos;Agente Mastro.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSalvaManuale} className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <Label htmlFor="man-titolo">Titolo del Documento / Manuale *</Label>
+              <Input
+                id="man-titolo"
+                placeholder="es. Guida Schematica Codici Natura IVA CGN o Circolare AdE 14/E"
+                value={formManuale.titolo}
+                onChange={(e) => setFormManuale({ ...formManuale, titolo: e.target.value })}
+                className="text-xs bg-white"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="man-cat">Categoria Fiscale</Label>
+                <Select
+                  value={formManuale.categoria}
+                  onValueChange={(v) => setFormManuale({ ...formManuale, categoria: v })}
+                >
+                  <SelectTrigger id="man-cat" className="text-xs bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="IVA & Fatturazione">IVA &amp; Fatturazione Elettronica</SelectItem>
+                    <SelectItem value="Imposte Dirette & Redditi">Imposte Dirette &amp; Dichiarativi</SelectItem>
+                    <SelectItem value="Deleghe F24 & Tributi">Deleghe F24 &amp; Riscossione</SelectItem>
+                    <SelectItem value="Bilancio & Contabilità">Bilancio CEE &amp; Prima Nota</SelectItem>
+                    <SelectItem value="Lavoro & Previdenza">Lavoro, Paghe &amp; INPS</SelectItem>
+                    <SelectItem value="Antiriciclaggio & Prassi">Antiriciclaggio &amp; Privacy</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="man-anno">Anno di Riferimento</Label>
+                <Input
+                  id="man-anno"
+                  placeholder="2025"
+                  value={formManuale.annoRiferimento}
+                  onChange={(e) => setFormManuale({ ...formManuale, annoRiferimento: e.target.value })}
+                  className="text-xs bg-white font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="man-fonte">Fonte Ufficiale / Autore</Label>
+              <Input
+                id="man-fonte"
+                placeholder="es. Agenzia delle Entrate, Gruppo CGN, CNDCEC, Studio Tuzio..."
+                value={formManuale.fonte}
+                onChange={(e) => setFormManuale({ ...formManuale, fonte: e.target.value })}
+                className="text-xs bg-white"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="man-desc">Descrizione Sintetica (facoltativa)</Label>
+              <Input
+                id="man-desc"
+                placeholder="es. Sintesi dei codici natura da N1 a N7 e corretta annotazione reverse charge..."
+                value={formManuale.descrizione}
+                onChange={(e) => setFormManuale({ ...formManuale, descrizione: e.target.value })}
+                className="text-xs bg-white"
+              />
+            </div>
+
+            <div className="p-3 bg-emerald-50/50 rounded-lg border border-emerald-200 space-y-2">
+              <Label className="text-emerald-950 font-bold block">
+                File PDF da Indicizzare
+              </Label>
+              <input
+                type="file"
+                accept=".pdf,.txt,.docx"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null
+                  setFormManuale((prev) => ({
+                    ...prev,
+                    file: f,
+                    titolo: prev.titolo || (f ? f.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') : ''),
+                  }))
+                }}
+                className="text-xs file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer"
+              />
+              <p className="text-[11px] text-emerald-800">
+                Il testo viene estratto dal file ed indicizzato localmente per permettere all&apos;Agente Mastro di citare esattamente articoli, tabelle e codifiche software.
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="man-testo" className="text-gray-500">
+                Oppure inserisci / incolla direttamente una Nota Normativa
+              </Label>
+              <textarea
+                id="man-testo"
+                rows={3}
+                placeholder="Incolla qui testo normativo o regole specifiche..."
+                value={formManuale.testoManuale}
+                onChange={(e) => setFormManuale({ ...formManuale, testoManuale: e.target.value })}
+                className="w-full rounded-md border border-gray-200 p-2 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setOpenModalCaricaManuale(false)}>
+                Annulla
+              </Button>
+              <Button
+                type="submit"
+                disabled={salvandoManuale}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+              >
+                {salvandoManuale ? 'Indicizzazione in corso...' : 'Carica ed Indicizza'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─────────────────────────────────────────────────────────────
+          MODAL: VISUALIZZA TESTO ESTRATTO DALL'IA
+         ───────────────────────────────────────────────────────────── */}
+      <Dialog open={Boolean(docVisualizzato)} onOpenChange={() => setDocVisualizzato(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-950 text-base">
+              <BookOpen className="h-5 w-5 text-emerald-600" />
+              {docVisualizzato?.titolo || 'Testo Documento'}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {docVisualizzato?.categoria} · Fonte: {docVisualizzato?.fonte} · Pagine: {docVisualizzato?.pagineConteggio || 1}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto p-3 bg-gray-50 rounded-lg border font-mono text-[11px] text-gray-800 whitespace-pre-wrap leading-relaxed max-h-[500px]">
+            {docVisualizzato?.testoEstratto || 'Nessun testo estratto disponibile.'}
+          </div>
+
+          <DialogFooter className="flex justify-between items-center sm:justify-between">
+            <span className="text-[11px] text-gray-400">
+              Caratteri indicizzati: {docVisualizzato?.testoEstratto?.length || 0}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(docVisualizzato?.testoEstratto || '')
+                  toast({ title: 'Testo copiato negli appunti' })
+                }}
+                className="text-xs"
+              >
+                Copia Testo
+              </Button>
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => setDocVisualizzato(null)}
+                className="bg-gray-900 text-white text-xs"
+              >
+                Chiudi
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

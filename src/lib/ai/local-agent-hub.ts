@@ -142,10 +142,74 @@ export async function elencoMemorieStudio(filtroTipo?: string) {
   })
 }
 
-// ── 2. Connettore IA Locale (Ollama / On-Premise) con Fallback Deterministico ──
-export async function interrogaIaLocale(prompt: string, contesto?: string): Promise<{ risposta: string; motore: 'OLLAMA_LOCALE' | 'MOTORE_DETERMINISTICO_STUDIO' }> {
+// ── 2. Ricerca RAG nella Biblioteca Normativa & Manuali Studio ──
+export async function cercaNellaNormativaStudio(quesito: string, limit = 2): Promise<{ fonte: string; titolo: string; estratto: string }[]> {
+  try {
+    const qWords = quesito.toLowerCase().split(/\s+/).filter((w) => w.length > 3)
+    if (qWords.length === 0) return []
+
+    const docs = await prisma.studioKnowledgeDocument.findMany({
+      where: { attivo: true },
+      take: 20,
+    })
+
+    const risultati: { fonte: string; titolo: string; estratto: string; score: number }[] = []
+
+    for (const d of docs) {
+      const testoLower = d.testoEstratto.toLowerCase()
+      let score = 0
+      for (const w of qWords) {
+        if (testoLower.includes(w)) score += 2
+        if (d.titolo.toLowerCase().includes(w)) score += 5
+      }
+
+      if (score > 0) {
+        const firstMatchWord = qWords.find((w) => testoLower.includes(w))
+        let snippet = ''
+        if (firstMatchWord) {
+          const idx = testoLower.indexOf(firstMatchWord)
+          const start = Math.max(0, idx - 150)
+          const end = Math.min(d.testoEstratto.length, idx + 350)
+          snippet = d.testoEstratto.slice(start, end).replace(/\s+/g, ' ').trim()
+        } else {
+          snippet = d.testoEstratto.slice(0, 400).replace(/\s+/g, ' ').trim()
+        }
+
+        risultati.push({
+          fonte: d.fonte || 'Studio Tuzio',
+          titolo: d.titolo,
+          estratto: snippet,
+          score,
+        })
+      }
+    }
+
+    risultati.sort((a, b) => b.score - a.score)
+    return risultati.slice(0, limit)
+  } catch (err) {
+    return []
+  }
+}
+
+// ── 3. Connettore IA Locale (Ollama / On-Premise) con Fallback Deterministico & RAG ──
+export async function interrogaIaLocale(prompt: string, contesto?: string): Promise<{ risposta: string; motore: 'OLLAMA_LOCALE' | 'MOTORE_DETERMINISTICO_STUDIO'; fonti?: string[] }> {
   const endpointLocale = process.env.LOCAL_AI_URL || 'http://localhost:11434/api/generate'
   const modello = process.env.LOCAL_AI_MODEL || 'llama3:8b'
+
+  // Ricerca RAG nella Biblioteca Normativa & Manuali caricati dal Dottore
+  const normativiPertinenti = await cercaNellaNormativaStudio(prompt, 2)
+  let contestoNormativo = contesto || 'Generale studio commercialista Dott. Antonio Tuzio'
+  const fontiTrovate: string[] = []
+
+  if (normativiPertinenti.length > 0) {
+    const estrattiStr = normativiPertinenti
+      .map((n) => {
+        fontiTrovate.push(`${n.titolo} (${n.fonte})`)
+        return `[MANUALE STUDIO: "${n.titolo}" - Fonte: ${n.fonte}]\n"${n.estratto}"`
+      })
+      .join('\n\n')
+    contestoNormativo += `\n\nDOCUMENTI E MANUALI UFFICIALI CARICATI DAL DOTTORE:\n${estrattiStr}`
+  }
 
   try {
     const controller = new AbortController()
@@ -156,7 +220,7 @@ export async function interrogaIaLocale(prompt: string, contesto?: string): Prom
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: modello,
-        prompt: `Sei l'Agente Fiscale dello Studio del Dott. Antonio Tuzio. Rispondi con massima precisione normativa italiana (DPR 633/72, TUIR, L. 190/2014, CNDCEC).\nContesto: ${contesto || 'Generale studio'}\nQuesito: ${prompt}`,
+        prompt: `Sei l'Agente Fiscale dello Studio del Dott. Antonio Tuzio. Rispondi con massima precisione normativa italiana (DPR 633/72, TUIR, L. 190/2014, CNDCEC) citando i documenti e le regole dello studio fornite.\nContesto e Documenti:\n${contestoNormativo}\n\nQuesito del Dottore: ${prompt}`,
         stream: false,
       }),
       signal: controller.signal,
@@ -170,6 +234,7 @@ export async function interrogaIaLocale(prompt: string, contesto?: string): Prom
         return {
           risposta: data.response.trim(),
           motore: 'OLLAMA_LOCALE',
+          fonti: fontiTrovate.length > 0 ? fontiTrovate : undefined,
         }
       }
     }
@@ -177,11 +242,16 @@ export async function interrogaIaLocale(prompt: string, contesto?: string): Prom
     // LLM locale non avviato o offline: fallback istantaneo su motore euristico dello studio
   }
 
-  // Risoluzione Euristica / Normativa Deterministica Locale dello Studio
-  const rispostaDeterministica = elaboraRispostaDeterministica(prompt)
+  // Risoluzione Euristica / Normativa Deterministica Locale dello Studio arricchita con RAG
+  let rispostaDeterministica = elaboraRispostaDeterministica(prompt)
+  if (normativiPertinenti.length > 0) {
+    rispostaDeterministica += `\n\n📚 Riferimento dai Manuali dello Studio ("${normativiPertinenti[0].titolo}"):\n«...${normativiPertinenti[0].estratto}...»`
+  }
+
   return {
     risposta: rispostaDeterministica,
     motore: 'MOTORE_DETERMINISTICO_STUDIO',
+    fonti: fontiTrovate.length > 0 ? fontiTrovate : undefined,
   }
 }
 

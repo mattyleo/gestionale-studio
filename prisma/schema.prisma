@@ -346,6 +346,29 @@ model StudioAiMemory {
 }
 
 // ─────────────────────────────────────────────
+// BIBLIOTECA NORMATIVA & MANUALI IA DELLO STUDIO (RAG & Knowledge Base)
+// ─────────────────────────────────────────────
+
+model StudioKnowledgeDocument {
+  id              String   @id @default(cuid())
+  titolo          String   // es. "Guida Schematica Codici Natura IVA CGN"
+  descrizione     String?  // Sintesi del contenuto o capitoli
+  categoria       String   @default("IVA & Fatturazione") // "IVA & Fatturazione" | "Contabilità" | "F24 & Tributi" | "Redditi & 730" | "Antiriciclaggio" | "Altro"
+  nomeFile        String   // Nome originale del file PDF caricato
+  dimensioneBytes Int?     @default(0)
+  testoEstratto   String   @db.Text // Testo completo estratto per ricerca semantica e RAG
+  pagineConteggio Int?     @default(1)
+  annoRiferimento String?  @default("2025")
+  fonte           String?  @default("Studio Tuzio") // "Agenzia delle Entrate" | "CNDCEC" | "CGN" | "Studio Tuzio"
+  attivo          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([categoria, annoRiferimento])
+  @@map("studio_knowledge_documents")
+}
+
+// ─────────────────────────────────────────────
 // PROGRAMMI ESTERNI DELLO STUDIO (Desktop Telematico, UniEMens, ecc.)
 // ─────────────────────────────────────────────
 

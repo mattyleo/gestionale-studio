@@ -98,6 +98,11 @@ export function AziendaContabilitaTab({
   // Modale Nuova Registrazione Prima Nota / IVA
   const [openModalNuova, setOpenModalNuova] = React.useState(false)
   const [salvando, setSalvando] = React.useState(false)
+
+  // Modale Diagnostica & Audit Fiscale IA
+  const [openModalAudit, setOpenModalAudit] = React.useState(false)
+  const [auditCaricamento, setAuditCaricamento] = React.useState(false)
+  const [auditDati, setAuditDati] = React.useState<any>(null)
   const [formPN, setFormPN] = React.useState({
     dataRegistrazione: new Date().toISOString().split('T')[0],
     dataCompetenza: new Date().toISOString().split('T')[0],
@@ -227,6 +232,22 @@ export function AziendaContabilitaTab({
       toast({ title: 'Errore rinumerazione', description: e.message, variant: 'destructive' })
     } finally {
       setRinumerando(false)
+    }
+  }
+
+  // Azione Diagnostica & Audit Fiscale IA
+  const handleEseguiAudit = async () => {
+    setAuditCaricamento(true)
+    setOpenModalAudit(true)
+    try {
+      const res = await fetch(`/api/aziende/${aziendaId}/contabilita/audit`)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setAuditDati(json)
+    } catch (e: any) {
+      toast({ title: 'Errore durante audit IA', description: e.message, variant: 'destructive' })
+    } finally {
+      setAuditCaricamento(false)
     }
   }
 
@@ -439,6 +460,18 @@ export function AziendaContabilitaTab({
 
                 {/* Comandi Operativi Studio */}
                 <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEseguiAudit}
+                    className="h-8 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border-indigo-300 shadow-sm"
+                    title="L'Agente Mastro verifica squadrature, forfettari, reverse charge, scritture NO IVA e salti di protocollo"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5 text-indigo-600" />
+                    Audit Errori IA
+                  </Button>
+
                   <Button
                     type="button"
                     variant="outline"
@@ -1272,6 +1305,169 @@ export function AziendaContabilitaTab({
               className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
             >
               {salvando ? 'Salvataggio...' : 'Salva e Assegna Protocollo'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─────────────────────────────────────────────────────────────
+          MODAL: DIAGNOSTICA & AUDIT FISCALE/CONTABILE IA
+         ───────────────────────────────────────────────────────────── */}
+      <Dialog open={openModalAudit} onOpenChange={setOpenModalAudit}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-indigo-900 text-base">
+              <Sparkles className="h-5 w-5 text-indigo-600" />
+              Diagnostica &amp; Audit Fiscale Intelligente — Studio Dott. Antonio Tuzio
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              L&apos;Agente Mastro esamina la conformità delle registrazioni contabili, registri IVA, forfettari, reverse charge, squadrature e sequenzialità dei protocolli per {aziendaNome}.
+            </DialogDescription>
+          </DialogHeader>
+
+          {auditCaricamento ? (
+            <div className="py-12 flex flex-col items-center justify-center space-y-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+              <p className="text-xs text-gray-500 font-medium">Scansione e verifica normativa delle registrazioni in corso...</p>
+            </div>
+          ) : auditDati ? (
+            <div className="space-y-4 py-2">
+              {/* Riepilogo dell'Audit */}
+              <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                auditDati.totaleAnomalie === 0
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-amber-50 border-amber-200 text-amber-900'
+              }`}>
+                <div className="flex items-center gap-3">
+                  {auditDati.totaleAnomalie === 0 ? (
+                    <CheckCircle2 className="h-8 w-8 text-emerald-600 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="h-8 w-8 text-amber-600 flex-shrink-0" />
+                  )}
+                  <div>
+                    <h4 className="font-bold text-sm">
+                      {auditDati.totaleAnomalie === 0
+                        ? '✅ Contabilità Perfettamente Conforme!'
+                        : `Rilevate ${auditDati.totaleAnomalie} anomalie su ${auditDati.totaleControllate} registrazioni esaminate`}
+                    </h4>
+                    <p className="text-xs opacity-90 mt-0.5">
+                      {auditDati.totaleAnomalie === 0
+                        ? 'Nessuna squadratura, protocolli sequenziali e corretta applicazione delle regole IVA e forfettari.'
+                        : `${auditDati.sintesi?.errori || 0} errori critici, ${auditDati.sintesi?.attenzioni || 0} avvertenze fiscali, ${auditDati.sintesi?.info || 0} note informative.`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <Badge variant="outline" className="bg-white">
+                    {auditDati.totaleControllate} Movimenti
+                  </Badge>
+                  {auditDati.sintesi?.errori > 0 && (
+                    <Badge className="bg-red-600 text-white">
+                      {auditDati.sintesi.errori} Errori
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Elenco Anomalie Riscontrate */}
+              {auditDati.anomalie && auditDati.anomalie.length > 0 ? (
+                <div className="space-y-3">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    Dettaglio Rilievi &amp; Suggerimenti di Correzione
+                  </h5>
+
+                  <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+                    {auditDati.anomalie.map((ano: any) => (
+                      <div
+                        key={ano.id}
+                        className={`p-3.5 rounded-lg border text-xs space-y-2 ${
+                          ano.gravita === 'ERRORE'
+                            ? 'bg-red-50/40 border-red-200'
+                            : ano.gravita === 'ATTENZIONE'
+                            ? 'bg-amber-50/40 border-amber-200'
+                            : 'bg-blue-50/40 border-blue-200'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className={
+                                ano.gravita === 'ERRORE'
+                                  ? 'bg-red-600 text-white'
+                                  : ano.gravita === 'ATTENZIONE'
+                                  ? 'bg-amber-600 text-white'
+                                  : 'bg-blue-600 text-white'
+                              }
+                            >
+                              {ano.gravita}
+                            </Badge>
+                            <Badge variant="outline" className="font-mono text-[10px]">
+                              {ano.categoria}
+                            </Badge>
+                          </div>
+
+                          {ano.entryData?.protocollo && (
+                            <span className="text-[11px] font-mono font-medium text-gray-500">
+                              Prot. #{ano.entryData.protocollo} ({ano.entryData.registroCodice || 'A1'})
+                            </span>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="font-bold text-gray-900 text-xs">{ano.titolo}</p>
+                          <p className="text-gray-600 mt-0.5 leading-relaxed">{ano.dettaglio}</p>
+                        </div>
+
+                        {ano.entryData && (
+                          <div className="p-2 bg-white/80 rounded border text-[11px] text-gray-700 flex flex-wrap gap-x-4 gap-y-1">
+                            <span><strong>Data:</strong> {formatData(ano.entryData.dataRegistrazione)}</span>
+                            {ano.entryData.soggetto && <span><strong>Soggetto:</strong> {ano.entryData.soggetto}</span>}
+                            <span><strong>Descrizione:</strong> {ano.entryData.descrizione}</span>
+                            <span><strong>Dare:</strong> {formatEuro(ano.entryData.importoDare)}</span>
+                            <span><strong>Avere:</strong> {formatEuro(ano.entryData.importoAvere)}</span>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1 border-t border-gray-200/60 text-[11px]">
+                          <div className="text-gray-600">
+                            <span className="font-semibold text-gray-800">📖 Normativa:</span> {ano.normativa}
+                          </div>
+                          <div className="text-indigo-900 font-medium">
+                            <span className="font-semibold text-indigo-700">💡 Correzione:</span> {ano.suggerimento}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 justify-between items-center sm:items-center">
+            {auditDati?.anomalie?.some((a: any) => a.categoria === 'PROTOCOLLO') && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setOpenModalAudit(false)
+                  setOpenModalRinumera(true)
+                }}
+                className="text-xs text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-300 mr-auto"
+              >
+                <RotateCcw className="h-3.5 w-3.5 mr-1" /> Apri Rinumerazione Protocolli
+              </Button>
+            )}
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setOpenModalAudit(false)}
+              className="bg-gray-900 text-white text-xs px-4 ml-auto"
+            >
+              Chiudi
             </Button>
           </DialogFooter>
         </DialogContent>

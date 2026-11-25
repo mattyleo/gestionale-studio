@@ -82,6 +82,7 @@ export async function POST(request: Request) {
       quesito: prompt,
       risposta: risultato.risposta,
       motore: risultato.motore,
+      fonti: (risultato as any).fonti || undefined,
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
