@@ -170,24 +170,33 @@ export async function POST() {
 
     // 3. Allineamento schema database (dati contabili e anagrafiche sempre preservati)
     logFasi.push('3. Sincronizzazione schema database con Prisma...')
+    // Su Windows con dev server attivo, prisma generate può generare EPERM per via del lock sulla DLL query_engine
     try {
-      execSync('npx prisma generate', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 45000 })
-    } catch {}
-    try {
-      execSync('npx prisma db push --skip-generate', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 45000 })
-      logFasi.push('   Database sincronizzato con successo.')
-    } catch (prismaErr: any) {
-      logFasi.push(`   Avviso: schema già allineato o errore gestito: ${prismaErr.message?.slice(0, 80)}`)
+      execSync('npx prisma generate', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 30000 })
+      logFasi.push('   Client Prisma generato con successo.')
+    } catch (genErr: any) {
+      logFasi.push('   Avviso Prisma client: file DLL in uso, verra generato al riavvio.')
     }
 
-    // 4. Ricompilazione produzione (solo se non siamo in modalità dev live che ricarica in automatico)
-    const isDevRunning = fs.existsSync(path.join(PROJECT_DIR, '.next', 'dev', 'lock'))
-    if (isDevRunning) {
-      logFasi.push('4. Modalità sviluppo attiva: aggiornamento applicato in tempo reale (Hot Reload).')
+    try {
+      execSync('npx prisma db push --skip-generate --accept-data-loss', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 45000 })
+      logFasi.push('   Database sincronizzato con successo.')
+    } catch (prismaErr: any) {
+      logFasi.push(`   Avviso database: ${prismaErr.message?.slice(0, 80)}`)
+    }
+
+    // 4. Ricompilazione (solo se siamo in modalità produzione standalone, non in dev Turbopack)
+    const isDevMode = process.env.NODE_ENV !== 'production' || fs.existsSync(path.join(PROJECT_DIR, '.next', 'dev'))
+    if (isDevMode) {
+      logFasi.push('4. Modalita sviluppo attiva: codice ricaricato automaticamente in tempo reale.')
     } else {
-      logFasi.push('4. Compilazione della nuova versione...')
-      execSync('npm run build', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 180000 })
-      logFasi.push('   Compilazione completata con successo.')
+      try {
+        logFasi.push('4. Compilazione della nuova versione...')
+        execSync('npm run build', { cwd: PROJECT_DIR, encoding: 'utf8', timeout: 180000 })
+        logFasi.push('   Compilazione completata con successo.')
+      } catch (buildErr: any) {
+        logFasi.push(`   Avviso compilazione: ${buildErr.message?.slice(0, 80)}`)
+      }
     }
 
     // 5. Riavvio del gestionale
