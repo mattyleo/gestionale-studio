@@ -212,7 +212,7 @@ export async function POST() {
     } catch {}
 
     // Se non gestito da PM2 e siamo in produzione, programma uscita pulita per far scattare il riavvio automatico di avvia-ubuntu.sh
-    const deveRiavviare = !riavviatoConPM2 && !isDevRunning
+    const deveRiavviare = !riavviatoConPM2 && !isDevMode
     if (deveRiavviare) {
       logFasi.push('   Riavvio automatico programmato tra 2 secondi.')
       setTimeout(() => {

@@ -4,7 +4,13 @@ import path from "path";
 const nextConfig: NextConfig = {
   // Impostazioni per la produzione
   poweredByHeader: false,
-  outputFileTracingRoot: path.resolve(process.cwd()),
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      "@": path.resolve(__dirname, "src"),
+    };
+    return config;
+  },
   
   // Immagini esterne permesse (logo emittente, ecc.)
   images: {
