@@ -98,11 +98,19 @@ while true; do
         npm install --include=dev
     fi
 
-    # Verifica che la build di produzione esista; se manca, compilala automaticamente
-    if [ ! -d ".next" ] || [ ! -f ".next/BUILD_ID" ]; then
+    # Verifica se c'e' una nuova versione di codice da compilare
+    CURRENT_COMMIT="$(git rev-parse HEAD 2>/dev/null || echo 'none')"
+    LAST_BUILT_COMMIT=""
+    if [ -f ".next/last_built_commit" ]; then
+        LAST_BUILT_COMMIT="$(cat .next/last_built_commit 2>/dev/null)"
+    fi
+
+    if [ ! -d ".next" ] || [ ! -f ".next/BUILD_ID" ] || [ "$CURRENT_COMMIT" != "$LAST_BUILT_COMMIT" ]; then
         echo ""
-        echo "[INFO] Build di produzione mancante in .next. Compilazione automatica in corso..."
+        echo "[INFO] Aggiornamento codice rilevato (commit: $CURRENT_COMMIT). Compilazione in corso..."
         npm run build
+        mkdir -p .next
+        echo "$CURRENT_COMMIT" > .next/last_built_commit 2>/dev/null || true
         echo "[OK] Compilazione completata con successo."
         echo ""
     fi
