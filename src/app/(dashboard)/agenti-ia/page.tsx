@@ -27,6 +27,8 @@ import {
   FileUp,
   Trash2,
   Search,
+  AlertCircle,
+  ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -107,6 +109,26 @@ export default function AgentiIaPage() {
     codiceCgn: '',
     istruzioniCustom: '',
   })
+
+  // Audit Fiscale Globale dello Studio (Tutte le aziende)
+  const [openModalAuditGlobale, setOpenModalAuditGlobale] = React.useState(false)
+  const [auditGlobaleCaricando, setAuditGlobaleCaricando] = React.useState(false)
+  const [auditGlobaleDati, setAuditGlobaleDati] = React.useState<any>(null)
+
+  const handleEseguiAuditGlobale = async () => {
+    setAuditGlobaleCaricando(true)
+    setOpenModalAuditGlobale(true)
+    try {
+      const res = await fetch('/api/agenti-ia/audit-globale')
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setAuditGlobaleDati(json)
+    } catch (e: any) {
+      toast({ title: 'Errore durante audit globale', description: e.message, variant: 'destructive' })
+    } finally {
+      setAuditGlobaleCaricando(false)
+    }
+  }
 
   const caricaDati = React.useCallback(async () => {
     setLoading(true)
@@ -338,7 +360,16 @@ export default function AgentiIaPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            onClick={handleEseguiAuditGlobale}
+            className="bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white text-xs font-semibold shadow-sm"
+            title="L'Agente Mastro esamina la conformità contabile di tutte le aziende clienti dello studio"
+          >
+            <Sparkles className="h-4 w-4 mr-1.5" />
+            Audit Globale Studio
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -1103,6 +1134,173 @@ export default function AgentiIaPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─────────────────────────────────────────────────────────────
+          MODAL: AUDIT FISCALE GLOBALE DELLO STUDIO (Tutte le aziende)
+         ───────────────────────────────────────────────────────────── */}
+      <Dialog open={openModalAuditGlobale} onOpenChange={setOpenModalAuditGlobale}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-indigo-950 text-base">
+              <Sparkles className="h-5 w-5 text-indigo-600" />
+              Audit Fiscale &amp; Contabile Globale dello Studio — Dott. Antonio Tuzio
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Scansione automatica dell&apos;Agente Mastro su tutte le aziende clienti: verifica squadrature, forfettari, reverse charge, scritture NO IVA e registri IVA.
+            </DialogDescription>
+          </DialogHeader>
+
+          {auditGlobaleCaricando ? (
+            <div className="py-16 flex flex-col items-center justify-center space-y-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+              <p className="text-xs text-gray-500 font-medium">Scansione contabile di tutte le aziende dello studio in corso...</p>
+            </div>
+          ) : auditGlobaleDati ? (
+            <div className="space-y-4 py-2">
+              {/* Statistiche Globali */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Card className="border shadow-xs p-3 bg-gray-50/50">
+                  <div className="text-[11px] text-gray-500 font-semibold uppercase">Aziende Esaminate</div>
+                  <div className="text-xl font-bold text-gray-900 mt-1">
+                    {auditGlobaleDati.statistiche?.totaleAziende ?? 0}
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">
+                    {auditGlobaleDati.statistiche?.totaleMovimentiEsaminati ?? 0} scritture analizzate
+                  </div>
+                </Card>
+
+                <Card className="border shadow-xs p-3 bg-emerald-50/50 border-emerald-200">
+                  <div className="text-[11px] text-emerald-800 font-semibold uppercase">Aziende Conformi</div>
+                  <div className="text-xl font-bold text-emerald-700 mt-1">
+                    {auditGlobaleDati.statistiche?.aziendeConformi ?? 0}
+                  </div>
+                  <div className="text-[10px] text-emerald-600 mt-0.5">Nessuna anomalia</div>
+                </Card>
+
+                <Card className="border shadow-xs p-3 bg-amber-50/50 border-amber-200">
+                  <div className="text-[11px] text-amber-800 font-semibold uppercase">Aziende con Rilievi</div>
+                  <div className="text-xl font-bold text-amber-700 mt-1">
+                    {auditGlobaleDati.statistiche?.aziendeConAnomalie ?? 0}
+                  </div>
+                  <div className="text-[10px] text-amber-600 mt-0.5">Richiedono verifica</div>
+                </Card>
+
+                <Card className="border shadow-xs p-3 bg-red-50/50 border-red-200">
+                  <div className="text-[11px] text-red-800 font-semibold uppercase">Errori Critici</div>
+                  <div className="text-xl font-bold text-red-700 mt-1">
+                    {auditGlobaleDati.statistiche?.totaleErroriGlobali ?? 0}
+                  </div>
+                  <div className="text-[10px] text-red-600 mt-0.5">
+                    {auditGlobaleDati.statistiche?.totaleAttenzioniGlobali ?? 0} avvertenze
+                  </div>
+                </Card>
+              </div>
+
+              {/* Elenco Aziende e Rilievi */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-600">
+                  Dettaglio Situazione Contabile per Azienda Cliente
+                </h4>
+
+                <div className="space-y-2.5 max-h-[440px] overflow-y-auto pr-1">
+                  {(auditGlobaleDati.aziende || []).map((az: any) => (
+                    <div
+                      key={az.id}
+                      className={`p-3.5 rounded-lg border text-xs space-y-2.5 transition-colors ${
+                        az.stato === 'CONFORME'
+                          ? 'bg-emerald-50/30 border-emerald-200'
+                          : az.stato === 'CRITICO'
+                          ? 'bg-red-50/30 border-red-200'
+                          : 'bg-amber-50/30 border-amber-200'
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-gray-900 text-sm">{az.ragioneSociale}</span>
+                          <Badge variant="outline" className="text-[10px] font-mono">
+                            {az.regimeContabile}
+                          </Badge>
+                          {az.partitaIva && (
+                            <span className="text-[11px] text-gray-400 font-mono">P.IVA {az.partitaIva}</span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            className={
+                              az.stato === 'CONFORME'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : az.stato === 'CRITICO'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }
+                          >
+                            {az.stato === 'CONFORME' ? '✓ Conforme (0 errori)' : `${az.anomalie.length} Anomalie`}
+                          </Badge>
+
+                          <a
+                            href={`/aziende/${az.id}?tab=contabilita`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 hover:text-blue-900 bg-white px-2 py-1 rounded border border-blue-200 hover:bg-blue-50"
+                          >
+                            Apri Contabilità <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </div>
+                      </div>
+
+                      {az.anomalie && az.anomalie.length > 0 && (
+                        <div className="space-y-1.5 pt-1 pl-2 border-l-2 border-amber-300">
+                          {az.anomalie.map((ano: any, idx: number) => (
+                            <div key={idx} className="p-2 bg-white/90 rounded border text-[11px] space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-gray-900 flex items-center gap-1.5">
+                                  <Badge className={ano.gravita === 'ERRORE' ? 'bg-red-600 text-white text-[9px]' : 'bg-amber-600 text-white text-[9px]'}>
+                                    {ano.gravita}
+                                  </Badge>
+                                  {ano.titolo}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-mono">{ano.categoria}</span>
+                              </div>
+                              <p className="text-gray-600 leading-relaxed">{ano.dettaglio}</p>
+                              <div className="text-indigo-900 font-medium text-[10px] flex items-center gap-1">
+                                <strong>💡 Soluzione consigliata:</strong> {ano.suggerimento}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          <DialogFooter className="flex justify-between items-center sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleEseguiAuditGlobale}
+              disabled={auditGlobaleCaricando}
+              className="text-xs"
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              Ricarica Audit Globale
+            </Button>
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={() => setOpenModalAuditGlobale(false)}
+              className="bg-gray-900 text-white text-xs px-4"
+            >
+              Chiudi
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

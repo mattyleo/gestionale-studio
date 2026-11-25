@@ -24,6 +24,7 @@ import {
   FileText,
   RotateCcw,
   Zap,
+  Bot,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -128,6 +129,53 @@ export function AziendaContabilitaTab({
     reverseCharge: false,
     note: '',
   })
+
+  // Avviso Preventivo in Tempo Reale dell'Agente Mastro (prima del salvataggio)
+  const inlineWarning = React.useMemo(() => {
+    if (!openModalNuova) return null
+    const d = parseFloat(formPN.importoDare) || 0
+    const a = parseFloat(formPN.importoAvere) || 0
+    const aliq = parseFloat(formPN.aliquotaIva) || 0
+    const desc = (formPN.descrizione || '').toLowerCase()
+
+    // 1. Squadratura Dare != Avere
+    if (d > 0 && a > 0 && Math.abs(d - a) > 0.01) {
+      return {
+        tipo: 'ERRORE',
+        titolo: `Squadratura Dare / Avere di € ${Math.abs(d - a).toFixed(2)}`,
+        messaggio: `I mastri Dare (€ ${d.toFixed(2)}) e Avere (€ ${a.toFixed(2)}) non pareggiano. La partita doppia richiede il perfetto pareggio prima del salvataggio.`,
+      }
+    }
+
+    // 2. Regime Forfettario con IVA
+    if (regimeContabile === 'FORFETTARIO' && formPN.tipoRegistro === 'VENDITE' && aliq > 0) {
+      return {
+        tipo: 'ERRORE',
+        titolo: 'Regime Forfettario: IVA non applicabile (N2.2)',
+        messaggio: `Le fatture emesse dai contribuenti in regime forfettario non espongono IVA (L. 190/2014). Imposta aliquota a 0% e codice CGN FORF (Natura SDI N2.2).`,
+      }
+    }
+
+    // 3. Costi stipendiali / previdenziali con IVA
+    if ((desc.includes('stipend') || desc.includes('buste paga') || desc.includes('inps') || desc.includes('inail')) && aliq > 0) {
+      return {
+        tipo: 'ERRORE',
+        titolo: 'Oneri stipendiali/previdenziali esenti da IVA',
+        messaggio: `Le retribuzioni e i contributi sono operazioni fuori campo IVA (art. 2 DPR 633/72). Azzera l'aliquota ed imposta Scrittura NO IVA (Causale 899).`,
+      }
+    }
+
+    // 4. Reverse charge
+    if ((desc.includes('reverse charge') || desc.includes('pulizie') || desc.includes('rottami')) && !formPN.reverseCharge && formPN.registroCodice !== 'AR1') {
+      return {
+        tipo: 'ATTENZIONE',
+        titolo: 'Possibile Reverse Charge (Inversione Contabile)',
+        messaggio: `La voce indica un'operazione tipica da reverse charge (art. 17 c. 6). Ricordati di selezionare la casella Reverse Charge e il registro AR1.`,
+      }
+    }
+
+    return null
+  }, [openModalNuova, formPN, regimeContabile])
 
   const caricaContabilita = React.useCallback(async () => {
     setLoading(true)
@@ -1293,6 +1341,27 @@ export function AziendaContabilitaTab({
                 </label>
               </div>
             </div>
+
+            {/* Riquadro Avviso Preventivo dell'Agente Mastro in Tempo Reale */}
+            {inlineWarning && (
+              <div
+                className={`p-3 rounded-lg border flex items-start gap-2.5 text-xs ${
+                  inlineWarning.tipo === 'ERRORE'
+                    ? 'bg-red-50 border-red-300 text-red-950'
+                    : 'bg-amber-50 border-amber-300 text-amber-950'
+                }`}
+              >
+                <div className="p-1.5 bg-white rounded-md border shadow-xs shrink-0">
+                  <Bot className="h-4 w-4 text-indigo-700" />
+                </div>
+                <div className="space-y-0.5">
+                  <span className="font-bold block flex items-center gap-1.5 text-xs">
+                    <span>🤖 Avviso dell&apos;Agente Mastro:</span> {inlineWarning.titolo}
+                  </span>
+                  <p className="opacity-90 leading-relaxed text-[11px]">{inlineWarning.messaggio}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

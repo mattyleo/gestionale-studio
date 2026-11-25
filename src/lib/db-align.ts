@@ -5,27 +5,38 @@ import { prisma } from '@/lib/prisma'
 
 let isAligned = false
 
+async function executeSingleStatement(sql: string) {
+  const trimmed = sql.trim()
+  if (!trimmed) return
+  try {
+    await prisma.$executeRawUnsafe(trimmed)
+  } catch (err: any) {
+    // Ignora errori normali di colonna o indice già esistente
+    if (
+      !err.message?.includes('already exists') &&
+      !err.message?.includes('duplicate column') &&
+      !err.message?.includes('duplicate key')
+    ) {
+      console.warn('Avviso esecuzione SQL schema:', err?.message?.slice(0, 150))
+    }
+  }
+}
+
 export async function assureDbSchemaAligned() {
   if (isAligned) return
 
   try {
     // 1. Colonne aggiunte a company_documents
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "company_documents" ADD COLUMN IF NOT EXISTS "codiceUnivoco" TEXT;
-      ALTER TABLE "company_documents" ADD COLUMN IF NOT EXISTS "cartella" TEXT DEFAULT 'Altro';
-      ALTER TABLE "company_documents" ADD COLUMN IF NOT EXISTS "percorsoRelativo" TEXT;
-      ALTER TABLE "company_documents" ADD COLUMN IF NOT EXISTS "scadenza" DATE;
-      ALTER TABLE "company_documents" ADD COLUMN IF NOT EXISTS "annoCompetenza" INTEGER;
-    `)
+    await executeSingleStatement(`ALTER TABLE "company_documents" ADD COLUMN IF NOT EXISTS "codiceUnivoco" TEXT`)
+    await executeSingleStatement(`ALTER TABLE "company_documents" ADD COLUMN IF NOT EXISTS "cartella" TEXT DEFAULT 'Altro'`)
+    await executeSingleStatement(`ALTER TABLE "company_documents" ADD COLUMN IF NOT EXISTS "percorsoRelativo" TEXT`)
+    await executeSingleStatement(`ALTER TABLE "company_documents" ADD COLUMN IF NOT EXISTS "scadenza" DATE`)
+    await executeSingleStatement(`ALTER TABLE "company_documents" ADD COLUMN IF NOT EXISTS "annoCompetenza" INTEGER`)
+    await executeSingleStatement(`CREATE UNIQUE INDEX IF NOT EXISTS "company_documents_codiceUnivoco_key" ON "company_documents"("codiceUnivoco")`)
+    await executeSingleStatement(`CREATE INDEX IF NOT EXISTS "company_documents_cartella_idx" ON "company_documents"("cartella")`)
 
-    // 2. Indici per company_documents
-    await prisma.$executeRawUnsafe(`
-      CREATE UNIQUE INDEX IF NOT EXISTS "company_documents_codiceUnivoco_key" ON "company_documents"("codiceUnivoco");
-      CREATE INDEX IF NOT EXISTS "company_documents_cartella_idx" ON "company_documents"("cartella");
-    `)
-
-    // 3. Tabella studio_programs (se mancante)
-    await prisma.$executeRawUnsafe(`
+    // 2. Tabella studio_programs (se mancante)
+    await executeSingleStatement(`
       CREATE TABLE IF NOT EXISTS "studio_programs" (
         "id" TEXT PRIMARY KEY,
         "nome" TEXT NOT NULL,
@@ -39,11 +50,11 @@ export async function assureDbSchemaAligned() {
         "attivo" BOOLEAN NOT NULL DEFAULT true,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
+      )
     `)
 
-    // 4. Tabella suppliers (se mancante)
-    await prisma.$executeRawUnsafe(`
+    // 3. Tabella suppliers (se mancante)
+    await executeSingleStatement(`
       CREATE TABLE IF NOT EXISTS "suppliers" (
         "id" TEXT PRIMARY KEY,
         "ragioneSociale" TEXT NOT NULL,
@@ -66,11 +77,11 @@ export async function assureDbSchemaAligned() {
         "attivo" BOOLEAN NOT NULL DEFAULT true,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
+      )
     `)
 
-    // 5. Tabella purchase_invoices (se mancante)
-    await prisma.$executeRawUnsafe(`
+    // 4. Tabella purchase_invoices (se mancante)
+    await executeSingleStatement(`
       CREATE TABLE IF NOT EXISTS "purchase_invoices" (
         "id" TEXT PRIMARY KEY,
         "supplierId" TEXT NOT NULL,
@@ -88,22 +99,20 @@ export async function assureDbSchemaAligned() {
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "purchase_invoices_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE CASCADE ON UPDATE CASCADE
-      );
+      )
     `)
 
-    // 6. Colonne contabili e fiscali su companies
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "dataInizioAttivita" DATE;
-      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "periodicitaIva" TEXT DEFAULT 'TRIMESTRALE';
-      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "codiceAteco" TEXT;
-      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "descrizioneAteco" TEXT;
-      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "regimeContabile" TEXT DEFAULT 'SEMPLIFICATO';
-      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "gruppoAmmortamenti" TEXT;
-      ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "registriIva" JSONB;
-    `)
+    // 5. Colonne contabili e fiscali su companies
+    await executeSingleStatement(`ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "dataInizioAttivita" DATE`)
+    await executeSingleStatement(`ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "periodicitaIva" TEXT DEFAULT 'TRIMESTRALE'`)
+    await executeSingleStatement(`ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "codiceAteco" TEXT`)
+    await executeSingleStatement(`ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "descrizioneAteco" TEXT`)
+    await executeSingleStatement(`ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "regimeContabile" TEXT DEFAULT 'SEMPLIFICATO'`)
+    await executeSingleStatement(`ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "gruppoAmmortamenti" TEXT`)
+    await executeSingleStatement(`ALTER TABLE "companies" ADD COLUMN IF NOT EXISTS "registriIva" JSONB`)
 
-    // 7. Tabella company_accounting_entries (Prima Nota e Registrazioni)
-    await prisma.$executeRawUnsafe(`
+    // 6. Tabella company_accounting_entries (Prima Nota e Registrazioni)
+    await executeSingleStatement(`
       CREATE TABLE IF NOT EXISTS "company_accounting_entries" (
         "id" TEXT PRIMARY KEY,
         "companyId" TEXT NOT NULL,
@@ -133,21 +142,24 @@ export async function assureDbSchemaAligned() {
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "company_accounting_entries_companyId_fkey" FOREIGN KEY ("companyId") REFERENCES "companies"("id") ON DELETE CASCADE ON UPDATE CASCADE
-      );
-      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "registroCodice" TEXT DEFAULT 'A1';
-      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "protocollo" INTEGER;
-      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "anno" INTEGER;
-      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "codiceIvaCgn" TEXT;
-      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "naturaSdi" TEXT;
-      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "anagraficaSoggetto" TEXT;
-      ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "isScritturaNoIva" BOOLEAN DEFAULT false;
-      CREATE INDEX IF NOT EXISTS "company_accounting_entries_companyId_idx" ON "company_accounting_entries"("companyId");
-      CREATE INDEX IF NOT EXISTS "company_accounting_entries_dataRegistrazione_idx" ON "company_accounting_entries"("dataRegistrazione");
-      CREATE INDEX IF NOT EXISTS "company_accounting_entries_tipoRegistro_idx" ON "company_accounting_entries"("tipoRegistro");
-      CREATE INDEX IF NOT EXISTS "company_accounting_entries_registroCodice_idx" ON "company_accounting_entries"("registroCodice");
-      CREATE INDEX IF NOT EXISTS "company_accounting_entries_anno_protocollo_idx" ON "company_accounting_entries"("anno", "protocollo");
+      )
+    `)
 
-      // 8. Tabella studio_ai_memories (Apprendimento continuo IA Studio)
+    await executeSingleStatement(`ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "registroCodice" TEXT DEFAULT 'A1'`)
+    await executeSingleStatement(`ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "protocollo" INTEGER`)
+    await executeSingleStatement(`ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "anno" INTEGER`)
+    await executeSingleStatement(`ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "codiceIvaCgn" TEXT`)
+    await executeSingleStatement(`ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "naturaSdi" TEXT`)
+    await executeSingleStatement(`ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "anagraficaSoggetto" TEXT`)
+    await executeSingleStatement(`ALTER TABLE "company_accounting_entries" ADD COLUMN IF NOT EXISTS "isScritturaNoIva" BOOLEAN DEFAULT false`)
+    await executeSingleStatement(`CREATE INDEX IF NOT EXISTS "company_accounting_entries_companyId_idx" ON "company_accounting_entries"("companyId")`)
+    await executeSingleStatement(`CREATE INDEX IF NOT EXISTS "company_accounting_entries_dataRegistrazione_idx" ON "company_accounting_entries"("dataRegistrazione")`)
+    await executeSingleStatement(`CREATE INDEX IF NOT EXISTS "company_accounting_entries_tipoRegistro_idx" ON "company_accounting_entries"("tipoRegistro")`)
+    await executeSingleStatement(`CREATE INDEX IF NOT EXISTS "company_accounting_entries_registroCodice_idx" ON "company_accounting_entries"("registroCodice")`)
+    await executeSingleStatement(`CREATE INDEX IF NOT EXISTS "company_accounting_entries_anno_protocollo_idx" ON "company_accounting_entries"("anno", "protocollo")`)
+
+    // 7. Tabella studio_ai_memories (Apprendimento continuo IA Studio)
+    await executeSingleStatement(`
       CREATE TABLE IF NOT EXISTS "studio_ai_memories" (
         "id" TEXT PRIMARY KEY,
         "tipo" TEXT NOT NULL,
@@ -159,10 +171,12 @@ export async function assureDbSchemaAligned() {
         "creatoDa" TEXT DEFAULT 'Dott. Antonio Tuzio',
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-      CREATE INDEX IF NOT EXISTS "studio_ai_memories_tipo_chiavePattern_idx" ON "studio_ai_memories"("tipo", "chiavePattern");
+      )
+    `)
+    await executeSingleStatement(`CREATE INDEX IF NOT EXISTS "studio_ai_memories_tipo_chiavePattern_idx" ON "studio_ai_memories"("tipo", "chiavePattern")`)
 
-      // 9. Tabella studio_knowledge_documents (Biblioteca Normativa & Manuali PDF RAG)
+    // 8. Tabella studio_knowledge_documents (Biblioteca Normativa & Manuali PDF RAG)
+    await executeSingleStatement(`
       CREATE TABLE IF NOT EXISTS "studio_knowledge_documents" (
         "id" TEXT PRIMARY KEY,
         "titolo" TEXT NOT NULL,
@@ -177,10 +191,10 @@ export async function assureDbSchemaAligned() {
         "attivo" BOOLEAN NOT NULL DEFAULT true,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-      CREATE INDEX IF NOT EXISTS "studio_knowledge_documents_categoria_idx" ON "studio_knowledge_documents"("categoria");
-      CREATE INDEX IF NOT EXISTS "studio_knowledge_documents_attivo_idx" ON "studio_knowledge_documents"("attivo");
+      )
     `)
+    await executeSingleStatement(`CREATE INDEX IF NOT EXISTS "studio_knowledge_documents_categoria_idx" ON "studio_knowledge_documents"("categoria")`)
+    await executeSingleStatement(`CREATE INDEX IF NOT EXISTS "studio_knowledge_documents_attivo_idx" ON "studio_knowledge_documents"("attivo")`)
 
     isAligned = true
   } catch (err: any) {
